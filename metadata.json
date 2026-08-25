@@ -1,0 +1,8 @@
+{
+  "name": "DentisPro - Gestão Odontológica",
+  "description": "Sistema completo de gestão para clínicas odontológicas com cadastro de pacientes, agendamento via WhatsApp, odontograma interativo, controle de estoque, relatórios financeiros e emissão de receitas médicas.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

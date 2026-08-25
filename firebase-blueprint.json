@@ -1,0 +1,31 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profiles",
+      "description": "Registered user accounts and role permissions",
+      "properties": {
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "dentist", "receptionist"] },
+        "cro": { "type": "string" },
+        "specialty": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email", "name", "role"]
+    },
+    "clinic_parameters": {
+      "title": "Clinic System Parameters",
+      "description": "Global clinic settings and configuration parameters",
+      "properties": {
+        "name": { "type": "string" },
+        "cro": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name"]
+    }
+  }
+}
