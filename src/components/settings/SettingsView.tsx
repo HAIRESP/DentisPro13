@@ -11,6 +11,8 @@ import {
   Phone, 
   Mail, 
   Building, 
+  Building2,
+  MapPin,
   Check, 
   Palette, 
   Image as ImageIcon, 
@@ -315,6 +317,36 @@ export const SettingsView: React.FC = () => {
   const [showAddDentist, setShowAddDentist] = useState(false);
   const [newDentistNameInput, setNewDentistNameInput] = useState('');
   const [newDentistCroInput, setNewDentistCroInput] = useState('');
+
+  // Delete confirmation modals
+  const [clinicToDeleteInSettings, setClinicToDeleteInSettings] = useState<ClinicUnit | null>(null);
+  const [dentistToDeleteInSettings, setDentistToDeleteInSettings] = useState<Professional | null>(null);
+
+  const handleConfirmDeleteClinic = () => {
+    if (clinicToDeleteInSettings) {
+      deleteClinic(clinicToDeleteInSettings.id);
+      if (selectedClinicDropdownId === clinicToDeleteInSettings.id) {
+        const remaining = clinics.filter(c => c.id !== clinicToDeleteInSettings.id);
+        if (remaining.length > 0) {
+          handleSelectClinicDropdown(remaining[0].id);
+        }
+      }
+      setClinicToDeleteInSettings(null);
+    }
+  };
+
+  const handleConfirmDeleteDentist = () => {
+    if (dentistToDeleteInSettings) {
+      deleteProfessional(dentistToDeleteInSettings.id);
+      if (selectedDentistDropdownId === dentistToDeleteInSettings.id) {
+        const remaining = professionals.filter(p => p.id !== dentistToDeleteInSettings.id);
+        if (remaining.length > 0) {
+          handleSelectDentistDropdown(remaining[0].id);
+        }
+      }
+      setDentistToDeleteInSettings(null);
+    }
+  };
 
   // Handle Mutual Exclusion Dropdowns
   const handleSelectClinicDropdown = (clinicId: string) => {
@@ -1098,6 +1130,286 @@ export const SettingsView: React.FC = () => {
                 </option>
               ))}
             </select>
+          </div>
+        </div>
+
+        {/* Lista Visual de Clínicas e Profissionais Cadastrados */}
+        <div className="bg-[#fbfbf9] border border-[#e5e5d1] rounded-2xl p-4 space-y-4">
+          {/* Clínicas */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-[#d4a373]" />
+                <h3 className="text-xs font-bold text-[#2c3e2e] uppercase tracking-wider">
+                  Lista de Clínicas e Unidades ({clinics.length})
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddClinic(true)}
+                className="text-xs font-bold text-[#5a5a40] hover:text-[#2c3e2e] flex items-center gap-1 cursor-pointer transition"
+              >
+                <Plus className="w-3.5 h-3.5 text-[#d4a373]" />
+                Cadastrar Nova Clínica
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {clinics.map((clinic) => {
+                const isSelectedInForm = activeSelectionMode === 'clinic' && selectedClinicDropdownId === clinic.id;
+                const isSystemActive = activeClinicId === clinic.id;
+                const linkedProfs = professionals.filter(p => p.clinicIds && p.clinicIds.includes(clinic.id));
+                return (
+                  <div
+                    key={clinic.id}
+                    onClick={() => handleSelectClinicDropdown(clinic.id)}
+                    className={`bg-white border rounded-xl p-3.5 transition flex flex-col justify-between space-y-2.5 cursor-pointer hover:shadow-xs group ${
+                      isSelectedInForm
+                        ? 'border-[#5a5a40] ring-2 ring-[#5a5a40]/20 shadow-xs'
+                        : 'border-[#e5e5d1] hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-start justify-between gap-1.5">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[9px] font-mono font-bold text-gray-400 bg-gray-100 px-1 py-0.2 rounded">
+                            {clinic.id}
+                          </span>
+                          <h4 className="text-xs font-bold text-[#2c2c2c] leading-tight group-hover:text-[#5a5a40] transition-colors">
+                            {clinic.name}
+                          </h4>
+                        </div>
+                        {isSystemActive && (
+                          <span className="text-[9.5px] font-bold text-[#5a5a40] bg-[#5a5a40]/10 px-1.5 py-0.5 rounded shrink-0">
+                            Ativa
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-[11px] text-gray-500 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-[#d4a373] shrink-0" />
+                        <span>{clinic.city || 'São Paulo - SP'}</span>
+                      </p>
+
+                      {clinic.address && (
+                        <p className="text-[11px] text-gray-600 line-clamp-2">
+                          {clinic.address}
+                        </p>
+                      )}
+
+                      {clinic.phone && (
+                        <p className="text-[11px] text-gray-600 flex items-center gap-1">
+                          <Phone className="w-3 h-3 text-gray-400 shrink-0" />
+                          <span>{clinic.phone}</span>
+                        </p>
+                      )}
+
+                      {clinic.technicalManager && (
+                        <p className="text-[10.5px] text-gray-600">
+                          <span className="font-semibold text-gray-700">Resp. Técnico:</span> {clinic.technicalManager}
+                        </p>
+                      )}
+
+                      {clinic.epaoNumber && (
+                        <p className="text-[10px] font-mono text-gray-500">
+                          <span>EPAO:</span> {clinic.epaoNumber}
+                        </p>
+                      )}
+
+                      {linkedProfs.length > 0 && (
+                        <div className="pt-1.5">
+                          <span className="text-[9.5px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">
+                            Dentistas Vinculados:
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {linkedProfs.map(lp => (
+                              <span key={lp.id} className="text-[9.5px] px-1.5 py-0.5 bg-[#5a5a40]/10 text-[#5a5a40] rounded font-medium">
+                                {lp.name.split(' ')[0]} {lp.name.split(' ')[1] || ''}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-[#e5e5d1]/60">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectClinicDropdown(clinic.id);
+                          }}
+                          className={`text-xs font-bold px-2 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer ${
+                            isSelectedInForm
+                              ? 'bg-[#5a5a40] text-white'
+                              : 'bg-[#5a5a40]/10 text-[#5a5a40] hover:bg-[#5a5a40]/20'
+                          }`}
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          <span>{isSelectedInForm ? 'Selecionada' : 'Editar'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setClinicToDeleteInSettings(clinic);
+                          }}
+                          className="text-xs font-bold px-1.5 py-1 text-rose-600 hover:bg-rose-50 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                          title="Excluir esta clínica"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Excluir</span>
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectClinicDropdown(clinic.id);
+                          setActiveClinicId(clinic.id);
+                        }}
+                        className={`text-[11px] font-semibold transition cursor-pointer px-1.5 py-0.5 rounded ${
+                          isSystemActive
+                            ? 'text-[#5a5a40] font-bold bg-[#5a5a40]/10'
+                            : 'text-gray-500 hover:text-gray-800'
+                        }`}
+                        title="Definir como unidade ativa no sistema"
+                      >
+                        {isSystemActive ? 'Ativa' : 'Ativar'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Profissionais */}
+          <div className="space-y-3 pt-3 border-t border-[#e5e5d1]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Stethoscope className="w-4 h-4 text-[#d4a373]" />
+                <h3 className="text-xs font-bold text-[#2c3e2e] uppercase tracking-wider">
+                  Corpo Clínico & Profissionais Cadastrados ({professionals.length})
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddDentist(true)}
+                className="text-xs font-bold text-[#5a5a40] hover:text-[#2c3e2e] flex items-center gap-1 cursor-pointer transition"
+              >
+                <Plus className="w-3.5 h-3.5 text-[#d4a373]" />
+                Cadastrar Novo Dentista
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {professionals.map((prof) => {
+                const isSelectedInForm = activeSelectionMode === 'dentist' && selectedDentistDropdownId === prof.id;
+                const isSystemActive = activeProfessionalId === prof.id;
+                const linkedClinics = clinics.filter(c => prof.clinicIds && prof.clinicIds.includes(c.id));
+                return (
+                  <div
+                    key={prof.id}
+                    onClick={() => handleSelectDentistDropdown(prof.id)}
+                    className={`bg-white border rounded-xl p-3.5 transition flex flex-col justify-between space-y-2.5 cursor-pointer hover:shadow-xs group ${
+                      isSelectedInForm
+                        ? 'border-[#5a5a40] ring-2 ring-[#5a5a40]/20 shadow-xs'
+                        : 'border-[#e5e5d1] hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-start justify-between gap-1.5">
+                        <div>
+                          <h4 className="text-xs font-bold text-[#2c2c2c] leading-tight group-hover:text-[#5a5a40] transition-colors">
+                            {prof.name}
+                          </h4>
+                          <span className="text-[10.5px] font-mono font-bold text-[#5a5a40]">
+                            {prof.cro}
+                          </span>
+                        </div>
+                        {isSystemActive && (
+                          <span className="text-[9.5px] font-bold text-[#5a5a40] bg-[#5a5a40]/10 px-1.5 py-0.5 rounded shrink-0">
+                            Ativo
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-[11px] text-gray-600">
+                        <span className="font-semibold text-gray-700">Especialidade:</span> {prof.specialty}
+                      </p>
+
+                      {/* Vínculo */}
+                      <div className="pt-1">
+                        <span className="text-[9.5px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">
+                          Vínculo ({linkedClinics.length} unidades):
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {linkedClinics.map(lc => (
+                            <span key={lc.id} className="text-[9.5px] px-1.5 py-0.5 bg-[#d4a373]/15 text-[#6c4e28] rounded font-medium">
+                              {lc.name.replace('DentisPro - ', '').replace('Unidade ', '')}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-[#e5e5d1]/60">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectDentistDropdown(prof.id);
+                          }}
+                          className={`text-xs font-bold px-2 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer ${
+                            isSelectedInForm
+                              ? 'bg-[#5a5a40] text-white'
+                              : 'bg-[#5a5a40]/10 text-[#5a5a40] hover:bg-[#5a5a40]/20'
+                          }`}
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          <span>{isSelectedInForm ? 'Selecionado' : 'Editar'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDentistToDeleteInSettings(prof);
+                          }}
+                          className="text-xs font-bold px-1.5 py-1 text-rose-600 hover:bg-rose-50 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                          title="Excluir este profissional"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Excluir</span>
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectDentistDropdown(prof.id);
+                          setActiveProfessionalId(prof.id);
+                        }}
+                        className={`text-[11px] font-semibold transition cursor-pointer px-1.5 py-0.5 rounded ${
+                          isSystemActive
+                            ? 'text-[#5a5a40] font-bold bg-[#5a5a40]/10'
+                            : 'text-gray-500 hover:text-gray-800'
+                        }`}
+                        title="Definir como profissional ativo no sistema"
+                      >
+                        {isSystemActive ? 'Ativo' : 'Ativar'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -2574,6 +2886,83 @@ export const SettingsView: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+      {/* DELETE CLINIC CONFIRMATION MODAL */}
+      {clinicToDeleteInSettings && (
+        <div className={`fixed inset-0 z-60 ${t.overlayBg} flex items-center justify-center p-4`}>
+          <div className={`${t.modalBg} border ${t.modalBorder} rounded-[28px] max-w-md w-full p-6 shadow-2xl space-y-4`}>
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h4 className={`text-base font-bold ${t.modalText}`}>Excluir Clínica / Unidade</h4>
+                <p className="text-xs text-gray-500">Esta ação removerá a unidade do sistema</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Deseja realmente remover a clínica <strong className="text-gray-900 font-semibold">{clinicToDeleteInSettings.name}</strong> ({clinicToDeleteInSettings.city || 'São Paulo - SP'})? Os vínculos dos profissionais com esta unidade serão desfeitos automaticamente.
+            </p>
+
+            <div className={`flex items-center justify-end gap-2 pt-3 border-t ${t.modalBorder}`}>
+              <button
+                type="button"
+                onClick={() => setClinicToDeleteInSettings(null)}
+                className={`px-4 py-2 ${t.btnSecondaryBg} ${t.btnSecondaryText} font-bold text-xs rounded-xl cursor-pointer`}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteClinic}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Excluir Clínica
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE DENTIST CONFIRMATION MODAL */}
+      {dentistToDeleteInSettings && (
+        <div className={`fixed inset-0 z-60 ${t.overlayBg} flex items-center justify-center p-4`}>
+          <div className={`${t.modalBg} border ${t.modalBorder} rounded-[28px] max-w-md w-full p-6 shadow-2xl space-y-4`}>
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h4 className={`text-base font-bold ${t.modalText}`}>Excluir Profissional</h4>
+                <p className="text-xs text-gray-500">Esta ação removerá o dentista do sistema</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Deseja realmente remover o profissional <strong className="text-gray-900 font-semibold">{dentistToDeleteInSettings.name}</strong> ({dentistToDeleteInSettings.cro}) do corpo clínico?
+            </p>
+
+            <div className={`flex items-center justify-end gap-2 pt-3 border-t ${t.modalBorder}`}>
+              <button
+                type="button"
+                onClick={() => setDentistToDeleteInSettings(null)}
+                className={`px-4 py-2 ${t.btnSecondaryBg} ${t.btnSecondaryText} font-bold text-xs rounded-xl cursor-pointer`}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteDentist}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Excluir Profissional
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

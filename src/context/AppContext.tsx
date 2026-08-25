@@ -278,8 +278,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const [clinics, setClinics] = useState<ClinicUnit[]>(() => loadInitial(STORAGE_KEYS.CLINICS, INITIAL_CLINICS));
-  const [professionals, setProfessionals] = useState<Professional[]>(() => loadInitial(STORAGE_KEYS.PROFESSIONALS, INITIAL_PROFESSIONALS));
+  const [clinics, setClinics] = useState<ClinicUnit[]>(() => {
+    const loaded = loadInitial<ClinicUnit[]>(STORAGE_KEYS.CLINICS, INITIAL_CLINICS);
+    const map = new Map<string, ClinicUnit>();
+    INITIAL_CLINICS.forEach(c => map.set(c.id, c));
+    if (Array.isArray(loaded)) {
+      loaded.forEach(c => {
+        if (map.has(c.id)) {
+          map.set(c.id, { ...c, ...map.get(c.id) });
+        } else {
+          map.set(c.id, c);
+        }
+      });
+    }
+    return Array.from(map.values());
+  });
+
+  const [professionals, setProfessionals] = useState<Professional[]>(() => {
+    const loaded = loadInitial<Professional[]>(STORAGE_KEYS.PROFESSIONALS, INITIAL_PROFESSIONALS);
+    const map = new Map<string, Professional>();
+    INITIAL_PROFESSIONALS.forEach(p => map.set(p.id, p));
+    if (Array.isArray(loaded)) {
+      loaded.forEach(p => {
+        if (map.has(p.id)) {
+          map.set(p.id, { ...p, ...map.get(p.id) });
+        } else {
+          map.set(p.id, p);
+        }
+      });
+    }
+    return Array.from(map.values());
+  });
   const [activeProfessionalId, setActiveProfessionalIdState] = useState<string>(() => {
     const loaded = loadInitial('dentispro_active_prof_v1', '');
     if (loaded && INITIAL_PROFESSIONALS.some(p => p.id === loaded)) return loaded;
@@ -477,6 +506,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.INSURANCE_GUIDES, JSON.stringify(insuranceGuides)); }, [insuranceGuides]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.SAVED_DOCUMENTS, JSON.stringify(savedClinicDocuments)); }, [savedClinicDocuments]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.DOCUMENT_TEMPLATES, JSON.stringify(documentTemplates)); }, [documentTemplates]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CLINICS, JSON.stringify(clinics)); }, [clinics]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.PROFESSIONALS, JSON.stringify(professionals)); }, [professionals]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ACTIVE_CLINIC, JSON.stringify(activeClinicId)); }, [activeClinicId]);
   useEffect(() => { 
     localStorage.setItem(STORAGE_KEYS.LAYOUT_THEME, JSON.stringify(layoutTheme));
     document.documentElement.setAttribute('data-theme', layoutTheme);
@@ -924,7 +956,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteProfessional = (id: string) => {
-    setProfessionals(prev => prev.filter(p => p.id !== id));
+    setProfessionals(prev => {
+      const remaining = prev.filter(p => p.id !== id);
+      if (activeProfessionalId === id) {
+        if (remaining.length > 0) {
+          setActiveProfessionalId(remaining[0].id);
+        }
+      }
+      return remaining;
+    });
   };
 
   // Clinics Management Handlers
@@ -944,7 +984,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteClinic = (id: string) => {
-    setClinics(prev => prev.filter(c => c.id !== id));
+    setClinics(prev => {
+      const remaining = prev.filter(c => c.id !== id);
+      if (activeClinicId === id) {
+        setActiveClinicId(remaining.length > 0 ? remaining[0].id : 'todas');
+      }
+      return remaining;
+    });
+    // Remove deleted clinic from professionals' clinic associations
+    setProfessionals(prev => prev.map(p => ({
+      ...p,
+      clinicIds: p.clinicIds ? p.clinicIds.filter(cid => cid !== id) : []
+    })));
   };
 
   // Update Clinic Info

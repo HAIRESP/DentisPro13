@@ -11,28 +11,28 @@ export const INITIAL_CLINICS: ClinicUnit[] = [
   {
     id: 'cli-1',
     name: 'DentisPro - Unidade Centro / Paulista',
-    address: 'Av. Paulista, 1500 - Conjunto 304',
+    address: 'Av. Paulista, 1500 - Conjunto 304 - Bela Vista',
     phone: '(11) 3251-4000',
     city: 'São Paulo - SP'
   },
   {
     id: 'cli-2',
     name: 'DentisPro - Unidade Jardins',
-    address: 'Rua Oscar Freire, 920 - Sala 12',
+    address: 'Rua Oscar Freire, 920 - Sala 12 - Cerqueira César',
     phone: '(11) 3088-2200',
     city: 'São Paulo - SP'
   },
   {
     id: 'cli-3',
     name: 'DentisPro - Unidade Vila Mariana / Sul',
-    address: 'Rua Vergueiro, 2200 - Conjunto 81',
+    address: 'Rua Vergueiro, 2200 - Conjunto 81 - Vila Mariana',
     phone: '(11) 5084-1100',
     city: 'São Paulo - SP'
   },
   {
     id: 'cli-4',
     name: 'DentisPro - Unidade Tatuapé / Zona Leste',
-    address: 'Rua Tuiuti, 1800 - Sala 405',
+    address: 'Rua Tuiuti, 1800 - Sala 405 - Tatuapé',
     phone: '(11) 2091-7700',
     city: 'São Paulo - SP'
   }
@@ -41,10 +41,10 @@ export const INITIAL_CLINICS: ClinicUnit[] = [
 export const INITIAL_PROFESSIONALS: Professional[] = [
   {
     id: 'prof-hugo',
-    name: 'Hugo Andres Iglesias Ricoy',
+    name: 'Dr. Hugo Andres Iglesias Ricoy',
     cro: 'CRO/CE 5925',
     cpf: '879.750.253-72',
-    specialty: 'Implantodontia, Ortodontia & Gestão Odontológica',
+    specialty: 'Implantodontia, Prótese & Clínica Geral',
     clinicIds: ['cli-marv', 'cli-1', 'cli-2', 'cli-3', 'cli-4']
   },
   {
@@ -65,15 +65,15 @@ export const INITIAL_PROFESSIONALS: Professional[] = [
     id: 'prof-3',
     name: 'Dr. Roberto Fonseca',
     cro: 'CRO/SP 789012',
-    specialty: 'Endodontia & Cirurgia Bocheco-Maxilo',
+    specialty: 'Endodontia & Cirurgia Bucomaxilofacial',
     clinicIds: ['cli-2', 'cli-3', 'cli-4']
   },
   {
     id: 'prof-4',
     name: 'Dra. Juliana Costa',
     cro: 'CRO/SP 345678',
-    specialty: 'Odontopediatria & Pacientes Especiais',
-    clinicIds: ['cli-1', 'cli-3', 'cli-4']
+    specialty: 'Odontopediatria & Pacientes com Necessidades Especiais',
+    clinicIds: ['cli-1', 'cli-3']
   }
 ];
 

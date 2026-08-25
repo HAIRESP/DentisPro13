@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp, ActiveTab } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { UserSessionModal } from './UserSessionModal';
+import { ClinicListModal } from './ClinicListModal';
 import { 
   Users, 
   Calendar, 
@@ -19,7 +20,10 @@ import {
   Lock,
   Boxes,
   UserPlus,
-  ClipboardList
+  ClipboardList,
+  Edit2,
+  Check,
+  Building2
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -28,6 +32,7 @@ export const Sidebar: React.FC = () => {
     setActiveTab, 
     inventory, 
     clinicInfo, 
+    updateClinicInfo,
     professionals, 
     activeProfessionalId, 
     setActiveProfessionalId,
@@ -41,6 +46,13 @@ export const Sidebar: React.FC = () => {
   const { currentUser, userRole, userPermissions, checkTabPermission } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSessionModal, setShowSessionModal] = useState(false);
+  const [showClinicListModal, setShowClinicListModal] = useState(false);
+
+  // Brand Name Editing State
+  const [isEditingBrand, setIsEditingBrand] = useState(false);
+  const [brandTitleInput, setBrandTitleInput] = useState(clinicInfo.headerTitle || clinicInfo.name || 'DentisPro');
+
+  const currentBrandDisplay = clinicInfo.name || clinicInfo.headerTitle || 'DentisPro';
 
   // Check low stock count
   const lowStockCount = inventory.filter(i => i.quantity <= i.minQuantity).length;
@@ -107,10 +119,25 @@ export const Sidebar: React.FC = () => {
           <div className={`w-8 h-8 rounded-lg ${brandAccent} bg-white/10 flex items-center justify-center font-bold`}>
             <Stethoscope className="w-5 h-5 text-white" />
           </div>
-          <span className="font-serif italic text-lg text-white">DentisPro</span>
+          <span className="font-serif italic text-lg text-white">
+            {currentBrandDisplay.toLowerCase() === 'dentispro' ? (
+              <>Dentis<span className={brandAccent}>Pro</span></>
+            ) : (
+              currentBrandDisplay
+            )}
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowClinicListModal(true)}
+            className="p-1.5 rounded-xl text-xs font-bold bg-white/15 text-white hover:bg-white/25 transition flex items-center gap-1 cursor-pointer"
+            title="Lista de Clínicas Cadastradas"
+          >
+            <Building2 className="w-4 h-4 text-[#d4a373]" />
+          </button>
+
           <button
             type="button"
             onClick={() => setActiveTab('documentos')}
@@ -210,35 +237,108 @@ export const Sidebar: React.FC = () => {
           {/* Logo Brand Header */}
           <div 
             onClick={() => {
-              setActiveTab('dashboard');
-              setMobileMenuOpen(false);
+              if (!isEditingBrand) {
+                setActiveTab('dashboard');
+                setMobileMenuOpen(false);
+              }
             }}
-            className={`p-3.5 mx-3 my-3 rounded-2xl border flex items-center justify-center text-center cursor-pointer transition shadow-xs group relative ${
-              activeTab === 'dashboard' 
+            className={`p-3 mx-3 my-3 rounded-2xl border flex items-center justify-between transition shadow-xs group relative ${
+              activeTab === 'dashboard' && !isEditingBrand
                 ? 'bg-white/20 border-white/40 ring-2 ring-white/30 shadow-md' 
                 : 'bg-white/5 border-white/10 hover:bg-white/10'
             }`}
-            title="Ir para o Painel - DentisPro"
+            title="Ir para o Painel Principal"
           >
-            <div className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-xl ${brandAccent} bg-white/10 flex items-center justify-center font-bold shadow-xs`}>
-                <LayoutDashboard className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-white text-2xl font-serif italic tracking-wide">
-                Dentis<span className={brandAccent}>Pro</span>
-              </h1>
-            </div>
-
-            {mobileMenuOpen && (
-              <button 
-                onClick={(e) => {
+            {isEditingBrand ? (
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
-                  setMobileMenuOpen(false);
-                }} 
-                className="lg:hidden absolute right-2 top-2 text-white/70 hover:text-white p-1 rounded-lg"
+                  const trimmed = brandTitleInput.trim();
+                  if (trimmed) {
+                    updateClinicInfo({ name: trimmed, headerTitle: trimmed });
+                  }
+                  setIsEditingBrand(false);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1.5 w-full"
               >
-                <X className="w-4 h-4" />
-              </button>
+                <input
+                  type="text"
+                  autoFocus
+                  value={brandTitleInput}
+                  onChange={(e) => setBrandTitleInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      setBrandTitleInput(currentBrandDisplay);
+                      setIsEditingBrand(false);
+                    }
+                  }}
+                  className="w-full bg-white/20 text-white font-serif italic text-base px-2 py-1 rounded-xl border border-white/40 focus:outline-none focus:ring-2 focus:ring-white/50"
+                  placeholder="Nome do Sistema / Clínica"
+                />
+                <button
+                  type="submit"
+                  className="p-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition shrink-0 cursor-pointer shadow-xs"
+                  title="Salvar Nome"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setBrandTitleInput(currentBrandDisplay);
+                    setIsEditingBrand(false);
+                  }}
+                  className="p-1.5 bg-white/10 hover:bg-white/20 text-white/80 hover:text-white rounded-lg transition shrink-0 cursor-pointer"
+                  title="Cancelar"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </form>
+            ) : (
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <div className={`w-8 h-8 rounded-xl ${brandAccent} bg-white/10 flex items-center justify-center font-bold shadow-xs shrink-0`}>
+                    <LayoutDashboard className="w-5 h-5 text-white" />
+                  </div>
+                  <h1 className="text-white text-2xl font-serif italic tracking-wide truncate">
+                    {currentBrandDisplay.toLowerCase() === 'dentispro' ? (
+                      <>Dentis<span className={brandAccent}>Pro</span></>
+                    ) : (
+                      currentBrandDisplay
+                    )}
+                  </h1>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setBrandTitleInput(currentBrandDisplay);
+                      setIsEditingBrand(true);
+                    }}
+                    className="p-1.5 text-white/50 hover:text-white hover:bg-white/15 rounded-lg transition opacity-80 group-hover:opacity-100 cursor-pointer"
+                    title="Editar nome do sistema / clínica"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+
+                  {mobileMenuOpen && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMobileMenuOpen(false);
+                      }} 
+                      className="lg:hidden text-white/70 hover:text-white p-1 rounded-lg"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
           </div>
 
@@ -289,14 +389,25 @@ export const Sidebar: React.FC = () => {
 
               {clinics.length > 0 && (
                 <div>
-                  <span className="text-[9px] text-white/70 block mb-0.5">Unidade / Consultório:</span>
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-[9px] text-white/70 block">Unidade / Consultório:</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowClinicListModal(true)}
+                      className="text-[9px] font-bold text-[#d4a373] hover:text-white transition flex items-center gap-0.5 cursor-pointer underline decoration-dotted"
+                      title="Ver e gerenciar todas as clínicas cadastradas"
+                    >
+                      <Building2 className="w-2.5 h-2.5" />
+                      <span>Ver Lista ({clinics.length})</span>
+                    </button>
+                  </div>
                   <select
                     value={activeClinicId}
                     onChange={(e) => setActiveClinicId(e.target.value)}
                     className={`w-full ${selectBg} text-white border border-white/20 rounded-xl px-2 py-1 text-[11px] font-medium focus:outline-none focus:border-white cursor-pointer`}
                     title="Trocar Unidade Ativa"
                   >
-                    <option value="todas" className={`${selectBg} text-white`}>Todas as Unidades</option>
+                    <option value="todas" className={`${selectBg} text-white`}>Todas as Unidades ({clinics.length})</option>
                     {clinics.map(c => (
                       <option key={c.id} value={c.id} className={`${selectBg} text-white`}>
                         {c.name}
@@ -392,6 +503,16 @@ export const Sidebar: React.FC = () => {
       <UserSessionModal 
         isOpen={showSessionModal} 
         onClose={() => setShowSessionModal(false)} 
+      />
+
+      {/* Clinic List Modal */}
+      <ClinicListModal
+        isOpen={showClinicListModal}
+        onClose={() => setShowClinicListModal(false)}
+        onOpenSettingsClinic={(clinicId) => {
+          setActiveClinicId(clinicId);
+          setActiveTab('configuracoes');
+        }}
       />
 
       {/* Backdrop for mobile menu */}
