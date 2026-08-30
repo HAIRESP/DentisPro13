@@ -104,6 +104,140 @@ Se um dado não for visível no documento, retorne uma string vazia para o campo
     }
   });
 
+  // --- ENDPOINT DE IA DE VOZ INTELIGENTE PARA ODONTOGRAMA ---
+  app.post("/api/gemini/parse-voice-odontogram", async (req, res) => {
+    try {
+      const { textCommand, currentSelectedTeeth = [] } = req.body;
+      if (!textCommand || !textCommand.trim()) {
+        return res.status(400).json({ error: "Comando de voz em texto é obrigatório." });
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(200).json({
+          success: true,
+          source: "fallback_no_key",
+          data: {
+            action: "apply_condition",
+            teeth: [],
+            conditionType: "carie",
+            surfaces: ["oclusal"],
+            wholeToothCondition: null,
+            notes: "",
+            summary: "Comando recebido: " + textCommand,
+            spokenFeedback: "Comando interpretado localmente."
+          }
+        });
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            "User-Agent": "aistudio-build",
+          },
+        },
+      });
+
+      const prompt = `Você é o assistente odontológico de inteligência artificial do sistema DentisPro, especialista em odontologia clínica, numeração FDI de dentes e preenchimento de prontuários por voz.
+Analise a transcrição de voz do cirurgião-dentista e extraia a ação e os dados odontológicos com extrema precisão.
+
+Texto falado pelo dentista:
+"${textCommand}"
+
+Dentes atualmente selecionados na tela (se o dentista disser "neste dente", "nestes dentes" ou omitir número de dente): [${currentSelectedTeeth.join(", ")}]
+
+Tabela de Notação Dentária FDI permitida:
+- Arcada Superior Permanente: 18, 17, 16, 15, 14, 13, 12, 11 (Q1) | 21, 22, 23, 24, 25, 26, 27, 28 (Q2)
+- Arcada Inferior Permanente: 48, 47, 46, 45, 44, 43, 42, 41 (Q4) | 31, 32, 33, 34, 35, 36, 37, 38 (Q3)
+- Arcada Decídua (Infantil): 55, 54, 53, 52, 51 | 61, 62, 63, 64, 65 | 85, 84, 83, 82, 81 | 71, 72, 73, 74, 75
+
+Sinônimos e mapeamentos de termos:
+- "arcada superior" = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28]
+- "arcada inferior" = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38]
+- "ambas as arcadas" / "toda a boca" / "todos os dentes" = todos os 32 permanentes
+- "molares superiores" = [18,17,16,26,27,28]
+- "molares inferiores" = [48,47,46,36,37,38]
+- "anteriores inferiores" = [43,42,41,31,32,33]
+- "anteriores superiores" = [13,12,11,21,22,23]
+- "siso" / "terceiro molar" = [18, 28, 38, 48] (se não especificar lado, considerar os mencionados)
+
+Condições clínicas permitidas (conditionType):
+- "carie" (cárie, lesão cariosa, mancha escura, cavidade)
+- "restauracao" (restauração satisfatória, resina, amálgama bom)
+- "restauracao_insatisfatoria" (restauração insatisfatória, infiltração, fraturada, recidiva de cárie)
+- "canal" (endodontia, canal tratado, biopulpectomia, necropulpectomia, retratamento de canal)
+- "extracao_indicada" (extração indicada, exodontia, residual)
+- "ausente" (ausente, dente perdido, extraído, agenesia)
+- "implante" (implante dentário, parafuso de titânio, pino osseointegrado)
+- "protese" (prótese fixa, coroa protética, metalocerâmica, faceta, bloco, onlay, inlay)
+- "calculo_supragengival" (cálculo supragengival, tártaro supra)
+- "calculo_subgengival" (cálculo subgengival, tártaro sub, bolsa periodontal)
+- "girovertido" (giroversão, girovertido, dente rodado)
+- "sio" (hígido, sem alteração, saudável, limpo, remover marcação, desmarcar)
+
+Faces Anatômicas (surfaces):
+- "vestibular" (vestibular, frente, labial)
+- "mesial" (mesial, anterior)
+- "distal" (distal, posterior)
+- "oclusal" (oclusal, mastigatória)
+- "incisal" (incisal, ponta, borda incisal)
+- "palatina" (palatina, céu da boca)
+- "lingual" (lingual, lado da língua)
+
+Ações (action):
+- "apply_condition": aplica condição clínica a faces ou dente inteiro
+- "select_teeth": apenas seleciona os dentes na tela
+- "clear_teeth": desmarca ou redefine para hígido
+- "add_notes": anota observação clínica
+
+Gere uma resposta estruturada em JSON contendo:
+- action: a ação ("apply_condition", "select_teeth", "clear_teeth" ou "add_notes")
+- teeth: array com os números inteiros dos dentes (ex: [16, 17])
+- conditionType: a condição clínica correspondente ou "sio" se for para limpar
+- surfaces: array com as faces afetadas (ex: ["oclusal", "mesial"]) ou array vazio se for condição de dente inteiro ou dente ausente/implante/prótese/extração
+- isWholeTooth: booleano indicando se a condição afeta o dente como um todo (ausente, implante, coroa, extração indicada, canal, dente inteiro)
+- notes: texto curto de observações se houver detalhes extras (ex: "profunda", "resina composta")
+- summary: resumo curto e elegante em português formal da alteração realizada (ex: "Marcada cárie nas faces Oclusal e Mesial dos dentes 16 e 17.")
+- spokenFeedback: frase amigável, clara e curta para síntese de voz (TTS) confirmar ao dentista (ex: "Pronto! Registrei cárie nas faces oclusal e mesial dos dentes 16 e 17.")`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.7-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              action: { type: Type.STRING },
+              teeth: {
+                type: Type.ARRAY,
+                items: { type: Type.INTEGER }
+              },
+              conditionType: { type: Type.STRING },
+              surfaces: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING }
+              },
+              isWholeTooth: { type: Type.BOOLEAN },
+              notes: { type: Type.STRING },
+              summary: { type: Type.STRING },
+              spokenFeedback: { type: Type.STRING }
+            },
+            required: ["action", "teeth", "conditionType", "surfaces", "isWholeTooth", "summary", "spokenFeedback"]
+          }
+        }
+      });
+
+      const jsonText = response.text || "{}";
+      const parsedData = JSON.parse(jsonText);
+      return res.json({ success: true, source: "gemini_3.7_flash", data: parsedData });
+    } catch (error: any) {
+      console.error("Erro no processamento de voz do odontograma:", error);
+      return res.status(500).json({ error: error.message || "Falha ao interpretar comando de voz odontológico." });
+    }
+  });
+
   // --- ENDPOINTS DE INTEGRAÇÃO E DISPARO AUTOMÁTICO WHATSAPP ---
   app.post("/api/whatsapp/send", (req, res) => {
     const { to, message, instance } = req.body;

@@ -27,7 +27,13 @@ import {
   Bot,
   Upload,
   Printer,
-  Send
+  Send,
+  Lock,
+  ShieldCheck,
+  Sparkles,
+  Check,
+  Edit2,
+  Pencil
 } from 'lucide-react';
 import { Odontogram } from './Odontogram';
 import { ClinicalEvolution } from './ClinicalEvolution';
@@ -36,6 +42,7 @@ import { ClinicalExamView } from './ClinicalExamView';
 import { ImageGalleryWithEditor } from '../common/ImageGalleryWithEditor';
 import { AnamnesisModal } from './AnamnesisModal';
 import { PatientFinancialsTab } from './PatientFinancialsTab';
+import { PatientAttendanceReportModal } from './PatientAttendanceReportModal';
 import { AddressFields, AddressData, formatFullAddress } from '../common/AddressFields';
 import { PhoneInputWithDDI, formatPhoneWithDDI } from '../common/PhoneInputWithDDI';
 import { getThemeStyles } from '../../utils/themeUtils';
@@ -55,7 +62,9 @@ export const PatientList: React.FC = () => {
     clinicInfo, 
     openWhatsAppForAppointment,
     setActiveTab,
-    layoutTheme
+    layoutTheme,
+    saveOdontogramSnapshot,
+    odontograms
   } = useApp();
 
   const t = getThemeStyles(layoutTheme);
@@ -64,6 +73,7 @@ export const PatientList: React.FC = () => {
   const [filterInsurance, setFilterInsurance] = useState<string>('todos');
   const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
   const [isAnamnesisModalOpen, setIsAnamnesisModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [activeProfileTab, setActiveProfileTab] = useState<'info' | 'exame_clinico' | 'plano' | 'evolucao' | 'financeiro' | 'consultas' | 'documentos' | 'galeria'>('info');
 
   // Form state for new patient
@@ -77,6 +87,7 @@ export const PatientList: React.FC = () => {
   const [newBirthDate, setNewBirthDate] = useState('');
   const [newGender, setNewGender] = useState<Gender>('masculino');
   const [newInsurance, setNewInsurance] = useState('Particular');
+  const [newInsuranceNumber, setNewInsuranceNumber] = useState('');
   const [newClinicId, setNewClinicId] = useState(clinics[0]?.id || 'cli-1');
   const [newDentistName, setNewDentistName] = useState(professionals[0]?.name || clinicInfo.dentistName);
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
@@ -95,6 +106,121 @@ export const PatientList: React.FC = () => {
   const [hasHypertension, setHasHypertension] = useState(false);
   const [isPregnant, setIsPregnant] = useState(false);
   const [anamnesisNotes, setAnamnesisNotes] = useState('');
+
+  const [availableInsurances, setAvailableInsurances] = useState<string[]>([
+    'Particular',
+    'Unimed Odonto',
+    'Amil Dental',
+    'Bradesco Dental',
+    'OdontoPrev',
+    'Porto Seguro Odonto',
+    'SulAmérica Odonto',
+    'Intermédica',
+    'INPASGO',
+    'Ipasgo Saúde',
+    'Samp Odonto',
+    'MetLife'
+  ]);
+  const [isAddInsuranceModalOpen, setIsAddInsuranceModalOpen] = useState(false);
+  const [newInsuranceNameInput, setNewInsuranceNameInput] = useState('');
+  const [editingCarteirinha, setEditingCarteirinha] = useState(false);
+  const [carteirinhaInput, setCarteirinhaInput] = useState('');
+
+  // Edit patient modal state
+  const [isEditPatientModalOpen, setIsEditPatientModalOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editCpf, setEditCpf] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editBirthDate, setEditBirthDate] = useState('');
+  const [editGender, setEditGender] = useState<Gender>('masculino');
+  const [editInsurance, setEditInsurance] = useState('Particular');
+  const [editInsuranceNumber, setEditInsuranceNumber] = useState('');
+  const [editClinicId, setEditClinicId] = useState('');
+  const [editDentistName, setEditDentistName] = useState('');
+  const [editStatus, setEditStatus] = useState<'ativo' | 'inativo'>('ativo');
+  const [editPhotoUrl, setEditPhotoUrl] = useState('');
+  const [editAddress, setEditAddress] = useState<AddressData>({
+    cep: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: ''
+  });
+
+  const openEditPatientModal = (patient: Patient) => {
+    setEditName(patient.name || '');
+    setEditCpf(patient.cpf || '');
+    setEditPhone(patient.phone || '');
+    setEditEmail(patient.email || '');
+    setEditBirthDate(patient.birthDate || '');
+    setEditGender(patient.gender || 'masculino');
+    setEditInsurance(patient.healthInsurance || 'Particular');
+    setEditInsuranceNumber(patient.insuranceNumber || '');
+    setEditClinicId(patient.preferredClinicId || clinics[0]?.id || '');
+    setEditDentistName(patient.preferredDentistName || professionals[0]?.name || '');
+    setEditStatus(patient.status || 'ativo');
+    setEditPhotoUrl(patient.photoUrl || '');
+    setEditAddress({
+      cep: patient.address?.cep || '',
+      street: patient.address?.street || '',
+      number: patient.address?.number || '',
+      complement: patient.address?.complement || '',
+      neighborhood: patient.address?.neighborhood || '',
+      city: patient.address?.city || '',
+      state: patient.address?.state || ''
+    });
+    setIsEditPatientModalOpen(true);
+  };
+
+  const handleUpdatePatientSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPatient) return;
+    if (!editName.trim()) {
+      alert('O Nome Completo é de preenchimento obrigatório.');
+      return;
+    }
+    if (!editPhone.trim()) {
+      alert('O Telefone/WhatsApp é de preenchimento obrigatório.');
+      return;
+    }
+    if (!editBirthDate) {
+      alert('A Data de Nascimento é de preenchimento obrigatório.');
+      return;
+    }
+
+    const selectedClinic = clinics.find(c => c.id === editClinicId);
+    const isParticular = !editInsurance || editInsurance === 'Particular';
+
+    updatePatient(selectedPatient.id, {
+      name: editName,
+      cpf: formatCPF(editCpf) || selectedPatient.cpf,
+      phone: editPhone,
+      email: editEmail,
+      birthDate: editBirthDate,
+      gender: editGender,
+      healthInsurance: editInsurance || 'Particular',
+      insuranceNumber: isParticular ? '' : editInsuranceNumber.trim(),
+      status: editStatus,
+      photoUrl: editPhotoUrl || undefined,
+      preferredClinicId: selectedClinic?.id,
+      preferredClinicName: selectedClinic?.name,
+      preferredDentistName: editDentistName,
+      address: {
+        street: editAddress.street || '',
+        number: editAddress.number || '',
+        neighborhood: editAddress.neighborhood || '',
+        city: editAddress.city || '',
+        state: editAddress.state || '',
+        cep: editAddress.cep || '',
+        complement: editAddress.complement || undefined
+      }
+    });
+
+    setIsEditPatientModalOpen(false);
+  };
 
   // Handle Photo File Upload
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
@@ -143,6 +269,7 @@ export const PatientList: React.FC = () => {
     }
 
     const selectedClinic = clinics.find(c => c.id === newClinicId);
+    const isParticular = !newInsurance || newInsurance === 'Particular';
 
     const created = addPatient({
       name: newName,
@@ -151,7 +278,8 @@ export const PatientList: React.FC = () => {
       email: newEmail,
       birthDate: newBirthDate || '1990-01-01',
       gender: newGender,
-      healthInsurance: newInsurance,
+      healthInsurance: newInsurance || 'Particular',
+      insuranceNumber: isParticular ? '' : newInsuranceNumber.trim(),
       photoUrl: newPhotoUrl || undefined,
       preferredClinicId: selectedClinic?.id,
       preferredClinicName: selectedClinic?.name,
@@ -184,6 +312,8 @@ export const PatientList: React.FC = () => {
     setNewPhone('');
     setNewEmail('');
     setNewBirthDate('');
+    setNewInsurance('Particular');
+    setNewInsuranceNumber('');
     setNewPhotoUrl('');
     setNewAddress({
       cep: '',
@@ -239,6 +369,26 @@ export const PatientList: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Yellow Print Button for Relatório de Atendimento */}
+          <button
+            type="button"
+            onClick={() => {
+              if (selectedPatient) {
+                setIsReportModalOpen(true);
+              } else if (patients.length > 0) {
+                setSelectedPatientId(patients[0].id);
+                setIsReportModalOpen(true);
+              } else {
+                alert('Nenhum paciente cadastrado.');
+              }
+            }}
+            className="px-4 py-2.5 bg-amber-400 hover:bg-amber-500 text-stone-900 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-xs transition cursor-pointer border border-amber-500/30"
+            title="Imprimir Relatório de Atendimento Unificado em ordem cronológica decrescente"
+          >
+            <Printer className="w-4 h-4 text-stone-900" />
+            <span>Imprimir Relatório de Atendimento</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('triagem')}
             className="px-4 py-2.5 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
@@ -385,13 +535,15 @@ export const PatientList: React.FC = () => {
             <>
               {/* Patient Profile Card Header */}
               <div className={`${t.cardBg} border ${t.cardBorder} rounded-[32px] p-6 shadow-sm space-y-4`}>
-                <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b ${t.cardBorder} pb-4`}>
-                  <div className="flex items-center gap-4">
-                    <div className="relative group">
+                <div className={`flex flex-col md:flex-row items-start justify-between gap-6 border-b ${t.cardBorder} pb-5`}>
+                  {/* Left Column: Photo & Complete Patient Data Column */}
+                  <div className="flex flex-col sm:flex-row items-start gap-4 flex-1">
+                    {/* Patient Photo */}
+                    <div className="relative group shrink-0">
                       {selectedPatient.photoUrl ? (
-                        <img src={selectedPatient.photoUrl} alt={selectedPatient.name} className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-500 shadow-xs" />
+                        <img src={selectedPatient.photoUrl} alt={selectedPatient.name} className="w-20 h-20 rounded-2xl object-cover border-2 border-amber-500 shadow-xs" />
                       ) : (
-                        <div className={`w-16 h-16 rounded-2xl ${t.btnPrimaryBg} flex items-center justify-center text-white font-bold text-2xl shadow-xs`}>
+                        <div className={`w-20 h-20 rounded-2xl ${t.btnPrimaryBg} flex items-center justify-center text-white font-bold text-3xl shadow-xs`}>
                           {selectedPatient.name.charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -419,31 +571,84 @@ export const PatientList: React.FC = () => {
                       </div>
                     </div>
 
-                    <div>
+                    {/* Patient Data Column (All Requested Fields in Harmonic Order) */}
+                    <div className="space-y-1.5 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className={`text-xl font-bold ${t.headingText}`}>{selectedPatient.name}</h2>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${t.btnSecondaryBg} ${t.btnSecondaryText} border ${t.cardBorder}`}>
+                        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Nome Completo:</span>
+                        <h2 className={`text-lg font-bold ${t.headingText}`}>{selectedPatient.name}</h2>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${t.btnSecondaryBg} ${t.btnSecondaryText} border ${t.cardBorder}`}>
                           {selectedPatient.status}
                         </span>
-                        {selectedPatient.preferredClinicName && (
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${t.btnSecondaryBg} ${t.btnSecondaryText}`}>
-                            🏥 {selectedPatient.preferredClinicName}
-                          </span>
-                        )}
                       </div>
-                      <p className="text-xs opacity-75 font-mono mt-0.5">
-                        CPF: {formatCPF(selectedPatient.cpf)} • Idade: {calculateAge(selectedPatient.birthDate)} • {selectedPatient.healthInsurance || 'Particular'}
-                      </p>
-                      {selectedPatient.preferredDentistName && (
-                        <p className={`text-[11px] ${t.cardText} font-medium mt-0.5`}>
-                          Dentista Preferencial: <strong>{selectedPatient.preferredDentistName}</strong>
+
+                      <div className="text-xs space-y-1 text-stone-700">
+                        <p className="flex flex-wrap items-baseline gap-1">
+                          <span className="font-bold text-stone-600">Endereço Completo:</span>
+                          <span>{formatFullAddress(selectedPatient.address) || 'Não informado'}</span>
                         </p>
-                      )}
+
+                        <p className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-stone-600">CPF:</span>
+                          <span className="font-mono">{formatCPF(selectedPatient.cpf)}</span>
+                        </p>
+
+                        <p className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-stone-600">Data de Nascimento:</span>
+                          <span>
+                            {selectedPatient.birthDate ? new Date(selectedPatient.birthDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada'}
+                            {' '}(<strong>Idade:</strong> {calculateAge(selectedPatient.birthDate)})
+                          </span>
+                        </p>
+
+                        <p className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-stone-600">E-mail:</span>
+                          <span>{selectedPatient.email || 'Não informado'}</span>
+                        </p>
+
+                        {/* Plano (Exibição Limpa e Protegida) */}
+                        <p className="flex flex-wrap items-center gap-2 pt-0.5">
+                          <span className="font-bold text-stone-600">Plano:</span>
+                          <span className="font-bold text-[#5a5a40] bg-[#f0f0e8] px-2.5 py-0.5 rounded-lg border border-[#e5e5d1]">
+                            {selectedPatient.healthInsurance || 'Particular'}
+                          </span>
+                        </p>
+
+                        {/* Carteirinha (Exibição Limpa e Protegida) */}
+                        <p className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-stone-600">Carteirinha:</span>
+                          {(!selectedPatient.healthInsurance || selectedPatient.healthInsurance === 'Particular') ? (
+                            <span className="text-xs text-stone-400 italic bg-stone-100 dark:bg-stone-800/40 px-2.5 py-0.5 rounded-lg border border-stone-200 dark:border-stone-700 select-none">
+                              Não aplicável (Particular)
+                            </span>
+                          ) : (
+                            <span className="font-mono text-xs text-stone-700 font-bold bg-[#fbfbf9] px-2.5 py-0.5 rounded-lg border border-[#e5e5d1]">
+                              {selectedPatient.insuranceNumber || 'Não informada'}
+                            </span>
+                          )}
+                        </p>
+
+                        <p className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-stone-600">Telefone:</span>
+                          <span>{formatPhoneWithDDI(selectedPatient.phone)}</span>
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Patient Quick Actions */}
-                  <div className="flex items-center gap-2">
+                  {/* Right Action Buttons: Interactive Pencil Edit & Single Document Button */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
+                    {/* Interactive Patient Edit Button */}
+                    <button
+                      type="button"
+                      onClick={() => openEditPatientModal(selectedPatient)}
+                      className="px-4 py-2 bg-stone-800 hover:bg-stone-900 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-2xs transition cursor-pointer"
+                      title="Editar ficha e dados do paciente"
+                    >
+                      <Pencil className="w-4 h-4 text-amber-400" />
+                      <span>Editar</span>
+                    </button>
+
+                    {/* Single Document Emit Button */}
                     <button
                       onClick={() => {
                         if (selectedPatient) {
@@ -454,18 +659,8 @@ export const PatientList: React.FC = () => {
                       className={`px-4 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-2xs transition cursor-pointer`}
                     >
                       <FileText className="w-4 h-4 text-white" />
-                      Emitir Documento
+                      <span>Emitir Documento</span>
                     </button>
-
-                    <a
-                      href={`https://wa.me/${selectedPatient.phone.replace(/\D/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-2xs transition"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      WhatsApp
-                    </a>
                   </div>
                 </div>
 
@@ -596,7 +791,7 @@ export const PatientList: React.FC = () => {
                     </div>
 
                     {/* Contact & Personal Data */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                       <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-2`}>
                         <span className="opacity-60 font-bold uppercase tracking-wider block text-[10px]">Contato</span>
                         <p className={`flex items-center gap-2 ${t.cardText}`}><Phone className={`w-3.5 h-3.5 ${t.accentText}`} /> {formatPhoneWithDDI(selectedPatient.phone)}</p>
@@ -609,6 +804,14 @@ export const PatientList: React.FC = () => {
                           {selectedPatient.address?.street || 'Rua não informada'}, {selectedPatient.address?.number || 'S/N'} - {selectedPatient.address?.neighborhood || ''}
                         </p>
                         <p className="opacity-75">{selectedPatient.address?.city || 'Cidade não informada'} - {selectedPatient.address?.state || ''} ({selectedPatient.address?.cep || ''})</p>
+                      </div>
+
+                      <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-2`}>
+                        <span className="opacity-60 font-bold uppercase tracking-wider block text-[10px]">Plano & Convênio</span>
+                        <p className={`font-bold ${t.headingText}`}>{selectedPatient.healthInsurance || 'Particular'}</p>
+                        <p className="opacity-75">
+                          Carteirinha: <span className="font-mono">{(!selectedPatient.healthInsurance || selectedPatient.healthInsurance === 'Particular') ? 'Não aplicável (Particular)' : (selectedPatient.insuranceNumber || 'Não informada')}</span>
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -626,7 +829,10 @@ export const PatientList: React.FC = () => {
 
                 {/* Tab Content 3: Evolução Clínica */}
                 {activeProfileTab === 'evolucao' && (
-                  <ClinicalEvolution patientId={selectedPatient.id} />
+                  <ClinicalEvolution 
+                    patientId={selectedPatient.id} 
+                    onOpenReport={() => setIsReportModalOpen(true)}
+                  />
                 )}
 
                 {/* Tab Content 4: Consultas */}
@@ -907,13 +1113,40 @@ export const PatientList: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Convênio / Plano</label>
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Plano / Convênio de Saúde</label>
+                  <select
+                    value={newInsurance}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === 'NEW_PLAN') {
+                        setIsAddInsuranceModalOpen(true);
+                      } else {
+                        setNewInsurance(val);
+                        if (val === 'Particular') {
+                          setNewInsuranceNumber('');
+                        }
+                      }
+                    }}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none font-bold`}
+                  >
+                    {Array.from(new Set([...availableInsurances, 'Particular'])).map(plan => (
+                      <option key={plan} value={plan}>{plan}</option>
+                    ))}
+                    <option value="NEW_PLAN">+ Cadastrar Novo Convênio...</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Número da Carteirinha</label>
                   <input
                     type="text"
-                    placeholder="Particular, Amil, Unimed..."
-                    value={newInsurance}
-                    onChange={(e) => setNewInsurance(e.target.value)}
-                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none`}
+                    disabled={!newInsurance || newInsurance === 'Particular'}
+                    placeholder={(!newInsurance || newInsurance === 'Particular') ? 'Não aplicável para Particular' : 'Digite o número da carteirinha'}
+                    value={(!newInsurance || newInsurance === 'Particular') ? '' : newInsuranceNumber}
+                    onChange={(e) => setNewInsuranceNumber(e.target.value)}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none font-mono ${
+                      (!newInsurance || newInsurance === 'Particular') ? 'opacity-50 cursor-not-allowed bg-stone-100 dark:bg-stone-800 select-none' : ''
+                    }`}
                   />
                 </div>
 
@@ -1091,6 +1324,292 @@ export const PatientList: React.FC = () => {
         subtitle="Fotografe o paciente em um ambiente bem iluminado"
         defaultFacingMode="user"
       />
+
+      {/* Unified Patient Attendance Report Modal */}
+      {selectedPatient && (
+        <PatientAttendanceReportModal
+          patient={selectedPatient}
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+        />
+      )}
+
+      {/* Modal para Cadastro de Novo Convênio */}
+      {isAddInsuranceModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-[#e5e5d1]">
+            <div className="flex items-center justify-between border-b border-[#e5e5d1] pb-3">
+              <h3 className="text-sm font-bold text-[#2c3e2e] flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#d4a373]" />
+                Cadastrar Novo Convênio / Plano de Saúde
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsAddInsuranceModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-[#5a5a40] mb-1">
+                  Nome do Convênio / Plano *
+                </label>
+                <input
+                  type="text"
+                  value={newInsuranceNameInput}
+                  onChange={(e) => setNewInsuranceNameInput(e.target.value)}
+                  placeholder="Ex: Bradesco Saúde, SulAmérica, etc."
+                  className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#e5e5d1]">
+              <button
+                type="button"
+                onClick={() => setIsAddInsuranceModalOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-gray-500 hover:bg-stone-100 rounded-xl cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!newInsuranceNameInput.trim()) {
+                    alert('Por favor, informe o nome do convênio.');
+                    return;
+                  }
+                  const name = newInsuranceNameInput.trim();
+                  if (!availableInsurances.includes(name)) {
+                    setAvailableInsurances(prev => [...prev, name]);
+                  }
+                  if (selectedPatient) {
+                    updatePatient(selectedPatient.id, { healthInsurance: name });
+                  }
+                  setNewInsuranceNameInput('');
+                  setIsAddInsuranceModalOpen(false);
+                }}
+                className="px-5 py-2 bg-[#5a5a40] hover:bg-[#2c3e2e] text-white font-bold text-xs rounded-xl cursor-pointer shadow-xs flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                Cadastrar e Selecionar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Edição do Paciente */}
+      {isEditPatientModalOpen && selectedPatient && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className={`${t.modalBg} border ${t.modalBorder} rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto`}>
+            <div className={`flex items-center justify-between border-b ${t.modalBorder} pb-3`}>
+              <h3 className={`text-sm font-bold ${t.modalText} flex items-center gap-2`}>
+                <Pencil className="w-4 h-4 text-amber-500" />
+                Editar Ficha e Dados do Paciente
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsEditPatientModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdatePatientSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="sm:col-span-2">
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Nome Completo *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none font-bold`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>CPF</label>
+                  <input
+                    type="text"
+                    maxLength={14}
+                    value={editCpf}
+                    onChange={(e) => setEditCpf(formatCPF(e.target.value))}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none font-mono`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Data de Nascimento *</label>
+                  <input
+                    type="date"
+                    required
+                    value={editBirthDate}
+                    onChange={(e) => setEditBirthDate(e.target.value)}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Gênero</label>
+                  <select
+                    value={editGender}
+                    onChange={(e) => setEditGender(e.target.value as Gender)}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none`}
+                  >
+                    <option value="masculino">Masculino</option>
+                    <option value="feminino">Feminino</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Telefone / WhatsApp *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none font-mono`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>E-mail</label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Plano / Convênio de Saúde</label>
+                  <select
+                    value={editInsurance}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditInsurance(val);
+                      if (val === 'Particular') {
+                        setEditInsuranceNumber('');
+                      }
+                    }}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none font-bold`}
+                  >
+                    {Array.from(new Set([...availableInsurances, editInsurance])).map(plan => (
+                      <option key={plan} value={plan}>{plan}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Número da Carteirinha</label>
+                  <input
+                    type="text"
+                    disabled={!editInsurance || editInsurance === 'Particular'}
+                    placeholder={(!editInsurance || editInsurance === 'Particular') ? 'Não aplicável para Particular' : 'Digite o número da carteirinha'}
+                    value={(!editInsurance || editInsurance === 'Particular') ? '' : editInsuranceNumber}
+                    onChange={(e) => setEditInsuranceNumber(e.target.value)}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none font-mono ${
+                      (!editInsurance || editInsurance === 'Particular') ? 'opacity-50 cursor-not-allowed bg-stone-100 dark:bg-stone-800 select-none' : ''
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Status do Cadastro</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as 'ativo' | 'inativo')}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none font-bold`}
+                  >
+                    <option value="ativo">Ativo</option>
+                    <option value="inativo">Inativo</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Unidade Preferencial</label>
+                  <select
+                    value={editClinicId}
+                    onChange={(e) => setEditClinicId(e.target.value)}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none`}
+                  >
+                    {clinics.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Dentista Responsável</label>
+                  <select
+                    value={editDentistName}
+                    onChange={(e) => setEditDentistName(e.target.value)}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none`}
+                  >
+                    {professionals.map(p => (
+                      <option key={p.id} value={p.name}>{p.name} ({p.specialty})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Foto / Imagem do Paciente</label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {editPhotoUrl ? (
+                      <img src={editPhotoUrl} alt="Preview" className={`w-10 h-10 rounded-full object-cover border ${t.cardBorder}`} />
+                    ) : (
+                      <div className={`w-10 h-10 rounded-full ${t.inputBg} flex items-center justify-center text-xs opacity-60`}>Sem Foto</div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handlePhotoUpload(e, (url) => setEditPhotoUrl(url))}
+                      className="text-xs opacity-75 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:bg-stone-500/10 hover:file:opacity-80 cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Patient Address Fields */}
+              <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-2`}>
+                <h4 className={`text-xs font-bold ${t.modalText} uppercase tracking-wider`}>Endereço Residencial do Paciente</h4>
+                <AddressFields
+                  address={editAddress}
+                  onChange={setEditAddress}
+                  theme="olive"
+                  compact
+                />
+              </div>
+
+              <div className={`flex items-center justify-end gap-3 pt-3 border-t ${t.modalBorder}`}>
+                <button
+                  type="button"
+                  onClick={() => setIsEditPatientModalOpen(false)}
+                  className={`px-4 py-2 ${t.btnSecondaryBg} ${t.btnSecondaryText} font-bold text-xs rounded-2xl cursor-pointer`}
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  className={`px-5 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-2xl shadow-xs cursor-pointer flex items-center gap-1.5`}
+                >
+                  <Check className="w-4 h-4" />
+                  Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -70,6 +70,9 @@ export interface Anamnesis {
   pregnancyWeeks?: string; // Semanas ou trimestre da gestação
   isBreastfeeding?: boolean; // Amamentando
   climactericOrMenopause?: 'nenhum' | 'climaterio' | 'menopausa';
+  hasAndropause?: boolean; // Andropausa / Climatério masculino / DAEM
+  andropauseStatus?: 'nenhum' | 'andropausa' | 'reposicao_hormonal_trh';
+  andropauseDetails?: string; // Detalhes ou sintomas da andropausa / reposição hormonal
   continuousMedication?: string; // Medicamentos de uso contínuo (nome, dosagem)
   usesHerbalOrSupplements?: boolean; // Uso de chás, fitoterápicos ou suplementos
   herbalDetails?: string;
@@ -79,7 +82,13 @@ export interface Anamnesis {
 
   // --- Hábitos, Estilo de Vida & Sono ---
   isSmoker?: boolean; // Tabagismo
-  smokingDetails?: string; // Quantidade de cigarros/dia
+  smokingFrequency?: 'social' | 'diario_ate_10' | 'diario_10_20' | 'diario_mais_20' | 'vape_eletronico' | 'ex_fumante';
+  smokingDetails?: string; // Quantidade de cigarros/dia ou tempo de fumo
+  usesRecreationalDrugs?: boolean; // Uso de drogas ou substâncias recreativas
+  drugUsageFrequency?: 'ocasional_social' | 'semanal' | 'diario' | 'ex_usuario';
+  drugDetails?: string; // Tipo de substância / detalhes
+  drugUsageNotes?: string; // Observações do profissional sobre impacto cirúrgico/anestésico
+  habitsNotes?: string; // Observações gerais sobre hábitos
   consumesAlcohol?: boolean; // Consumo frequente de bebidas alcoólicas
   hasBruxism?: boolean; // Bruxismo ou apertamento dental
   nailBitingOrHabits?: string; // Onicofagia, roer objetos, morder lábios/bochecha/caneta
@@ -152,6 +161,7 @@ export interface Patient {
     city: string;
     state: string;
     cep: string;
+    complement?: string;
   };
   healthInsurance?: string;
   insuranceNumber?: string;
@@ -513,6 +523,8 @@ export interface ExtraoralExam {
   atmJoints?: string;
   lipsAndProfile?: string;
   skinObservations?: string;
+  andropauseOrHormonalObs?: string;
+  substanceUsageObs?: string;
   images?: string[];
   notes?: string;
 }
@@ -524,6 +536,8 @@ export interface IntraoralExam {
   gingivaPeriodontum?: string;
   alveolarRidge?: string;
   oropharynx?: string;
+  smokingOralImpact?: string;
+  substanceOralImpact?: string;
   images?: string[];
   notes?: string;
 }
@@ -534,6 +548,7 @@ export interface ClinicalExam {
   extraoral: ExtraoralExam;
   intraoral: IntraoralExam;
   odontogramImages?: string[];
+  generalNotes?: string;
 }
 
 export interface SavedClinicDocument {

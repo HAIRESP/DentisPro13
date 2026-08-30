@@ -1133,6 +1133,274 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
 
+        {/* Informações Cadastrais (Incorporated Form) */}
+        <div className="bg-[#fcfdfa] border border-[#e5e5d1] rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-[#e5e5d1] pb-2">
+            <span className="text-xs font-bold text-[#2c3e2e] flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#d4a373]" />
+              Informações Cadastrais {activeSelectionMode === 'clinic' ? '(Unidade Ativa)' : '(Dentista Ativo)'}
+            </span>
+            <span className="text-[11px] text-gray-500">Editando dados selecionados</span>
+          </div>
+
+          {activeSelectionMode === 'clinic' ? (
+            /* FORM WHEN UNIDADES E CONSULTÓRIOS IS SELECTED */
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">Nome da Clínica / Consultório *</label>
+                  <input
+                    type="text"
+                    required
+                    value={clinicName}
+                    onChange={(e) => setClinicName(e.target.value)}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-bold focus:outline-none focus:border-[#5a5a40]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">Cirurgião-Dentista Responsável</label>
+                  <select
+                    value={technicalManager}
+                    onChange={(e) => setTechnicalManager(e.target.value)}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-bold focus:outline-none focus:border-[#5a5a40]"
+                  >
+                    <option value="">(Nenhum)</option>
+                    {professionals.map((p) => (
+                      <option key={p.id} value={p.name}>
+                        {p.name} ({p.cro})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <PhoneInputWithDDI
+                    label="Telefone / WhatsApp (DDI)"
+                    value={clinicPhone}
+                    onChange={(val) => setClinicPhone(val)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">E-mail</label>
+                  <input
+                    type="email"
+                    value={clinicEmail}
+                    onChange={(e) => setClinicEmail(e.target.value)}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">CNPJ da Clínica / Unidade</label>
+                  <input
+                    type="text"
+                    maxLength={18}
+                    placeholder="00.000.000/0000-00"
+                    value={clinicCnpj}
+                    onChange={(e) => setClinicCnpj(formatCNPJ(e.target.value))}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-mono focus:outline-none focus:border-[#5a5a40]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">EPAO (máx 5 números)</label>
+                  <input
+                    type="text"
+                    maxLength={5}
+                    placeholder="Ex: 825"
+                    value={epaoNumber}
+                    onChange={(e) => setEpaoNumber(formatEPAO(e.target.value))}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-mono focus:outline-none focus:border-[#5a5a40]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">EPAO/UF</label>
+                  <select
+                    value={epaoUf}
+                    onChange={(e) => setEpaoUf(e.target.value)}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-bold focus:outline-none focus:border-[#5a5a40]"
+                  >
+                    {BRAZILIAN_STATES.map((st) => (
+                      <option key={st} value={st}>{st}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1">Especialidade</label>
+                  <input
+                    type="text"
+                    disabled
+                    value=""
+                    placeholder="Sem especialidade (Unidade)"
+                    className="w-full bg-[#f0f0e8] border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-gray-400 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <AddressFields
+                  address={clinicAddressObj}
+                  onChange={setClinicAddressObj}
+                  theme="olive"
+                />
+              </div>
+            </div>
+          ) : (
+            /* FORM WHEN CIRURGIÕES-DENTISTAS IS SELECTED */
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">Nome do Cirurgião-Dentista Responsável *</label>
+                  <input
+                    type="text"
+                    required
+                    value={dentistName}
+                    onChange={(e) => setDentistName(e.target.value)}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-bold focus:outline-none focus:border-[#5a5a40]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">CPF do Cirurgião-Dentista *</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={14}
+                    placeholder="000.000.000-00"
+                    value={dentistCpf}
+                    onChange={(e) => setDentistCpf(formatCPF(e.target.value))}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-mono focus:outline-none focus:border-[#5a5a40]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">CRO (máx 8 números) *</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={8}
+                    placeholder="Ex: 987654"
+                    value={croNumber}
+                    onChange={(e) => setCroNumber(formatCRO(e.target.value))}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-mono focus:outline-none focus:border-[#5a5a40]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">CRO/UF</label>
+                  <select
+                    value={croUf}
+                    onChange={(e) => setCroUf(e.target.value)}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-bold focus:outline-none focus:border-[#5a5a40]"
+                  >
+                    {BRAZILIAN_STATES.map((st) => (
+                      <option key={st} value={st}>{st}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Specialty with Dropdown, Suggestions Chips, and Custom Input */}
+                <div className="sm:col-span-2 md:col-span-1">
+                  <SpecialtyInputSelector
+                    value={dentistSpecialty}
+                    onChange={(newSpec) => setDentistSpecialty(newSpec)}
+                    availableSpecialties={specialtiesList}
+                    onAddSpecialty={(newSpec) => {
+                      if (!specialtiesList.includes(newSpec)) {
+                        setSpecialtiesList(prev => [...prev, newSpec]);
+                      }
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <PhoneInputWithDDI
+                    label="Telefone / WhatsApp (DDI)"
+                    value={dentistPhone}
+                    onChange={(val) => setDentistPhone(val)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">E-mail Profissional</label>
+                  <input
+                    type="email"
+                    value={dentistEmail}
+                    onChange={(e) => setDentistEmail(e.target.value)}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
+                  />
+                </div>
+
+                {/* Senha do Gov.br do Dentista */}
+                <div className="sm:col-span-2 md:col-span-1">
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1 flex items-center justify-between">
+                    <span>Senha do Gov.br (Assinatura Digital)</span>
+                    <span className="text-[10px] text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">ICP-Brasil / Ouro</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showDentistGovPassword ? 'text' : 'password'}
+                      value={dentistGovBrPassword}
+                      onChange={(e) => setDentistGovBrPassword(e.target.value)}
+                      placeholder="Digite a senha do Gov.br"
+                      className="w-full bg-white border border-[#e5e5d1] rounded-2xl pl-3 pr-10 py-2 text-xs text-[#2c2c2c] font-mono focus:outline-none focus:border-[#5a5a40]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowDentistGovPassword(!showDentistGovPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition cursor-pointer"
+                      title={showDentistGovPassword ? 'Ocultar senha' : 'Exibir senha'}
+                    >
+                      {showDentistGovPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-gray-500 mt-1 block">
+                    🔑 Usada no Portal de Assinatura Digital Gov.br.
+                  </span>
+                </div>
+              </div>
+
+              {/* Endereço Pessoal/Residencial do Dentista (Restrito) */}
+              <div className="pt-2 border-t border-[#e5e5d1] mt-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#5a5a40] uppercase tracking-wider flex items-center gap-1">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    Endereço Pessoal / Residencial do Dentista
+                  </span>
+                  <span className="text-[10.5px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                    🔒 Uso Restrito (Não é impresso em documentos / receituários)
+                  </span>
+                </div>
+                <AddressFields
+                  address={dentistAddressObj}
+                  onChange={setDentistAddressObj}
+                  theme="olive"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-start pt-3 border-t border-[#e5e5d1] gap-3">
+            <button
+              type="button"
+              onClick={() => handleSaveCadastro()}
+              className={`px-5 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-2xl shadow-xs flex items-center gap-2 transition cursor-pointer`}
+            >
+              <Save className="w-4 h-4" />
+              Salvar Cadastro
+            </button>
+            {cadastroSaved && (
+              <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
+                <Check className="w-4 h-4 text-emerald-600" /> Cadastro Atualizado com Sucesso!
+              </span>
+            )}
+          </div>
+        </div>
+
         {/* Lista Visual de Clínicas e Profissionais Cadastrados */}
         <div className="bg-[#fbfbf9] border border-[#e5e5d1] rounded-2xl p-4 space-y-4">
           {/* Clínicas */}
@@ -1410,274 +1678,6 @@ export const SettingsView: React.FC = () => {
                 );
               })}
             </div>
-          </div>
-        </div>
-
-        {/* Informações Cadastrais (Incorporated Form) */}
-        <div className="bg-[#fcfdfa] border border-[#e5e5d1] rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#e5e5d1] pb-2">
-            <span className="text-xs font-bold text-[#2c3e2e] flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#d4a373]" />
-              Informações Cadastrais {activeSelectionMode === 'clinic' ? '(Unidade Ativa)' : '(Dentista Ativo)'}
-            </span>
-            <span className="text-[11px] text-gray-500">Editando dados selecionados</span>
-          </div>
-
-          {activeSelectionMode === 'clinic' ? (
-            /* FORM WHEN UNIDADES E CONSULTÓRIOS IS SELECTED */
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-                <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">Nome da Clínica / Consultório *</label>
-                  <input
-                    type="text"
-                    required
-                    value={clinicName}
-                    onChange={(e) => setClinicName(e.target.value)}
-                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-bold focus:outline-none focus:border-[#5a5a40]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">Cirurgião-Dentista Responsável</label>
-                  <select
-                    value={technicalManager}
-                    onChange={(e) => setTechnicalManager(e.target.value)}
-                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-bold focus:outline-none focus:border-[#5a5a40]"
-                  >
-                    <option value="">(Nenhum)</option>
-                    {professionals.map((p) => (
-                      <option key={p.id} value={p.name}>
-                        {p.name} ({p.cro})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <PhoneInputWithDDI
-                    label="Telefone / WhatsApp (DDI)"
-                    value={clinicPhone}
-                    onChange={(val) => setClinicPhone(val)}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">E-mail</label>
-                  <input
-                    type="email"
-                    value={clinicEmail}
-                    onChange={(e) => setClinicEmail(e.target.value)}
-                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">CNPJ da Clínica / Unidade</label>
-                  <input
-                    type="text"
-                    maxLength={18}
-                    placeholder="00.000.000/0000-00"
-                    value={clinicCnpj}
-                    onChange={(e) => setClinicCnpj(formatCNPJ(e.target.value))}
-                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-mono focus:outline-none focus:border-[#5a5a40]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">EPAO (máx 5 números)</label>
-                  <input
-                    type="text"
-                    maxLength={5}
-                    placeholder="Ex: 825"
-                    value={epaoNumber}
-                    onChange={(e) => setEpaoNumber(formatEPAO(e.target.value))}
-                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-mono focus:outline-none focus:border-[#5a5a40]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">EPAO/UF</label>
-                  <select
-                    value={epaoUf}
-                    onChange={(e) => setEpaoUf(e.target.value)}
-                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-bold focus:outline-none focus:border-[#5a5a40]"
-                  >
-                    {BRAZILIAN_STATES.map((st) => (
-                      <option key={st} value={st}>{st}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1">Especialidade</label>
-                  <input
-                    type="text"
-                    disabled
-                    value=""
-                    placeholder="Sem especialidade (Unidade)"
-                    className="w-full bg-[#f0f0e8] border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-gray-400 cursor-not-allowed"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <AddressFields
-                  address={clinicAddressObj}
-                  onChange={setClinicAddressObj}
-                  theme="olive"
-                />
-              </div>
-            </div>
-          ) : (
-            /* FORM WHEN CIRURGIÕES-DENTISTAS IS SELECTED */
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-                <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">Nome do Cirurgião-Dentista Responsável *</label>
-                  <input
-                    type="text"
-                    required
-                    value={dentistName}
-                    onChange={(e) => setDentistName(e.target.value)}
-                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-bold focus:outline-none focus:border-[#5a5a40]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">CPF do Cirurgião-Dentista *</label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={14}
-                    placeholder="000.000.000-00"
-                    value={dentistCpf}
-                    onChange={(e) => setDentistCpf(formatCPF(e.target.value))}
-                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-mono focus:outline-none focus:border-[#5a5a40]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">CRO (máx 8 números) *</label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={8}
-                    placeholder="Ex: 987654"
-                    value={croNumber}
-                    onChange={(e) => setCroNumber(formatCRO(e.target.value))}
-                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-mono focus:outline-none focus:border-[#5a5a40]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">CRO/UF</label>
-                  <select
-                    value={croUf}
-                    onChange={(e) => setCroUf(e.target.value)}
-                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-bold focus:outline-none focus:border-[#5a5a40]"
-                  >
-                    {BRAZILIAN_STATES.map((st) => (
-                      <option key={st} value={st}>{st}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Specialty with Dropdown, Suggestions Chips, and Custom Input */}
-                <div className="sm:col-span-2 md:col-span-1">
-                  <SpecialtyInputSelector
-                    value={dentistSpecialty}
-                    onChange={(newSpec) => setDentistSpecialty(newSpec)}
-                    availableSpecialties={specialtiesList}
-                    onAddSpecialty={(newSpec) => {
-                      if (!specialtiesList.includes(newSpec)) {
-                        setSpecialtiesList(prev => [...prev, newSpec]);
-                      }
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <PhoneInputWithDDI
-                    label="Telefone / WhatsApp (DDI)"
-                    value={dentistPhone}
-                    onChange={(val) => setDentistPhone(val)}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">E-mail Profissional</label>
-                  <input
-                    type="email"
-                    value={dentistEmail}
-                    onChange={(e) => setDentistEmail(e.target.value)}
-                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
-                  />
-                </div>
-
-                {/* Senha do Gov.br do Dentista */}
-                <div className="sm:col-span-2 md:col-span-1">
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1 flex items-center justify-between">
-                    <span>Senha do Gov.br (Assinatura Digital)</span>
-                    <span className="text-[10px] text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">ICP-Brasil / Ouro</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showDentistGovPassword ? 'text' : 'password'}
-                      value={dentistGovBrPassword}
-                      onChange={(e) => setDentistGovBrPassword(e.target.value)}
-                      placeholder="Digite a senha do Gov.br"
-                      className="w-full bg-white border border-[#e5e5d1] rounded-2xl pl-3 pr-10 py-2 text-xs text-[#2c2c2c] font-mono focus:outline-none focus:border-[#5a5a40]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowDentistGovPassword(!showDentistGovPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition cursor-pointer"
-                      title={showDentistGovPassword ? 'Ocultar senha' : 'Exibir senha'}
-                    >
-                      {showDentistGovPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <span className="text-[10px] text-gray-500 mt-1 block">
-                    🔑 Usada no Portal de Assinatura Digital Gov.br.
-                  </span>
-                </div>
-              </div>
-
-              {/* Endereço Pessoal/Residencial do Dentista (Restrito) */}
-              <div className="pt-2 border-t border-[#e5e5d1] mt-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#5a5a40] uppercase tracking-wider flex items-center gap-1">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    Endereço Pessoal / Residencial do Dentista
-                  </span>
-                  <span className="text-[10.5px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                    🔒 Uso Restrito (Não é impresso em documentos / receituários)
-                  </span>
-                </div>
-                <AddressFields
-                  address={dentistAddressObj}
-                  onChange={setDentistAddressObj}
-                  theme="olive"
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-wrap items-center justify-start pt-3 border-t border-[#e5e5d1] gap-3">
-            <button
-              type="button"
-              onClick={() => handleSaveCadastro()}
-              className={`px-5 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-2xl shadow-xs flex items-center gap-2 transition cursor-pointer`}
-            >
-              <Save className="w-4 h-4" />
-              Salvar Cadastro
-            </button>
-            {cadastroSaved && (
-              <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
-                <Check className="w-4 h-4 text-emerald-600" /> Cadastro Atualizado com Sucesso!
-              </span>
-            )}
           </div>
         </div>
       </div>

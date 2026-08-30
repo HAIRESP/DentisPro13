@@ -71,6 +71,9 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
   const [pregnancyWeeks, setPregnancyWeeks] = useState(initial.pregnancyWeeks || '');
   const [isBreastfeeding, setIsBreastfeeding] = useState(initial.isBreastfeeding || false);
   const [climactericOrMenopause, setClimactericOrMenopause] = useState<Anamnesis['climactericOrMenopause']>(initial.climactericOrMenopause || 'nenhum');
+  const [hasAndropause, setHasAndropause] = useState(initial.hasAndropause || false);
+  const [andropauseStatus, setAndropauseStatus] = useState<Anamnesis['andropauseStatus']>(initial.andropauseStatus || 'nenhum');
+  const [andropauseDetails, setAndropauseDetails] = useState(initial.andropauseDetails || '');
   const [continuousMedication, setContinuousMedication] = useState(initial.continuousMedication || '');
   const [usesHerbalOrSupplements, setUsesHerbalOrSupplements] = useState(initial.usesHerbalOrSupplements || false);
   const [herbalDetails, setHerbalDetails] = useState(initial.herbalDetails || '');
@@ -80,7 +83,13 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
 
   // 2. Hábitos, Estilo de Vida & Sono
   const [isSmoker, setIsSmoker] = useState(initial.isSmoker || false);
+  const [smokingFrequency, setSmokingFrequency] = useState<Anamnesis['smokingFrequency']>(initial.smokingFrequency || 'diario_ate_10');
   const [smokingDetails, setSmokingDetails] = useState(initial.smokingDetails || '');
+  const [usesRecreationalDrugs, setUsesRecreationalDrugs] = useState(initial.usesRecreationalDrugs || false);
+  const [drugUsageFrequency, setDrugUsageFrequency] = useState<Anamnesis['drugUsageFrequency']>(initial.drugUsageFrequency || 'ocasional_social');
+  const [drugDetails, setDrugDetails] = useState(initial.drugDetails || '');
+  const [drugUsageNotes, setDrugUsageNotes] = useState(initial.drugUsageNotes || '');
+  const [habitsNotes, setHabitsNotes] = useState(initial.habitsNotes || '');
   const [consumesAlcohol, setConsumesAlcohol] = useState(initial.consumesAlcohol || false);
   const [hasBruxism, setHasBruxism] = useState(initial.hasBruxism || false);
   const [nailBitingOrHabits, setNailBitingOrHabits] = useState(initial.nailBitingOrHabits || '');
@@ -163,6 +172,9 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
       pregnancyWeeks: isPregnant ? pregnancyWeeks : '',
       isBreastfeeding,
       climactericOrMenopause,
+      hasAndropause,
+      andropauseStatus: hasAndropause ? andropauseStatus : 'nenhum',
+      andropauseDetails: hasAndropause ? andropauseDetails : '',
       continuousMedication,
       usesHerbalOrSupplements,
       herbalDetails: usesHerbalOrSupplements ? herbalDetails : '',
@@ -170,7 +182,13 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
       familyHistoryDetails: familyMedicalHistory ? familyHistoryDetails : '',
       generalHealthRating,
       isSmoker,
+      smokingFrequency: isSmoker ? smokingFrequency : undefined,
       smokingDetails: isSmoker ? smokingDetails : '',
+      usesRecreationalDrugs,
+      drugUsageFrequency: usesRecreationalDrugs ? drugUsageFrequency : undefined,
+      drugDetails: usesRecreationalDrugs ? drugDetails : '',
+      drugUsageNotes: usesRecreationalDrugs ? drugUsageNotes : '',
+      habitsNotes,
       consumesAlcohol,
       hasBruxism,
       nailBitingOrHabits,
@@ -282,12 +300,27 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                 🟡 Cardiopatia / Doença Cardíaca
               </span>
             )}
+            {isSmoker && (
+              <span className="px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-xl flex items-center gap-1">
+                🚬 Fumante ({smokingFrequency === 'vape_eletronico' ? 'Vape/Eletrônico' : smokingFrequency === 'diario_mais_20' ? 'Diário > 20 cig' : 'Tabagista'})
+              </span>
+            )}
+            {usesRecreationalDrugs && (
+              <span className="px-3 py-1 bg-rose-100 text-rose-900 border border-rose-300 font-bold rounded-xl flex items-center gap-1">
+                ⚠️ Uso de Substâncias / Drogas (Atenção Anestésica)
+              </span>
+            )}
+            {hasAndropause && (
+              <span className="px-3 py-1 bg-blue-100 text-blue-900 border border-blue-300 font-bold rounded-xl flex items-center gap-1">
+                🔷 Andropausa / TRH
+              </span>
+            )}
             {hasBruxism && (
               <span className="px-3 py-1 bg-blue-100 text-blue-900 border border-blue-300 font-bold rounded-xl flex items-center gap-1">
                 🔵 Bruxismo / DTM
               </span>
             )}
-            {!hasAllergies && !usesBisphosphonates && !usesAnticoagulants && !isPregnant && !hasDiabetes && !hasHypertension && !hasHeartDisease && (
+            {!hasAllergies && !usesBisphosphonates && !usesAnticoagulants && !isPregnant && !hasDiabetes && !hasHypertension && !hasHeartDisease && !isSmoker && !usesRecreationalDrugs && (
               <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium rounded-xl">
                 ✅ Nenhum alerta sistêmico crítico relatado
               </span>
@@ -526,11 +559,11 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
               </div>
             </div>
 
-            {/* Gestação & Hormonal */}
-            {patient.gender === 'feminino' && (
+            {/* Gestação & Hormonal Feminino */}
+            {(patient.gender === 'feminino' || !patient.gender) && (
               <div className="bg-purple-50/70 p-3 rounded-xl border border-purple-200 space-y-3">
                 <span className="text-xs font-bold text-purple-900 flex items-center gap-1">
-                  🌸 Condições Femininas & Gestação
+                  🌸 Condições Hormonais & Gestação (Feminino)
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <label className="flex items-center gap-2 text-xs text-purple-900 cursor-pointer">
@@ -575,6 +608,54 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                       onChange={(e) => setPregnancyWeeks(e.target.value)}
                       placeholder="Ex: 18 semanas (2º Trimestre)"
                       className="w-full text-xs p-2 bg-white border border-purple-300 rounded-lg focus:outline-none"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Andropausa & Hormonal Masculino */}
+            {(patient.gender === 'masculino' || !patient.gender || hasAndropause) && (
+              <div className="bg-blue-50/70 p-3 rounded-xl border border-blue-200 space-y-3">
+                <span className="text-xs font-bold text-blue-900 flex items-center gap-1">
+                  🔷 Saúde Hormonal Masculina & Andropausa (DAEM)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="flex items-center gap-2 text-xs text-blue-900 font-semibold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hasAndropause}
+                      onChange={(e) => setHasAndropause(e.target.checked)}
+                      className="rounded text-blue-700 focus:ring-0"
+                    />
+                    <span>Diagnóstico ou sintomas de Andropausa / Baixa de Testosterona</span>
+                  </label>
+
+                  {hasAndropause && (
+                    <div>
+                      <label className="block text-xs font-semibold text-blue-900 mb-1">Status / Tratamento Hormonal:</label>
+                      <select
+                        value={andropauseStatus}
+                        onChange={(e) => setAndropauseStatus(e.target.value as any)}
+                        className="w-full text-xs p-1.5 bg-white border border-blue-300 rounded-lg"
+                      >
+                        <option value="nenhum">Nenhum / Apenas sintomas</option>
+                        <option value="andropausa">Andropausa Confirmada</option>
+                        <option value="reposicao_hormonal_trh">Em Reposição Hormonal (TRH / Testosterona)</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {hasAndropause && (
+                  <div>
+                    <label className="block text-xs font-semibold text-blue-900 mb-1">Observações ou Especialista Responsável (Urologista/Endócrino):</label>
+                    <input
+                      type="text"
+                      value={andropauseDetails}
+                      onChange={(e) => setAndropauseDetails(e.target.value)}
+                      placeholder="Ex: Em uso de gel de testosterona 50mg/dia acompanhado por endocrinologista..."
+                      className="w-full text-xs p-2 bg-white border border-blue-300 rounded-lg focus:outline-none"
                     />
                   </div>
                 )}
@@ -760,8 +841,8 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Tabagismo */}
-              <div className="bg-white p-3 rounded-xl border border-[#e5e5d1] space-y-2">
-                <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer">
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2.5">
+                <label className="flex items-center gap-2 text-xs font-bold text-gray-800 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={isSmoker}
@@ -770,14 +851,89 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                   />
                   <span>É fumante / tabagista?</span>
                 </label>
+
                 {isSmoker && (
+                  <div className="space-y-2 pt-1 border-t border-gray-100">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-600 mb-1">Frequência e Padrão de Fumo:</label>
+                      <select
+                        value={smokingFrequency}
+                        onChange={(e) => setSmokingFrequency(e.target.value as any)}
+                        className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                      >
+                        <option value="social">Socialmente / Ocasional</option>
+                        <option value="diario_ate_10">Diário (até 10 cigarros/dia)</option>
+                        <option value="diario_10_20">Diário (10 a 20 cigarros/dia)</option>
+                        <option value="diario_mais_20">Diário (mais de 20 cigarros/dia - Carga alta)</option>
+                        <option value="vape_eletronico">Pod / Vape / Cigarro Eletrônico</option>
+                        <option value="ex_fumante">Ex-fumante</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-600 mb-1">Tempo de fumo ou detalhes:</label>
+                      <input
+                        type="text"
+                        value={smokingDetails}
+                        onChange={(e) => setSmokingDetails(e.target.value)}
+                        placeholder="Ex: Fuma há 8 anos; parou há 6 meses..."
+                        className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Uso de Drogas / Substâncias */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2.5">
+                <label className="flex items-center gap-2 text-xs font-bold text-gray-800 cursor-pointer">
                   <input
-                    type="text"
-                    value={smokingDetails}
-                    onChange={(e) => setSmokingDetails(e.target.value)}
-                    placeholder="Ex: 10 cigarros/dia há 5 anos"
-                    className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg"
+                    type="checkbox"
+                    checked={usesRecreationalDrugs}
+                    onChange={(e) => setUsesRecreationalDrugs(e.target.checked)}
+                    className="rounded text-rose-600"
                   />
+                  <span className="text-rose-900">Uso de drogas / substâncias recreativas?</span>
+                </label>
+
+                {usesRecreationalDrugs && (
+                  <div className="space-y-2 pt-1 border-t border-rose-100 bg-rose-50/50 p-2.5 rounded-lg border border-rose-200">
+                    <div>
+                      <label className="block text-[11px] font-bold text-rose-900 mb-1">Frequência do Uso:</label>
+                      <select
+                        value={drugUsageFrequency}
+                        onChange={(e) => setDrugUsageFrequency(e.target.value as any)}
+                        className="w-full text-xs p-2 bg-white border border-rose-300 rounded-lg focus:outline-none"
+                      >
+                        <option value="ocasional_social">Ocasional / Social</option>
+                        <option value="semanal">Uso Semanal</option>
+                        <option value="diario">Uso Diário / Frequente</option>
+                        <option value="ex_usuario">Ex-usuário</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-rose-900 mb-1">Substância(s) utilizada(s):</label>
+                      <input
+                        type="text"
+                        value={drugDetails}
+                        onChange={(e) => setDrugDetails(e.target.value)}
+                        placeholder="Ex: Cannabis / Maconha, Cocaína, Estimulantes, etc."
+                        className="w-full text-xs p-2 bg-white border border-rose-300 rounded-lg"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-rose-900 mb-1">Observações Médicas / Risco Anestésico:</label>
+                      <input
+                        type="text"
+                        value={drugUsageNotes}
+                        onChange={(e) => setDrugUsageNotes(e.target.value)}
+                        placeholder="Ex: Atenção especial para interações com anestésicos com vasoconstritor"
+                        className="w-full text-xs p-2 bg-white border border-rose-300 rounded-lg"
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -797,6 +953,18 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                   value={nailBitingOrHabits}
                   onChange={(e) => setNailBitingOrHabits(e.target.value)}
                   placeholder="Outros hábitos: roer unhas, morder caneta, morder bochechas"
+                  className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg"
+                />
+              </div>
+
+              {/* Observações de Hábitos */}
+              <div className="bg-white p-3 rounded-xl border border-[#e5e5d1] space-y-2">
+                <label className="block text-xs font-semibold text-gray-700">Observações adicionais de estilo de vida / hábitos:</label>
+                <textarea
+                  rows={2}
+                  value={habitsNotes}
+                  onChange={(e) => setHabitsNotes(e.target.value)}
+                  placeholder="Consumo excessivo de café, bebidas alcoólicas, estresse ocupacional..."
                   className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg"
                 />
               </div>

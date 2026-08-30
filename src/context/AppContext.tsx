@@ -279,40 +279,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const [clinics, setClinics] = useState<ClinicUnit[]>(() => {
-    const loaded = loadInitial<ClinicUnit[]>(STORAGE_KEYS.CLINICS, INITIAL_CLINICS);
-    const map = new Map<string, ClinicUnit>();
-    INITIAL_CLINICS.forEach(c => map.set(c.id, c));
-    if (Array.isArray(loaded)) {
-      loaded.forEach(c => {
-        if (map.has(c.id)) {
-          map.set(c.id, { ...c, ...map.get(c.id) });
-        } else {
-          map.set(c.id, c);
-        }
-      });
-    }
-    return Array.from(map.values());
+    return loadInitial<ClinicUnit[]>(STORAGE_KEYS.CLINICS, INITIAL_CLINICS);
   });
 
   const [professionals, setProfessionals] = useState<Professional[]>(() => {
-    const loaded = loadInitial<Professional[]>(STORAGE_KEYS.PROFESSIONALS, INITIAL_PROFESSIONALS);
-    const map = new Map<string, Professional>();
-    INITIAL_PROFESSIONALS.forEach(p => map.set(p.id, p));
-    if (Array.isArray(loaded)) {
-      loaded.forEach(p => {
-        if (map.has(p.id)) {
-          map.set(p.id, { ...p, ...map.get(p.id) });
-        } else {
-          map.set(p.id, p);
-        }
-      });
-    }
-    return Array.from(map.values());
+    return loadInitial<Professional[]>(STORAGE_KEYS.PROFESSIONALS, INITIAL_PROFESSIONALS);
   });
   const [activeProfessionalId, setActiveProfessionalIdState] = useState<string>(() => {
     const loaded = loadInitial('dentispro_active_prof_v1', '');
-    if (loaded && INITIAL_PROFESSIONALS.some(p => p.id === loaded)) return loaded;
-    return INITIAL_PROFESSIONALS[0]?.id || 'prof-1';
+    const currentProfs = loadInitial<Professional[]>(STORAGE_KEYS.PROFESSIONALS, INITIAL_PROFESSIONALS);
+    if (loaded && currentProfs.some(p => p.id === loaded)) return loaded;
+    return currentProfs[0]?.id || '';
   });
   const [activeClinicId, setActiveClinicId] = useState<string>(() => loadInitial(STORAGE_KEYS.ACTIVE_CLINIC, 'todas'));
   const [layoutTheme, setLayoutTheme] = useState<string>(() => loadInitial(STORAGE_KEYS.LAYOUT_THEME, 'natural'));

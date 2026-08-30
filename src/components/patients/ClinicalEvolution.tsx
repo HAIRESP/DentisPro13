@@ -26,15 +26,17 @@ import {
   ArrowRight,
   Sparkles,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Printer
 } from 'lucide-react';
 import { TreatmentPlanItem } from '../../types';
 
 interface ClinicalEvolutionProps {
   patientId: string;
+  onOpenReport?: () => void;
 }
 
-export const ClinicalEvolution: React.FC<ClinicalEvolutionProps> = ({ patientId }) => {
+export const ClinicalEvolution: React.FC<ClinicalEvolutionProps> = ({ patientId, onOpenReport }) => {
   const { 
     clinicalEvolutions, 
     addClinicalEvolution, 
@@ -462,13 +464,27 @@ export const ClinicalEvolution: React.FC<ClinicalEvolutionProps> = ({ patientId 
           </p>
         </div>
 
-        <button
-          onClick={() => setIsAdding(!isAdding)}
-          className={`px-4 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-medium text-xs rounded-2xl flex items-center gap-1.5 shadow-xs transition cursor-pointer`}
-        >
-          <Plus className="w-4 h-4" />
-          Nova Anotação de Prontuário
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpenReport && (
+            <button
+              type="button"
+              onClick={onOpenReport}
+              className="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-stone-900 font-bold text-xs rounded-2xl flex items-center gap-1.5 shadow-xs transition cursor-pointer border border-amber-500/30"
+              title="Imprimir Relatório de Atendimento Unificado"
+            >
+              <Printer className="w-4 h-4 text-stone-900" />
+              <span>Imprimir Relatório</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setIsAdding(!isAdding)}
+            className={`px-4 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-medium text-xs rounded-2xl flex items-center gap-1.5 shadow-xs transition cursor-pointer`}
+          >
+            <Plus className="w-4 h-4" />
+            Nova Anotação de Prontuário
+          </button>
+        </div>
       </div>
 
       {/* SECTION 1: PROCEDURES FROM TREATMENT PLANS (Selection & Quick Status Update) */}
