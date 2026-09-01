@@ -21,7 +21,8 @@ import {
   InsuranceGuide,
   SavedClinicDocument,
   GovBrProfile,
-  CustomDocumentTemplate
+  CustomDocumentTemplate,
+  UrgentCareExam
 } from '../types';
 import { 
   INITIAL_PATIENTS, 
@@ -221,6 +222,12 @@ interface AppContextType {
   updateDocumentTemplate: (id: string, templateText: string, fieldReplacements?: Record<string, string>) => void;
   resetDocumentTemplates: () => void;
 
+  // Urgent Care Exams (Fichas de Exame de Urgência)
+  urgentCareExams: UrgentCareExam[];
+  saveUrgentCareExam: (exam: UrgentCareExam) => void;
+  deleteUrgentCareExam: (id: string) => void;
+  getPatientUrgentCareExams: (patientId: string) => UrgentCareExam[];
+
   // Database Checkpoint & Backup Management
   createDatabaseCheckpoint: () => { timestamp: string; summary: string };
   exportDatabaseBackupJSON: () => void;
@@ -258,6 +265,7 @@ const STORAGE_KEYS = {
   INSURANCE_GUIDES: 'dentispro_insurance_guides_v2',
   SAVED_DOCUMENTS: 'dentispro_saved_documents_v2',
   DOCUMENT_TEMPLATES: 'dentispro_document_templates_v1',
+  URGENT_CARE_EXAMS: 'dentispro_urgent_care_exams_v1',
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -386,6 +394,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [commissions, setCommissions] = useState<DentistCommissionRecord[]>(() => loadInitial(STORAGE_KEYS.COMMISSIONS, INITIAL_COMMISSIONS));
   const [insuranceGuides, setInsuranceGuides] = useState<InsuranceGuide[]>(() => loadInitial(STORAGE_KEYS.INSURANCE_GUIDES, INITIAL_INSURANCE_GUIDES));
   const [savedClinicDocuments, setSavedClinicDocuments] = useState<SavedClinicDocument[]>(() => loadInitial(STORAGE_KEYS.SAVED_DOCUMENTS, INITIAL_SAVED_DOCUMENTS));
+  const [urgentCareExams, setUrgentCareExams] = useState<UrgentCareExam[]>(() => loadInitial(STORAGE_KEYS.URGENT_CARE_EXAMS, []));
   
   const [clinicInfo, setClinicInfo] = useState<ClinicInfo>(() => {
     const defaultObj: ClinicInfo = {

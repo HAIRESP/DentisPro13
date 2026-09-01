@@ -199,6 +199,14 @@ export const DENTAL_DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 
   // DECLARAÇÕES & TERMOS
   {
+    id: 'relatorio_atendimento_inicial_final',
+    category: 'declaracao',
+    title: 'Relatório de Atendimento (Inicial / Final)',
+    subtitle: 'Relatório clínico e orientações ao paciente assistido',
+    icon: FileText,
+    description: 'Relatório formal de atendimento inicial ou final com justificativas clínicas, pedagógicas e institucionais.'
+  },
+  {
     id: 'declaracao_comparecimento',
     category: 'declaracao',
     title: 'Declaração de Atendimento Odontológico',
@@ -376,6 +384,9 @@ export const DentalDocumentManager: React.FC = () => {
   // Parameters for Atestado
   const [atendimentoType, setAtendimentoType] = useState<string>('operatório');
   const [procedureDetail, setProcedureDetail] = useState<string>('');
+  const [relatorioDocStage, setRelatorioDocStage] = useState<'inicial' | 'final'>('inicial');
+  const [relatorioProcedimentoDesc, setRelatorioProcedimentoDesc] = useState<string>('Avaliação diagnóstica, exame clínico e planejamento terapêutico');
+  const [relatorioComplementar, setRelatorioComplementar] = useState<string>('');
   const [cidCode, setCidCode] = useState<string>('K08.1');
   const [customCid, setCustomCid] = useState<string>('');
   const [isManualCid, setIsManualCid] = useState<boolean>(false);
@@ -1791,6 +1802,9 @@ export const DentalDocumentManager: React.FC = () => {
       }
     } else if (activeTemplate.category === 'atestado') {
       bodyText = `*ATESTADO ODONTOLÓGICO*\n\nAtesto, para os devidos fins, que ${patientDisplayName}, submeteu-se a atendimento odontológico ${atendimentoType} ${procedureDetail ? `(${procedureDetail})` : ''}, CID: ${isManualCid ? customCid : cidCode}, no dia ${dateStr} às ${docTime}, período ${periodoStr}, devendo se afastar de suas atividades pelo período de ${afastamentoDias} dia(s) por estar sob meus cuidados e responsabilidade neste período.`;
+    } else if (activeTemplate.id === 'relatorio_atendimento_inicial_final') {
+      const stageTitle = relatorioDocStage === 'inicial' ? 'RELATÓRIO DE ATENDIMENTO INICIAL' : 'RELATÓRIO DE ATENDIMENTO FINAL / CONCLUSÃO';
+      bodyText = `*${stageTitle}*\n\n• *Procedimento / Conduta:* ${relatorioProcedimentoDesc}\n\n*INFORMAÇÕES AO PACIENTE ASSISTIDO:*\nFicam prestadas as informações aos pacientes assistidos que justifiquem a recusa do atendimento, a interrupção do tratamento ou o tempo mais longo para a conclusão do tratamento, em razão da complexidade do caso, da finalidade pedagógica, do estágio de formação em que o profissional se encontre em relação às habilidades e aos conhecimentos que o caso clínico demande, ou mesmo delonga em razão de casos fortuitos que forçam a paralisação dos atendimentos nas clínicas da instituição.${relatorioComplementar ? `\n\n*Observações Complementares:* ${relatorioComplementar}` : ''}`;
     } else if (activeTemplate.id === 'declaracao_comparecimento') {
       bodyText = `*DECLARAÇÃO DE COMPARECIMENTO*\n\nDeclaro, para os devidos fins de direito, que o(a) Sr(a). ${patientDisplayName} esteve presente neste consultório odontológico no dia ${dateStr}, durante o período de ${docTime} (${periodoStr}), submetendo-se a tratamento e acompanhamento clínico odontológico.`;
     } else if (activeTemplate.id === 'solicitacao_sangue') {
@@ -3358,6 +3372,75 @@ export const DentalDocumentManager: React.FC = () => {
                 </div>
               )}
 
+              {/* 3. PARÂMETROS ESPECÍFICOS: RELATÓRIO DE ATENDIMENTO INICIAL / FINAL */}
+              {activeTemplate.id === 'relatorio_atendimento_inicial_final' && (
+                <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-3`}>
+                  <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center gap-1.5 border-b ${t.cardBorder} pb-2`}>
+                    <FileText className={`w-4 h-4 ${t.accentText}`} />
+                    3. Parâmetros do Relatório de Atendimento
+                  </span>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Fase do Relatório:</label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setRelatorioDocStage('inicial')}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                            relatorioDocStage === 'inicial'
+                              ? 'bg-amber-400 text-stone-900 border border-amber-500/40 shadow-xs'
+                              : `${t.btnSecondaryBg} ${t.btnSecondaryText} border ${t.cardBorder}`
+                          }`}
+                        >
+                          Relatório de Atendimento Inicial
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRelatorioDocStage('final')}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                            relatorioDocStage === 'final'
+                              ? 'bg-amber-400 text-stone-900 border border-amber-500/40 shadow-xs'
+                              : `${t.btnSecondaryBg} ${t.btnSecondaryText} border ${t.cardBorder}`
+                          }`}
+                        >
+                          Relatório de Atendimento Final (Conclusão)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Procedimento / Conduta Clínica:</label>
+                      <input
+                        type="text"
+                        value={relatorioProcedimentoDesc}
+                        onChange={(e) => setRelatorioProcedimentoDesc(e.target.value)}
+                        placeholder="Ex: Avaliação diagnóstica, exame clínico e planejamento terapêutico..."
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold focus:outline-none`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Observações Complementares (opcional):</label>
+                      <textarea
+                        rows={2}
+                        value={relatorioComplementar}
+                        onChange={(e) => setRelatorioComplementar(e.target.value)}
+                        placeholder="Observações complementares sobre o caso clínico ou encaminhamento..."
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl p-2.5 text-xs font-semibold focus:outline-none`}
+                      />
+                    </div>
+
+                    <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200 text-xs text-stone-800 space-y-1">
+                      <strong className="text-amber-900 font-bold block">📌 Justificativas Institucionais e Pedagógicas Inclusas Automaticamente:</strong>
+                      <p className="text-[11px] leading-relaxed text-stone-700">
+                        Ficam prestadas as informações aos pacientes assistidos que justifiquem a recusa do atendimento, a interrupção do tratamento ou o tempo mais longo para a conclusão do tratamento, em razão da complexidade do caso, da finalidade pedagógica, do estágio de formação em que o profissional se encontre em relação às habilidades e aos conhecimentos que o caso clínico demande, ou mesmo delonga em razão de casos fortuitos que forçam a paralisação dos atendimentos nas clínicas da instituição.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* 3. PARÂMETROS ESPECÍFICOS: ATESTADOS (CID & AFASTAMENTO) */}
               {activeTemplate.category === 'atestado' && activeTemplate.id !== 'receituario_controle_especial' && !activeTemplate.id.includes('receituario') && (
                 <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-3`}>
@@ -4242,6 +4325,8 @@ export const DentalDocumentManager: React.FC = () => {
                       summaryText = specialPrescriptionText;
                     } else if (activeTemplate.category === 'atestado') {
                       summaryText = `Atesto, para os devidos fins, que ${patientDisplayName}, submeteu-se a atendimento odontológico ${atendimentoType} ${procedureDetail ? `(${procedureDetail})` : ''}, CID: ${isManualCid ? customCid : cidCode}, no dia ${formattedFormattedDate} às ${docTime}, período ${periodoStr}, devendo se afastar de suas atividades pelo período de ${afastamentoDias} dia(s) por estar sob meus cuidados e responsabilidade neste período.`;
+                    } else if (activeTemplate.id === 'relatorio_atendimento_inicial_final') {
+                      summaryText = `${relatorioDocStage === 'inicial' ? 'Relatório de Atendimento Inicial' : 'Relatório de Atendimento Final'}: ${relatorioProcedimentoDesc}. Informações prestadas aos pacientes assistidos que justifiquem recusa, interrupção ou tempo mais longo em razão de complexidade, finalidade pedagógica ou casos fortuitos.`;
                     } else if (activeTemplate.id === 'declaracao_comparecimento') {
                       summaryText = `Declaro, para os devidos fins de direito, que o(a) Sr(a). ${patientDisplayName} esteve presente neste consultório odontológico no dia ${formattedFormattedDate}, durante o período de ${docTime} (${periodoStr}), submetendo-se a tratamento e acompanhamento clínico odontológico.`;
                     } else if (activeTemplate.id === 'tcle_endodontia') {
@@ -4519,6 +4604,35 @@ export const DentalDocumentManager: React.FC = () => {
                       <p className="text-base leading-loose">
                         Atesto, para os devidos fins, que <strong className="font-bold underline">{patientDisplayName}</strong>, submeteu-se a atendimento odontológico <strong className="font-semibold">{atendimentoType}</strong> {procedureDetail ? `(${procedureDetail})` : ''}, CID: <strong className="font-mono font-bold">{isManualCid ? customCid : cidCode}</strong>, no dia <strong className="font-bold">{formattedFormattedDate}</strong> às <strong className="font-bold">{docTime}</strong>, período <strong className="font-bold">{periodoStr}</strong>, devendo se afastar de suas atividades pelo período de <strong className="font-bold text-base underline">{afastamentoDias} dia(s)</strong> por estar sob meus cuidados e responsabilidade neste período.
                       </p>
+                    </div>
+                  )}
+
+                  {/* MODEL: RELATÓRIO DE ATENDIMENTO INICIAL / FINAL */}
+                  {activeTemplate.id === 'relatorio_atendimento_inicial_final' && (
+                    <div className="space-y-4 pt-2 text-justify text-xs">
+                      <div className="bg-[#fbfbf9] p-3 rounded-xl border border-[#e5e5d1]">
+                        <p className="text-xs font-bold text-[#5a5a40] uppercase tracking-wider mb-1">
+                          {relatorioDocStage === 'inicial' ? 'Relatório de Atendimento Inicial' : 'Relatório de Atendimento Final (Conclusão)'}
+                        </p>
+                        <p className="text-sm font-semibold text-stone-900">
+                          {relatorioProcedimentoDesc || 'Avaliação clínica e planejamento terapêutico'}
+                        </p>
+                      </div>
+
+                      <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                        <strong className="text-stone-900 uppercase font-bold text-[11px] block">
+                          Informações e Esclarecimentos aos Pacientes Assistidos:
+                        </strong>
+                        <p className="text-stone-700 leading-relaxed text-xs">
+                          Ficam prestadas as informações aos pacientes assistidos que justifiquem a recusa do atendimento, a interrupção do tratamento ou o tempo mais longo para a conclusão do tratamento, em razão da complexidade do caso, da finalidade pedagógica, do estágio de formação em que o profissional se encontre em relação às habilidades e aos conhecimentos que o caso clínico demande, ou mesmo delonga em razão de casos fortuitos que forçam a paralisação dos atendimentos nas clínicas da instituição.
+                        </p>
+                      </div>
+
+                      {relatorioComplementar && (
+                        <div className="bg-[#f0f0e8] p-3 rounded-xl border border-[#e5e5d1] text-stone-800 text-xs">
+                          <strong className="font-semibold text-[#5a5a40]">Observações Complementares:</strong> {relatorioComplementar}
+                        </div>
+                      )}
                     </div>
                   )}
 

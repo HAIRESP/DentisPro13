@@ -69,26 +69,140 @@ const DEFAULT_PROCEDURE_SUGGESTIONS_MAP: Record<ToothConditionType, CorrelatedPr
     {
       id: 'proc-canal-1',
       tussCode: '82000034',
-      procedureName: 'Tratamento Endodôntico (Canal)',
+      procedureName: 'Retratamento Endodôntico (Endodontia Insatisfatória)',
       specialty: 'Endodontia',
-      suggestedCost: 600,
+      suggestedCost: 750,
       regionCode: 'RMID'
     },
     {
       id: 'proc-canal-2',
       tussCode: '86000018',
-      procedureName: 'Pino Pré-Fabricado / Retenção em Fibra de Vidro',
+      procedureName: 'Remoção de Núcleo / Retentor Intra-radicular',
       specialty: 'Prótese / Dentística',
-      suggestedCost: 350,
+      suggestedCost: 280,
       regionCode: 'Dente'
     },
     {
       id: 'proc-canal-3',
       tussCode: '81000030',
-      procedureName: 'Restauração em Resina Composta / Reconstrução Coronária',
+      procedureName: 'Reconstrução Coronária / Selamento Provisório',
       specialty: 'Dentística & Estética',
       suggestedCost: 280,
       regionCode: 'Dente'
+    }
+  ],
+  endodontia_insatisfatoria: [
+    {
+      id: 'proc-eins-1',
+      tussCode: '82000034',
+      procedureName: 'Retratamento Endodôntico Especializado',
+      specialty: 'Endodontia',
+      suggestedCost: 780,
+      regionCode: 'RMID'
+    },
+    {
+      id: 'proc-eins-2',
+      tussCode: '86000018',
+      procedureName: 'Remoção de Retentor / Pino Intra-radicular',
+      specialty: 'Prótese / Endodontia',
+      suggestedCost: 290,
+      regionCode: 'Dente'
+    },
+    {
+      id: 'proc-eins-3',
+      tussCode: '81000030',
+      procedureName: 'Restauração Coronária Pós-Retratamento',
+      specialty: 'Dentística & Estética',
+      suggestedCost: 280,
+      regionCode: 'Dente'
+    }
+  ],
+  necessidade_endodontica: [
+    {
+      id: 'proc-nendo-1',
+      tussCode: '82000030',
+      procedureName: 'Tratamento Endodôntico Unirradicular / Multirradicular',
+      specialty: 'Endodontia',
+      suggestedCost: 650,
+      regionCode: 'Dente'
+    },
+    {
+      id: 'proc-nendo-2',
+      tussCode: '82000010',
+      procedureName: 'Pulpotomia / Curativo de Demora Biocompatível',
+      specialty: 'Endodontia / Urgência',
+      suggestedCost: 220,
+      regionCode: 'Dente'
+    },
+    {
+      id: 'proc-nendo-3',
+      tussCode: '86000018',
+      procedureName: 'Instalação de Pino de Fibra de Vidro e Núcleo de Preenchimento',
+      specialty: 'Prótese Dentária',
+      suggestedCost: 380,
+      regionCode: 'Dente'
+    }
+  ],
+  endodontia_satisfatoria: [
+    {
+      id: 'proc-esat-1',
+      tussCode: '81000030',
+      procedureName: 'Restauração Definitiva / Blindagem Coronária Pós-Endo',
+      specialty: 'Dentística & Estética',
+      suggestedCost: 320,
+      regionCode: 'Dente'
+    },
+    {
+      id: 'proc-esat-2',
+      tussCode: '81000040',
+      procedureName: 'Acompanhamento Radiográfico Periapical / Proservação',
+      specialty: 'Radiologia / Endodontia',
+      suggestedCost: 90,
+      regionCode: 'Dente'
+    },
+    {
+      id: 'proc-esat-3',
+      tussCode: '86000018',
+      procedureName: 'Coroa Protética / Onlay de Proteção Cuspídea',
+      specialty: 'Prótese Dentária',
+      suggestedCost: 950,
+      regionCode: 'RMSD'
+    }
+  ],
+  girovertido: [
+    {
+      id: 'proc-giro-1',
+      tussCode: '88000010',
+      procedureName: 'Alinhamento / Desgiro Ortodôntico Corretivo',
+      specialty: 'Ortodontia',
+      suggestedCost: 450,
+      regionCode: 'Dente'
+    },
+    {
+      id: 'proc-giro-2',
+      tussCode: '81000040',
+      procedureName: 'Ajuste Oclusal por Desgaste Seletivo',
+      specialty: 'Dentística & Oclusão',
+      suggestedCost: 140,
+      regionCode: 'Dente'
+    }
+  ],
+  implante: [
+    {
+      id: 'proc-imp-1',
+      tussCode: '83000010',
+      procedureName: 'Instalação de Implante Dental Titânio / Zircônia',
+      specialty: 'Implantodontia',
+      suggestedCost: 1900,
+      regionCode: 'RMID'
+    },
+    {
+      id: 'proc-imp-2',
+      tussCode: '86000018',
+      procedureName: 'Coroa sobre Implante Aparafusada / Cimentada',
+      specialty: 'Prótese sobre Implante',
+      suggestedCost: 1300,
+      regionCode: 'RMID'
     }
   ],
   carie: [
@@ -271,58 +385,6 @@ const DEFAULT_PROCEDURE_SUGGESTIONS_MAP: Record<ToothConditionType, CorrelatedPr
       specialty: 'Periodontia',
       suggestedCost: 120,
       regionCode: 'HASD'
-    }
-  ],
-  girovertido: [
-    {
-      id: 'proc-giro-1',
-      tussCode: '84000020',
-      procedureName: 'Alinhamento Ortodôntico / Correção de Giroversão',
-      specialty: 'Ortodontia',
-      suggestedCost: 450,
-      regionCode: 'AS'
-    },
-    {
-      id: 'proc-giro-2',
-      tussCode: '81000040',
-      procedureName: 'Ajuste Oclusal por Desgaste Seletivo',
-      specialty: 'Ortodontia',
-      suggestedCost: 150,
-      regionCode: 'AS'
-    },
-    {
-      id: 'proc-giro-3',
-      tussCode: '84000025',
-      procedureName: 'Placa de Contenção / Alinhador Transparente',
-      specialty: 'Ortodontia',
-      suggestedCost: 350,
-      regionCode: 'AS'
-    }
-  ],
-  implante: [
-    {
-      id: 'proc-imp-1',
-      tussCode: '86000018',
-      procedureName: 'Coroa Definitiva Zircônia / Cerâmica sobre Implante',
-      specialty: 'Prótese Dentária',
-      suggestedCost: 1200,
-      regionCode: 'RMID'
-    },
-    {
-      id: 'proc-imp-2',
-      tussCode: '83000015',
-      procedureName: 'Pilar Intermediário Personalizado (Abutment)',
-      specialty: 'Implantodontia',
-      suggestedCost: 480,
-      regionCode: 'RMID'
-    },
-    {
-      id: 'proc-imp-3',
-      tussCode: '84000010',
-      procedureName: 'Manutenção / Profilaxia Peri-implantar',
-      specialty: 'Periodontia',
-      suggestedCost: 250,
-      regionCode: 'RMID'
     }
   ],
   restauracao: [
@@ -1127,25 +1189,58 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                       ? Object.entries(cond.surfaces).filter(([_, type]) => type && type !== 'sio')
                       : [];
                     
-                    if (activeSurfaces.length === 0 && (!cond.wholeToothCondition || cond.wholeToothCondition === 'sio') && !cond.notes) {
+                    const hasWhole = cond.wholeToothCondition && cond.wholeToothCondition !== 'sio';
+                    const hasGiro = cond.isGirovertido || cond.wholeToothCondition === 'girovertido';
+                    const hasSupra = cond.hasCalculoSupra || cond.wholeToothCondition === 'calculo_supragengival';
+                    const hasSub = cond.hasCalculoSub || cond.wholeToothCondition === 'calculo_subgengival';
+
+                    if (activeSurfaces.length === 0 && !hasWhole && !hasGiro && !hasSupra && !hasSub && !cond.notes) {
                       return;
                     }
 
-                    const mainCondType: ToothConditionType = (cond.wholeToothCondition && cond.wholeToothCondition !== 'sio') 
-                      ? cond.wholeToothCondition 
-                      : (activeSurfaces[0]?.[1] as ToothConditionType) || 'carie';
+                    const findingsToRegister: { condType: ToothConditionType; surfCount: number }[] = [];
 
-                    if (!groupsMap[mainCondType]) {
-                      groupsMap[mainCondType] = {
-                        conditionType: mainCondType,
-                        teeth: [],
-                        surfaceCount: activeSurfaces.length,
-                        notes: []
-                      };
+                    if (hasWhole && cond.wholeToothCondition !== 'girovertido' && cond.wholeToothCondition !== 'calculo_supragengival' && cond.wholeToothCondition !== 'calculo_subgengival') {
+                      findingsToRegister.push({ condType: cond.wholeToothCondition!, surfCount: activeSurfaces.length });
+                    }
+                    if (hasGiro) {
+                      findingsToRegister.push({ condType: 'girovertido', surfCount: 0 });
+                    }
+                    if (hasSupra) {
+                      findingsToRegister.push({ condType: 'calculo_supragengival', surfCount: 0 });
+                    }
+                    if (hasSub) {
+                      findingsToRegister.push({ condType: 'calculo_subgengival', surfCount: 0 });
                     }
 
-                    groupsMap[mainCondType].teeth.push(cond.toothNumber);
-                    if (cond.notes) groupsMap[mainCondType].notes.push(`Dente #${cond.toothNumber}: ${cond.notes}`);
+                    // Surface-specific conditions (e.g. cárie, restauração)
+                    const surfaceConds = Array.from(new Set(activeSurfaces.map(([_, type]) => type as ToothConditionType)));
+                    surfaceConds.forEach(sCond => {
+                      const countForThisCond = activeSurfaces.filter(([_, type]) => type === sCond).length;
+                      findingsToRegister.push({ condType: sCond, surfCount: countForThisCond });
+                    });
+
+                    // If only notes exist
+                    if (findingsToRegister.length === 0 && cond.notes) {
+                      findingsToRegister.push({ condType: 'carie', surfCount: 1 });
+                    }
+
+                    findingsToRegister.forEach(f => {
+                      if (!groupsMap[f.condType]) {
+                        groupsMap[f.condType] = {
+                          conditionType: f.condType,
+                          teeth: [],
+                          surfaceCount: f.surfCount,
+                          notes: []
+                        };
+                      }
+                      if (!groupsMap[f.condType].teeth.includes(cond.toothNumber)) {
+                        groupsMap[f.condType].teeth.push(cond.toothNumber);
+                      }
+                      if (cond.notes && !groupsMap[f.condType].notes.some(n => n.startsWith(`Dente #${cond.toothNumber}:`))) {
+                        groupsMap[f.condType].notes.push(`Dente #${cond.toothNumber}: ${cond.notes}`);
+                      }
+                    });
                   });
 
                   const groupEntries = Object.entries(groupsMap);

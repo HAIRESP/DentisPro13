@@ -206,14 +206,17 @@ export type ToothConditionType =
   | 'carie' // Cárie (Vermelho)
   | 'restauracao' // Restauração satisfatória (Azul)
   | 'restauracao_insatisfatoria' // Restauração insatisfatória (Verde claro)
-  | 'girovertido' // Dente girovertido (Amarelo)
-  | 'canal' // Endodontia / Tratamento de Canal (Amarelo)
-  | 'extracao_indicada' // Extração Indicada (Laranja)
+  | 'girovertido' // Dente girovertido (Laranja)
+  | 'canal' // Endodontia insatisfatória (Laranja / Âmbar)
+  | 'endodontia_insatisfatoria' // Endodontia insatisfatória
+  | 'necessidade_endodontica' // Necessidade Endodôntica (Amarelo claro)
+  | 'endodontia_satisfatoria' // Endodontia satisfatória (Azul marinho escuro)
+  | 'extracao_indicada' // Extração Indicada (Roxo)
   | 'ausente' // Ausente / Extraído (Cinza)
   | 'implante' // Implante (Verde)
-  | 'protese' // Prótese / Coroa (Roxo)
-  | 'calculo_supragengival' // Cálculo Supragengival (Ciano)
-  | 'calculo_subgengival'; // Cálculo Subgengival (Teal)
+  | 'protese' // Prótese / Coroa (Ciano)
+  | 'calculo_supragengival' // Cálculo Supragengival (Âmbar)
+  | 'calculo_subgengival'; // Cálculo Subgengival (Marrom)
 
 export interface CorrelationRule {
   id: string;
@@ -231,6 +234,9 @@ export interface ToothCondition {
   toothNumber: number; // e.g. 18 to 48 or 55 to 85
   surfaces?: Partial<Record<ToothSurface, ToothConditionType>>;
   wholeToothCondition?: ToothConditionType;
+  isGirovertido?: boolean;
+  hasCalculoSupra?: boolean;
+  hasCalculoSub?: boolean;
   notes?: string;
   isDeciduous?: boolean; // Deciduous/primary tooth indicator
 }
@@ -565,6 +571,112 @@ export interface SavedClinicDocument {
   summary: string;
   status: 'gerado' | 'assinado_govbr' | 'impresso';
   govBrSignedAt?: string;
+}
+
+export interface UrgentToothEvaluation {
+  id: string;
+  toothNumber: string;
+  calor?: boolean;
+  frio?: boolean;
+  sensibilidadePulpar?: boolean;
+  percussao?: boolean;
+  palpacao?: boolean;
+  mobilidade?: boolean;
+  bolsaV?: boolean;
+  bolsaM?: boolean;
+  bolsaD?: boolean;
+  bolsaL?: boolean;
+  fratura?: boolean;
+  carie?: boolean;
+  fistula?: boolean;
+}
+
+export interface UrgentCareExam {
+  id: string;
+  patientId: string;
+  patientName: string;
+  recordNumber?: string; // Ficha nº
+  patientAddress?: string;
+  patientPhone?: string;
+  patientAge?: string | number;
+  patientGender?: string;
+  patientCivilStatus?: string; // Est. Civil
+  examDate: string; // Data de Exame (YYYY-MM-DD)
+  dentistName?: string;
+  dentistCro?: string;
+  clinicId?: string;
+  clinicName?: string;
+  createdAt: string;
+  updatedAt?: string;
+
+  // 1. HISTÓRIA CLÍNICA
+  chiefComplaint: string; // Queixa principal
+  pain: {
+    provocada?: boolean;
+    espontanea?: boolean;
+    intermitente?: boolean;
+    intensa?: boolean;
+    moderada?: boolean;
+    precipitadaFrio?: boolean;
+    precipitadaCalor?: boolean;
+    precipitadaMastigacao?: boolean;
+  };
+  swelling: {
+    localizacao?: string;
+    duracao?: string;
+    consistencia?: string;
+  };
+  currentIllnessHistory: string; // História da doença atual
+  medicalHistory: {
+    goodHealth?: string; // você goza de boa saúde?
+    currentMedicalTreatment?: string; // você está atualmente fazendo qualquer tratamento médico?
+    conditions: {
+      febreReumatica?: boolean;
+      doencaCoracao?: boolean;
+      hipertensaoArterial?: boolean;
+      alergia?: boolean;
+      asma?: boolean;
+      artrite?: boolean;
+      epilepsia?: boolean;
+      diabetes?: boolean;
+      desmaiosFrequentes?: boolean;
+      sinusite?: boolean;
+      hepatite?: boolean;
+      outrasInfeccoes?: boolean;
+    };
+    hasRadiotherapyFaceJaw?: string; // já sofreu tratamento pelos raios-X, na face ou nos maxilares?
+    currentMedications?: string; // está fazendo uso de algum medicamento?
+    hasFaceJawTrauma?: string; // já sofreu algum traumatismo na face ou nos maxilares?
+    hasAdverseDentalReaction?: string; // já teve alguma reação desfavorável ao tratamento dentário?
+    isPregnant?: string; // (mulher) você está grávida atualmente?
+    otherConditions?: string; // você tem qualquer enfermidade não-relacionada aqui?
+  };
+
+  // 2. EXAME CLÍNICO (OBJETIVO)
+  generalAppearance?: string; // Aparência geral
+  affectedArea: {
+    inspecaoStatus?: '+' | '-' | '';
+    inspecaoDetails?: string;
+    percussaoStatus?: '+' | '-' | '';
+    percussaoDetails?: string;
+    palpacaoStatus?: '+' | '-' | '';
+    palpacaoDetails?: string;
+    mobilidadeClasse?: '1' | '2' | '3' | '';
+    mobilidadeDetails?: string;
+  };
+  otherFindings?: string; // Outros achados
+  supplementaryExams: {
+    radiografia?: string; // Radiografia
+    outrosSolicitados?: string; // outros solicitados
+  };
+
+  // 3. RESUMO (Avaliação por dente)
+  toothEvaluations: UrgentToothEvaluation[];
+
+  // 4. CONCLUSÕES
+  diagnosis: string; // Diagnóstico
+  proposedUrgentTreatment: string; // Tratamento de Urgência Proposto
+  executedTreatment: string; // Tratamento Executado
 }
 
 export interface GovBrProfile {

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { InventoryItem, InventoryOwnerScope, Appointment } from '../../types';
+import { InventoryItem, InventoryItemType, InventoryOwnerScope, Appointment } from '../../types';
 import { CameraModal } from '../common/CameraModal';
 import { DailyClinicMaterialsReportModal } from './DailyClinicMaterialsReportModal';
 import { AppointmentMaterialsReportModal } from './AppointmentMaterialsReportModal';
@@ -371,6 +371,7 @@ export const InventoryManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  const [filterItemType, setFilterItemType] = useState<'todos' | 'insumo' | 'instrumental' | 'equipamento'>('todos');
   const [filterOwnerScope, setFilterOwnerScope] = useState<string>('todos');
   const [filterReadiness, setFilterReadiness] = useState<string>('todos');
 
@@ -615,6 +616,7 @@ export const InventoryManager: React.FC = () => {
   const [customUnitInput, setCustomUnitInput] = useState('');
 
   // Form State
+  const [itemType, setItemType] = useState<InventoryItemType>('insumo');
   const [itemCode, setItemCode] = useState('');
   const [name, setName] = useState('');
   const [category, setCategory] = useState<string>('Anestésicos');
@@ -1192,8 +1194,25 @@ export const InventoryManager: React.FC = () => {
     if (sug.minQty) setMinQuantity(sug.minQty.toString());
   };
 
-  // Calculations
-  const lowStockItems = inventory.filter(i => i.quantity <= i.minQuantity).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
+  // Calculations & Helper for Low Stock Alerts
+  const isItemLowStock = (item: InventoryItem): boolean => {
+    const computedType: InventoryItemType = item.itemType || (
+      item.category === 'Equipamentos' ? 'equipamento' :
+      item.category === 'Instrumentais' ? 'instrumental' :
+      'insumo'
+    );
+
+    if (computedType === 'instrumental' || computedType === 'equipamento') {
+      // Para instrumental ou equipamento: o alerta só é disparado se a quantidade estiver zerada (0) ou estritamente abaixo do mínimo (< minQuantity).
+      // Não dispara falso alerta de falta quando há 1 ou 2 unidades funcionais (por exemplo, 1 unidade com minQuantity=1).
+      return item.quantity === 0 || item.quantity < item.minQuantity;
+    }
+
+    // Para Insumo / Consumível: dispara alerta quando quantidade <= minQuantity
+    return item.quantity <= item.minQuantity;
+  };
+
+  const lowStockItems = inventory.filter(isItemLowStock).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
 
   // Equipment requiring maintenance or with upcoming maintenance
   const equipmentItems = inventory.filter(i => 
@@ -1295,7 +1314,15 @@ export const InventoryManager: React.FC = () => {
                           (item.supplier && item.supplier.toLowerCase().includes(searchTerm.toLowerCase())) ||
                           (item.serialNumber && item.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = selectedCategory === 'todos' || item.category === selectedCategory;
-    const matchesLowStock = !showLowStockOnly || item.quantity <= item.minQuantity;
+
+    const computedType: InventoryItemType = item.itemType || (
+      item.category === 'Equipamentos' ? 'equipamento' :
+      item.category === 'Instrumentais' ? 'instrumental' :
+      'insumo'
+    );
+    const matchesItemType = filterItemType === 'todos' || computedType === filterItemType;
+
+    const matchesLowStock = !showLowStockOnly || isItemLowStock(item);
 
     let matchesScope = true;
     if (filterOwnerScope === 'compartilhado') {
@@ -1316,13 +1343,14 @@ export const InventoryManager: React.FC = () => {
       matchesReadiness = readiness.statusType === 'not_sterilized';
     }
 
-    return matchesSearch && matchesCategory && matchesLowStock && matchesScope && matchesReadiness;
+    return matchesSearch && matchesCategory && matchesItemType && matchesLowStock && matchesScope && matchesReadiness;
   }).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
 
   // Open Cadastrar/Editar Material ou Equipamento Modal
   const openAddItemModalWithItem = (item?: InventoryItem) => {
     if (item) {
       setEditingItemId(item.id);
+      setItemType(item.itemType || (item.category === 'Equipamentos' ? 'equipamento' : item.category === 'Instrumentais' ? 'instrumental' : 'insumo'));
       setItemCode(item.itemCode || '');
       setName(item.name || '');
       setCategory(item.category || 'Anestésicos');
@@ -1364,6 +1392,7 @@ export const InventoryManager: React.FC = () => {
       setItemProfessionalId(item.professionalId || professionals[0]?.id || '');
     } else {
       setEditingItemId(null);
+      setItemType('insumo');
       setItemCode('');
       setName('');
       setCategory('Anestésicos');
@@ -1522,7 +1551,7 @@ export const InventoryManager: React.FC = () => {
       autoclaveSterilizationTime: (requiresSterilization && isSterilized) ? autoclaveSterilizationTime : undefined,
       autoclaveDryingMode: (requiresSterilization && isSterilized) ? autoclaveDryingMode : undefined,
       autoclaveCycleType: (requiresSterilization && isSterilized) ? autoclaveCycleType : undefined,
-      itemType: (category === 'Equipamentos' || requiresMaintenance) ? ('equipamento' as const) : ('insumo' as const),
+      itemType: itemType || ((category === 'Equipamentos' || requiresMaintenance) ? ('equipamento' as const) : category === 'Instrumentais' ? ('instrumental' as const) : ('insumo' as const)),
       serialNumber: serialNumber || undefined,
       requiresMaintenance,
       maintenanceFrequencyDays: requiresMaintenance ? (isNaN(parsedMaintFreq) ? 180 : parsedMaintFreq) : undefined,
@@ -1898,6 +1927,17 @@ export const InventoryManager: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto flex-wrap sm:flex-nowrap">
+          <select
+            value={filterItemType}
+            onChange={(e) => setFilterItemType(e.target.value as any)}
+            className="bg-[#fbfbf9] text-[#2c2c2c] border border-[#e5e5d1] text-xs rounded-2xl px-3.5 py-2.5 focus:outline-none font-bold"
+          >
+            <option value="todos">Todos Tipos (Insumos, Instrumentais, Equipamentos)</option>
+            <option value="insumo">📦 Insumos / Consumo</option>
+            <option value="instrumental">🔎 Instrumentais Odontológicos</option>
+            <option value="equipamento">🔬 Equipamentos / Aparelhos</option>
+          </select>
+
           <select
             value={filterOwnerScope}
             onChange={(e) => setFilterOwnerScope(e.target.value)}
@@ -3768,6 +3808,91 @@ export const InventoryManager: React.FC = () => {
               )}
 
               <form onSubmit={handleAddItem} className="space-y-4">
+
+              {/* SELETOR VISUAL DE TIPO DE ITEM (INSUMO, INSTRUMENTAL, EQUIPAMENTO) */}
+              <div className="bg-[#fcfdfa] border border-[#e5e5d1] rounded-2xl p-4 space-y-3 shadow-2xs">
+                <div>
+                  <label className="block text-xs font-bold text-[#2c3e2e] flex items-center gap-1.5">
+                    <Package className="w-4 h-4 text-[#d4a373]" />
+                    Tipo do Item no Inventário *
+                  </label>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Selecione o tipo do item para definir a regra de alerta de estoque e controle de biossegurança/manutenção.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setItemType('insumo');
+                      if (category === 'Equipamentos' || category === 'Instrumentais') setCategory('Consumíveis & Descartáveis');
+                    }}
+                    className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition cursor-pointer ${
+                      itemType === 'insumo' 
+                        ? 'bg-blue-50 border-blue-500 text-blue-950 font-bold shadow-xs' 
+                        : 'bg-white border-[#e5e5d1] text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="p-1.5 rounded-lg bg-blue-100 text-blue-800 shrink-0 mt-0.5">
+                      <Package className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold">📦 Insumo / Consumível</div>
+                      <div className="text-[10px] text-gray-500 font-normal leading-tight mt-0.5">
+                        Resinas, agulhas, tubetes, luvas. Alerta quando quantidade ≤ mínimo.
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setItemType('instrumental');
+                      setCategory('Instrumentais');
+                    }}
+                    className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition cursor-pointer ${
+                      itemType === 'instrumental' 
+                        ? 'bg-purple-50 border-purple-500 text-purple-950 font-bold shadow-xs' 
+                        : 'bg-white border-[#e5e5d1] text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="p-1.5 rounded-lg bg-purple-100 text-purple-800 shrink-0 mt-0.5">
+                      <Search className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold">🔎 Instrumental Odontológico</div>
+                      <div className="text-[10px] text-gray-500 font-normal leading-tight mt-0.5">
+                        Espátulas, pinças, curetas, brocas. Alerta somente se zerado (0) ou &lt; mín.
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setItemType('equipamento');
+                      setCategory('Equipamentos');
+                      setRequiresMaintenance(true);
+                    }}
+                    className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition cursor-pointer ${
+                      itemType === 'equipamento' 
+                        ? 'bg-amber-50 border-amber-500 text-amber-950 font-bold shadow-xs' 
+                        : 'bg-white border-[#e5e5d1] text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="p-1.5 rounded-lg bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+                      <Wrench className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold">🔬 Equipamento / Aparelho</div>
+                      <div className="text-[10px] text-gray-500 font-normal leading-tight mt-0.5">
+                        Autoclaves, fotopolimerizadores, motores. Controle de manutenção preventiva.
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
 
               {/* 1. CATEGORIA & NOME DO PRODUTO (PRIMEIRO NO FORMULÁRIO) */}
               <div className="bg-[#fcfdfa] border border-[#e5e5d1] rounded-2xl p-4 space-y-3 shadow-2xs">

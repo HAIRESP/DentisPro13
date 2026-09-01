@@ -62,6 +62,8 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
 
   const t = getThemeStyles(layoutTheme);
   const [activeFilter, setActiveFilter] = useState<string>('todos');
+  const [reportStage, setReportStage] = useState<'inicial' | 'final' | 'unificado'>('inicial');
+  const [customJustificationNote, setCustomJustificationNote] = useState<string>('');
 
   // Compute patient age
   const age = useMemo(() => {
@@ -224,9 +226,15 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
     window.print();
   };
 
+  const getReportTitle = () => {
+    if (reportStage === 'inicial') return 'Relatório de Atendimento Inicial';
+    if (reportStage === 'final') return 'Relatório de Atendimento Final';
+    return 'Relatório de Atendimento Unificado';
+  };
+
   const handleSendWhatsApp = () => {
     const phone = patient.phone ? patient.phone.replace(/\D/g, '') : '';
-    let msg = `*RELATÓRIO DE ATENDIMENTO - CLINICA DENTISPRO*\n\n`;
+    let msg = `*${getReportTitle().toUpperCase()} - ${clinicInfo.name || 'CLÍNICA DENTISPRO'}*\n\n`;
     msg += `👤 *Paciente:* ${patient.name}\n`;
     msg += `📄 *CPF:* ${patient.cpf || 'N/A'}\n`;
     msg += `📅 *Data da Emissão:* ${new Date().toLocaleDateString('pt-BR')}\n\n`;
@@ -241,6 +249,13 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
       if (ev.subtitle) msg += `  _${ev.subtitle}_\n`;
       if (ev.amount) msg += `  Valor: R$ ${ev.amount.toFixed(2)}\n`;
     });
+
+    msg += `\n\n📌 *INFORMAÇÕES E ESCLARECIMENTOS AO PACIENTE ASSISTIDO*\n`;
+    msg += `Ficam prestadas as informações aos pacientes assistidos que justifiquem a recusa do atendimento, a interrupção do tratamento ou o tempo mais longo para a conclusão do tratamento, em razão da complexidade do caso, da finalidade pedagógica, do estágio de formação em que o profissional se encontre em relação às habilidades e aos conhecimentos que o caso clínico demande, ou mesmo delonga em razão de casos fortuitos que forçam a paralisação dos atendimentos nas clínicas da instituição.\n`;
+
+    if (customJustificationNote) {
+      msg += `\n*Observação Complementar:* ${customJustificationNote}\n`;
+    }
 
     msg += `\nPara mais informações, entre em contato com nossa equipe.`;
     const targetUrl = phone 
@@ -258,10 +273,10 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
           <div>
             <h2 className="text-lg font-serif italic font-bold text-[#5a5a40] flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-[#d4a373]" />
-              Relatório de Atendimento Unificado
+              {getReportTitle()}
             </h2>
             <p className="text-xs text-gray-500">
-              Histórico cronológico consolidado (Evoluções, Financeiro, Consultas e Documentos) em ordem decrescente.
+              Histórico cronológico consolidado (Evoluções, Financeiro, Consultas e Documentos) com justificativas institucionais e pedagógicas.
             </p>
           </div>
 
@@ -297,6 +312,50 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
           </div>
         </div>
 
+        {/* Phase Selector & Controls (Hidden in Print) */}
+        <div className="bg-[#fbfbf9] border border-[#e5e5d1] rounded-2xl p-3.5 space-y-3 print:hidden">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-bold text-[#5a5a40] uppercase tracking-wider flex items-center gap-1.5">
+              <FileCheck2 className="w-4 h-4 text-[#d4a373]" />
+              Tipo / Fase do Relatório:
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: 'inicial', label: 'Atendimento Inicial' },
+                { id: 'final', label: 'Atendimento Final' },
+                { id: 'unificado', label: 'Unificado / Geral' }
+              ].map(stg => (
+                <button
+                  key={stg.id}
+                  type="button"
+                  onClick={() => setReportStage(stg.id as any)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    reportStage === stg.id 
+                      ? 'bg-amber-400 text-stone-950 shadow-xs border border-amber-500/40' 
+                      : 'bg-white text-stone-700 hover:bg-[#f0f0e8] border border-[#e5e5d1]'
+                  }`}
+                >
+                  {stg.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Optional custom note field */}
+          <div className="pt-2 border-t border-[#e5e5d1]">
+            <label className="text-[11px] font-bold text-stone-600 block mb-1">
+              Observação Complementar do Relatório (opcional):
+            </label>
+            <input
+              type="text"
+              value={customJustificationNote}
+              onChange={(e) => setCustomJustificationNote(e.target.value)}
+              placeholder="Ex: Tratamento realizado em ambiente clínico-escola com supervisão docente; paciente orientado sobre etapas."
+              className="w-full text-xs p-2.5 bg-white border border-[#e5e5d1] rounded-xl text-stone-800 placeholder-stone-400 focus:outline-none focus:border-[#5a5a40]"
+            />
+          </div>
+        </div>
+
         {/* PRINTABLE DOCUMENT BODY */}
         <div id="printable-attendance-report" className="space-y-6 text-[#2c2c2c]">
           
@@ -315,8 +374,8 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
             </div>
 
             <div className="text-right sm:text-right border-l-2 sm:border-l-0 sm:border-r-2 border-[#d4a373] pl-3 sm:pl-0 sm:pr-3">
-              <span className="px-3 py-1 bg-[#f0f0e8] text-[#5a5a40] text-xs font-bold font-mono rounded-lg border border-[#e5e5d1] block">
-                RELATÓRIO DE ATENDIMENTO
+              <span className="px-3 py-1 bg-[#f0f0e8] text-[#5a5a40] text-xs font-bold font-mono rounded-lg border border-[#e5e5d1] block uppercase">
+                {getReportTitle().toUpperCase()}
               </span>
               <span className="text-[10px] text-stone-500 mt-1 block">
                 Emissão: {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}
@@ -480,9 +539,27 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
             )}
           </div>
 
+          {/* INFORMAÇÕES E JUSTIFICATIVAS AO PACIENTE ASSISTIDO */}
+          <div className="bg-[#fbfbf9] border border-[#e5e5d1] rounded-2xl p-4 space-y-2.5 text-xs shadow-2xs print:border-stone-300 print:bg-white print:break-inside-avoid">
+            <div className="flex items-center gap-2 text-[#5a5a40] font-bold uppercase tracking-wider text-[11px] border-b border-[#e5e5d1] pb-2">
+              <ShieldCheck className="w-4 h-4 text-[#d4a373] shrink-0" />
+              <span>Informações aos Pacientes Assistidos e Justificativas de Atendimento</span>
+            </div>
+            
+            <p className="text-stone-700 leading-relaxed text-xs text-justify bg-white p-3 rounded-xl border border-[#e5e5d1] print:border-none print:p-0">
+              Ficam prestadas as informações aos pacientes assistidos que justifiquem a recusa do atendimento, a interrupção do tratamento ou o tempo mais longo para a conclusão do tratamento, em razão da complexidade do caso, da finalidade pedagógica, do estágio de formação em que o profissional se encontre em relação às habilidades e aos conhecimentos que o caso clínico demande, ou mesmo delonga em razão de casos fortuitos que forçam a paralisação dos atendimentos nas clínicas da instituição.
+            </p>
+
+            {customJustificationNote && (
+              <div className="bg-[#f0f0e8] p-2.5 rounded-xl border border-[#e5e5d1] text-xs text-stone-800">
+                <strong className="font-semibold text-[#5a5a40]">Observação Complementar:</strong> {customJustificationNote}
+              </div>
+            )}
+          </div>
+
           {/* Document Footer Signature Component */}
           <div className="pt-6 border-t-2 border-[#5a5a40] print:break-inside-avoid">
-            <DocumentSignatureFooter documentTitle="Relatório de Atendimento Odontológico" />
+            <DocumentSignatureFooter documentTitle={getReportTitle()} />
           </div>
         </div>
       </div>

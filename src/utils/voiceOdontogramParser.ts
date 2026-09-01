@@ -134,11 +134,22 @@ export function parseLocalDentalVoiceCommand(
   if (text.includes('cárie') || text.includes('carie') || text.includes('lesão') || text.includes('cavidade') || text.includes('mancha')) {
     conditionType = 'carie';
   } else if (text.includes('insatisfatória') || text.includes('insatisfatoria') || text.includes('infiltrada') || text.includes('infiltração') || text.includes('recidiva')) {
-    conditionType = 'restauracao_insatisfatoria';
+    if (text.includes('endo') || text.includes('canal')) {
+      conditionType = 'canal'; // Endodontia insatisfatória
+      isWholeTooth = true;
+    } else {
+      conditionType = 'restauracao_insatisfatoria';
+    }
+  } else if (text.includes('necessidade endodôntica') || text.includes('necessidade endodontica') || text.includes('biopulpectomia') || text.includes('necropulpectomia') || text.includes('abrir canal')) {
+    conditionType = 'necessidade_endodontica';
+    isWholeTooth = true;
+  } else if (text.includes('endodontia satisfatória') || text.includes('endodontia satisfatoria') || text.includes('canal tratado') || text.includes('canal obturado') || text.includes('endo tratada')) {
+    conditionType = 'endodontia_satisfatoria';
+    isWholeTooth = true;
   } else if (text.includes('restauração') || text.includes('restauracao') || text.includes('resina') || text.includes('amálgama') || text.includes('amalgama') || text.includes('obturado') || text.includes('obturação')) {
     conditionType = 'restauracao';
-  } else if (text.includes('canal') || text.includes('endodontia') || text.includes('endo') || text.includes('biopulpectomia') || text.includes('necropulpectomia')) {
-    conditionType = 'canal';
+  } else if (text.includes('canal') || text.includes('endodontia') || text.includes('endo')) {
+    conditionType = 'canal'; // Endodontia insatisfatória
     isWholeTooth = true;
   } else if (text.includes('extração') || text.includes('extracao') || text.includes('extrair') || text.includes('exodontia') || text.includes('residual')) {
     conditionType = 'extracao_indicada';
