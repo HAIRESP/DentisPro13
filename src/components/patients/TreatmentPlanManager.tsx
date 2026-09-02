@@ -7,6 +7,7 @@ import { TussManagerModal } from './TussManagerModal';
 import { RegionSelector } from './RegionSelector';
 import { ProcedureModulesModal } from '../common/ProcedureModulesModal';
 import { formatRegionDisplay, REGION_LEGENDS } from '../../data/regionData';
+import { TreatmentPlanConsentModal } from '../laudos/TreatmentPlanConsentModal';
 import { 
   FileCheck2, 
   Plus, 
@@ -573,6 +574,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
 
   const [isCreating, setIsCreating] = useState(false);
   const [activePrintPlan, setActivePrintPlan] = useState<TreatmentPlan | null>(null);
+  const [activeConsentPlanId, setActiveConsentPlanId] = useState<string | null>(null);
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
 
   // TUSS Manager Modal State
@@ -1736,6 +1738,16 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                       <option value="cancelado">Cancelado</option>
                     </select>
 
+                    {/* Botão de Laudo de Aceite & Formalização */}
+                    <button
+                      onClick={() => setActiveConsentPlanId(plan.id)}
+                      className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                      title="Laudo de Aceite, Seção Financeira e Anexo Assinado pelo Paciente"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Laudo de Aceite {plan.consentAccepted ? '✓' : ''}</span>
+                    </button>
+
                     <button
                       onClick={() => setActivePrintPlan(plan)}
                       className={`px-3 py-1.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-2xs cursor-pointer`}
@@ -2585,6 +2597,16 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
         procedureName={viewingModulesProcedure?.name}
         specialty={viewingModulesProcedure?.specialty}
       />
+
+      {/* MODAL 6: LAUDO DE ACEITE, SEÇÃO FINANCEIRA E ANEXO ASSINADO */}
+      {activeConsentPlanId && patient && (
+        <TreatmentPlanConsentModal
+          patient={patient}
+          isOpen={!!activeConsentPlanId}
+          onClose={() => setActiveConsentPlanId(null)}
+          initialPlanId={activeConsentPlanId}
+        />
+      )}
     </div>
   );
 };

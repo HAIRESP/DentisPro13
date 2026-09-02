@@ -399,7 +399,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
             }
           });
         }
-        // Do NOT auto-select default faces - only keep what was explicitly recorded or leave empty for user selection
+        // Keep active recorded surfaces if any, otherwise empty
         setSelectedSurfaces(activeSurfs);
         if (conditionsFound.length > 0) {
           setSelectedConditionTypes([conditionsFound[0]]);
@@ -415,30 +415,26 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     }
   };
 
+  // Ensure surfaces are always cleared when no teeth are selected
+  useEffect(() => {
+    if (selectedTeeth.length === 0 && selectedSurfaces.length > 0) {
+      setSelectedSurfaces([]);
+    }
+  }, [selectedTeeth, selectedSurfaces.length]);
+
   // Single & Multi-select click handler for teeth
   const handleToothClick = (num: number) => {
     if (readOnly || activeSnapshotId !== 'current') return;
     if (hasDraggedRef.current) return;
 
     if (isMultiSelectMode) {
-      // Toggle in multi-select mode
-      setSelectedTeeth(prev => {
-        const next = prev.includes(num) ? prev.filter(t => t !== num) : [...prev, num];
-        syncSelectionFromTeeth(next);
-        return next;
-      });
+      const next = selectedTeeth.includes(num) ? selectedTeeth.filter(t => t !== num) : [...selectedTeeth, num];
+      setSelectedTeeth(next);
+      syncSelectionFromTeeth(next);
     } else {
-      // Single select or toggle
-      setSelectedTeeth(prev => {
-        if (prev.length === 1 && prev[0] === num) {
-          syncSelectionFromTeeth([]);
-          return [];
-        } else {
-          const next = [num];
-          syncSelectionFromTeeth(next);
-          return next;
-        }
-      });
+      const next = (selectedTeeth.length === 1 && selectedTeeth[0] === num) ? [] : [num];
+      setSelectedTeeth(next);
+      syncSelectionFromTeeth(next);
     }
   };
 
@@ -909,14 +905,12 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
       e.preventDefault();
       if (readOnly || activeSnapshotId !== 'current') return;
 
-      if (!selectedTeeth.includes(toothNum)) {
-        if (isMultiSelectMode) {
-          setSelectedTeeth(prev => [...prev, toothNum]);
-        } else {
-          setSelectedTeeth([toothNum]);
-        }
-      }
-      handleToggleSurface(surf);
+      const targetTeeth = selectedTeeth.includes(toothNum)
+        ? selectedTeeth
+        : (isMultiSelectMode ? [...selectedTeeth, toothNum] : [toothNum]);
+      
+      setSelectedTeeth(targetTeeth);
+      handleToggleSurface(surf, targetTeeth);
     };
 
     // Calculate tooth box size

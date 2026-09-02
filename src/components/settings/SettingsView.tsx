@@ -47,7 +47,8 @@ import {
   Zap,
   AlertCircle,
   BadgeCheck,
-  Bot
+  Bot,
+  MessageCircle
 } from 'lucide-react';
 import { AddressFields, AddressData, formatFullAddress } from '../common/AddressFields';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
@@ -1033,6 +1034,44 @@ export const SettingsView: React.FC = () => {
                 className="px-5 py-2 bg-[#5a5a40] hover:bg-[#7a7a5a] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5 text-[#d4a373]" /> Salvar Configuração da API
+              </button>
+            </div>
+          </div>
+
+          {/* Card de Suporte Técnico WhatsApp Oficial */}
+          <div className="bg-[#3b3b2a] text-white p-5 rounded-2xl border border-white/10 space-y-3 shadow-md">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#25D366]/20 flex items-center justify-center text-[#25D366]">
+                  <MessageCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                    Suporte WhatsApp DentisPro
+                  </h4>
+                  <p className="text-[11px] text-white/70">Atendimento e suporte técnico especializado</p>
+                </div>
+              </div>
+              <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+                <span className="w-2 h-2 rounded-full bg-[#25D366] animate-pulse" />
+                Online
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-white/10">
+              <p className="text-white font-mono font-bold text-sm">
+                +55 (85) 98111-0826
+              </p>
+
+              <button 
+                type="button"
+                onClick={() => {
+                  window.open('https://wa.me/5585981110826?text=Ol%C3%A1%2C%20preciso%20de%20suporte%20no%20DentisPro', '_blank');
+                }}
+                className="bg-[#25D366] hover:bg-[#128C7E] text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <MessageCircle className="w-4 h-4 fill-white text-[#25D366]" />
+                Falar com Suporte no WhatsApp
               </button>
             </div>
           </div>

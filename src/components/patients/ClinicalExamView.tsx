@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Odontogram } from './Odontogram';
+import { PainEvaluationExamView } from './PainEvaluationExamView';
 import { ImageGalleryWithEditor } from '../common/ImageGalleryWithEditor';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
 import { 
   Stethoscope, 
   Smile, 
   Eye, 
+  Flame,
   CheckCircle2, 
   Save, 
   UserCheck, 
@@ -44,7 +46,7 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
   const activePatientId = patientIdOverride || selectedPatientId || patients[0]?.id || '';
   const currentPatient = patients.find(p => p.id === activePatientId) || patients[0];
 
-  const [activeSection, setActiveSection] = useState<'odontogram' | 'extraoral' | 'intraoral'>('odontogram');
+  const [activeSection, setActiveSection] = useState<'odontogram' | 'dor_urgencia' | 'extraoral' | 'intraoral'>('odontogram');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -140,6 +142,16 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
     if (intraoral.notes) msg += `• Obs Intraorais: ${intraoral.notes}\n`;
     msg += `\n`;
 
+    if (exam.painExam && (exam.painExam.diagnostico || exam.painExam.chiefComplaint || exam.painExam.tratamentoUrgenciaProposto)) {
+      const pe = exam.painExam;
+      msg += `⚡ *EXAME DE URGÊNCIA & DOR:*\n`;
+      if (pe.chiefComplaint) msg += `• Queixa Principal: ${pe.chiefComplaint}\n`;
+      if (pe.diagnostico) msg += `• Diagnóstico: ${pe.diagnostico}\n`;
+      if (pe.tratamentoUrgenciaProposto) msg += `• Tratamento Proposto: ${pe.tratamentoUrgenciaProposto}\n`;
+      if (pe.tratamentoExecutado) msg += `• Tratamento Executado: ${pe.tratamentoExecutado}\n`;
+      msg += `\n`;
+    }
+
     if (generalNotes) {
       msg += `📌 *PARECER DO CIRURGIÃO-DENTISTA:*\n${generalNotes}\n\n`;
     }
@@ -234,6 +246,18 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
 
         <button
           type="button"
+          onClick={() => setActiveSection('dor_urgencia')}
+          className={`flex-1 min-w-[150px] py-3 px-4 rounded-xl font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+            activeSection === 'dor_urgencia'
+              ? 'bg-amber-600 text-white shadow-xs font-black'
+              : `${t.btnSecondaryBg} ${t.btnSecondaryText} hover:opacity-80`
+          }`}
+        >
+          <Flame className={`w-4 h-4 ${activeSection === 'dor_urgencia' ? 'text-amber-200' : 'text-amber-600'}`} /> Exame de Urgência & Dor
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveSection('extraoral')}
           className={`flex-1 min-w-[150px] py-3 px-4 rounded-xl font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
             activeSection === 'extraoral'
@@ -256,6 +280,13 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
           <Stethoscope className={`w-4 h-4 ${activeSection === 'intraoral' ? 'text-white' : t.accentText}`} /> Exame Intraoral
         </button>
       </div>
+
+      {/* SECTION: EXAME DE URGÊNCIA & DOR */}
+      {activeSection === 'dor_urgencia' && (
+        <div className="space-y-4">
+          <PainEvaluationExamView patientId={activePatientId} />
+        </div>
+      )}
 
       {/* SECTION 1: EXAME EXTRAORAL */}
       {activeSection === 'extraoral' && (
@@ -788,10 +819,23 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
           </div>
         </div>
 
+        {/* Pain / Urgency Exam Findings if recorded */}
+        {exam.painExam && (exam.painExam.diagnostico || exam.painExam.chiefComplaint || exam.painExam.tratamentoUrgenciaProposto) && (
+          <div className="border border-stone-300 p-3 rounded-lg text-xs space-y-1">
+            <h3 className="font-bold text-stone-900 uppercase text-[11px] border-b border-stone-200 pb-1">4. Avaliação de Dor & Exame de Urgência</h3>
+            <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+              {exam.painExam.chiefComplaint && <div className="col-span-2"><strong>Queixa Principal:</strong> {exam.painExam.chiefComplaint}</div>}
+              {exam.painExam.diagnostico && <div className="col-span-2"><strong>Diagnóstico Odontológico:</strong> {exam.painExam.diagnostico}</div>}
+              {exam.painExam.tratamentoUrgenciaProposto && <div className="col-span-2"><strong>Tratamento Proposto:</strong> {exam.painExam.tratamentoUrgenciaProposto}</div>}
+              {exam.painExam.tratamentoExecutado && <div className="col-span-2"><strong>Tratamento Executado:</strong> {exam.painExam.tratamentoExecutado}</div>}
+            </div>
+          </div>
+        )}
+
         {/* Parecer do Dentista */}
         {generalNotes && (
           <div className="border border-stone-300 p-3 rounded-lg text-xs space-y-1">
-            <h3 className="font-bold text-stone-900 uppercase text-[11px] border-b border-stone-200 pb-1">4. Parecer e Recomendações do Cirurgião-Dentista</h3>
+            <h3 className="font-bold text-stone-900 uppercase text-[11px] border-b border-stone-200 pb-1">5. Parecer e Recomendações do Cirurgião-Dentista</h3>
             <p className="text-[11px] pt-1 whitespace-pre-wrap">{generalNotes}</p>
           </div>
         )}

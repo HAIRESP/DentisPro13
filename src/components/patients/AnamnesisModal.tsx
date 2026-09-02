@@ -44,7 +44,26 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
 
   const initial = patient.anamnesis || ({} as Anamnesis);
 
-  // 1. Saúde Geral & Histórico Médico
+  // 1. Saúde Geral & Histórico Médico (Questionário Completo Integrado)
+  const [hasGoodHealth, setHasGoodHealth] = useState(initial.hasGoodHealth !== undefined ? initial.hasGoodHealth : true);
+  const [isUndergoingMedicalTreatment, setIsUndergoingMedicalTreatment] = useState(initial.isUndergoingMedicalTreatment || false);
+  const [medicalTreatmentDetails, setMedicalTreatmentDetails] = useState(initial.medicalTreatmentDetails || '');
+  const [hasRheumaticFever, setHasRheumaticFever] = useState(initial.hasRheumaticFever || false);
+  const [hasAsthma, setHasAsthma] = useState(initial.hasAsthma || false);
+  const [hasArthritis, setHasArthritis] = useState(initial.hasArthritis || false);
+  const [hasFaintingSpells, setHasFaintingSpells] = useState(initial.hasFaintingSpells || false);
+  const [hasSinusitis, setHasSinusitis] = useState(initial.hasSinusitis || false);
+  const [hasHepatitis, setHasHepatitis] = useState(initial.hasHepatitis || false);
+  const [hasOtherInfections, setHasOtherInfections] = useState(initial.hasOtherInfections || false);
+  const [otherInfectionsDetails, setOtherInfectionsDetails] = useState(initial.otherInfectionsDetails || '');
+  const [hasRadiationTherapyFaceJaw, setHasRadiationTherapyFaceJaw] = useState(initial.hasRadiationTherapyFaceJaw || false);
+  const [hasFaceJawTrauma, setHasFaceJawTrauma] = useState(initial.hasFaceJawTrauma || false);
+  const [faceJawTraumaDetails, setFaceJawTraumaDetails] = useState(initial.faceJawTraumaDetails || '');
+  const [hasAdverseDentalReaction, setHasAdverseDentalReaction] = useState(initial.hasAdverseDentalReaction || false);
+  const [adverseDentalReactionDetails, setAdverseDentalReactionDetails] = useState(initial.adverseDentalReactionDetails || '');
+  const [hasOtherUnlistedDiseases, setHasOtherUnlistedDiseases] = useState(initial.hasOtherUnlistedDiseases || false);
+  const [otherUnlistedDiseasesDetails, setOtherUnlistedDiseasesDetails] = useState(initial.otherUnlistedDiseasesDetails || '');
+
   const [hasAllergies, setHasAllergies] = useState(initial.hasAllergies || false);
   const [allergyDetails, setAllergyDetails] = useState(initial.allergyDetails || '');
   const [bloodPressureStatus, setBloodPressureStatus] = useState<Anamnesis['bloodPressureStatus']>(initial.bloodPressureStatus || 'normal');
@@ -146,6 +165,24 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
     e.preventDefault();
 
     const updatedAnamnesis: Anamnesis = {
+      hasGoodHealth,
+      isUndergoingMedicalTreatment,
+      medicalTreatmentDetails: isUndergoingMedicalTreatment ? medicalTreatmentDetails : '',
+      hasRheumaticFever,
+      hasAsthma,
+      hasArthritis,
+      hasFaintingSpells,
+      hasSinusitis,
+      hasHepatitis,
+      hasOtherInfections,
+      otherInfectionsDetails: hasOtherInfections ? otherInfectionsDetails : '',
+      hasRadiationTherapyFaceJaw,
+      hasFaceJawTrauma,
+      faceJawTraumaDetails: hasFaceJawTrauma ? faceJawTraumaDetails : '',
+      hasAdverseDentalReaction,
+      adverseDentalReactionDetails: hasAdverseDentalReaction ? adverseDentalReactionDetails : '',
+      hasOtherUnlistedDiseases,
+      otherUnlistedDiseasesDetails: hasOtherUnlistedDiseases ? otherUnlistedDiseasesDetails : '',
       hasAllergies,
       allergyDetails: hasAllergies ? allergyDetails : '',
       bloodPressureStatus,
@@ -331,11 +368,75 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSave} className="space-y-6">
 
-          {/* Section 1: Saúde Geral e Sistêmica */}
+          {/* Section 1: Saúde Geral e Sistêmica (Questionário Clínico Integrado) */}
           <div className="bg-[#fbfbf9] p-5 rounded-2xl border border-[#e5e5d1] space-y-4">
             <h3 className="text-sm font-bold text-[#5a5a40] flex items-center gap-2 border-b border-[#e5e5d1] pb-2">
-              <Heart className="w-4 h-4 text-rose-500" /> 1. Saúde Geral & Histórico Médico
+              <Heart className="w-4 h-4 text-rose-500" /> 1. Saúde Geral & Histórico Médico (Questionário Diagnóstico)
             </h3>
+
+            {/* Questions: Boa Saúde & Tratamento Médico Atual */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-4 rounded-2xl border border-[#e5e5d1]">
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-gray-800">Você goza de boa saúde?</label>
+                <div className="flex items-center gap-4 text-xs">
+                  <label className="flex items-center gap-1.5 cursor-pointer font-medium">
+                    <input
+                      type="radio"
+                      name="hasGoodHealth"
+                      checked={hasGoodHealth === true}
+                      onChange={() => setHasGoodHealth(true)}
+                      className="text-[#5a5a40] focus:ring-0"
+                    />
+                    <span>Sim</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer font-medium text-rose-700">
+                    <input
+                      type="radio"
+                      name="hasGoodHealth"
+                      checked={hasGoodHealth === false}
+                      onChange={() => setHasGoodHealth(false)}
+                      className="text-rose-600 focus:ring-0"
+                    />
+                    <span>Não</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-gray-800">Está atualmente fazendo qualquer tratamento médico?</label>
+                <div className="flex items-center gap-4 text-xs">
+                  <label className="flex items-center gap-1.5 cursor-pointer font-medium text-amber-700">
+                    <input
+                      type="radio"
+                      name="isUndergoingMedicalTreatment"
+                      checked={isUndergoingMedicalTreatment === true}
+                      onChange={() => setIsUndergoingMedicalTreatment(true)}
+                      className="text-amber-600 focus:ring-0"
+                    />
+                    <span>Sim</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer font-medium">
+                    <input
+                      type="radio"
+                      name="isUndergoingMedicalTreatment"
+                      checked={isUndergoingMedicalTreatment === false}
+                      onChange={() => setIsUndergoingMedicalTreatment(false)}
+                      className="text-[#5a5a40] focus:ring-0"
+                    />
+                    <span>Não</span>
+                  </label>
+                </div>
+                {isUndergoingMedicalTreatment && (
+                  <input
+                    type="text"
+                    value={medicalTreatmentDetails}
+                    onChange={(e) => setMedicalTreatmentDetails(e.target.value)}
+                    placeholder="Se afirmativo, qual tratamento médico?"
+                    className="w-full text-xs p-2 bg-amber-50/50 border border-amber-300 rounded-xl focus:outline-none"
+                  />
+                )}
+              </div>
+            </div>
 
             {/* General Health Rating */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -369,127 +470,349 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
               </div>
             </div>
 
-            {/* Checkboxes Grid 1 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1]">
-                <input
-                  type="checkbox"
-                  checked={hasAllergies}
-                  onChange={(e) => setHasAllergies(e.target.checked)}
-                  className="rounded text-[#5a5a40] focus:ring-0"
-                />
-                <span className="font-semibold">Tem Alergia a medicamentos ou materiais?</span>
+            {/* Condições Clínicas / História Pregressa */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-[#5a5a40]">
+                História Pregressa & Condições de Saúde (Marque todas as aplicáveis):
               </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasRheumaticFever}
+                    onChange={(e) => setHasRheumaticFever(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span>Febre reumática</span>
+                </label>
 
-              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1]">
-                <input
-                  type="checkbox"
-                  checked={hasHeartDisease}
-                  onChange={(e) => setHasHeartDisease(e.target.checked)}
-                  className="rounded text-[#5a5a40] focus:ring-0"
-                />
-                <span>Problemas cardíacos / Sopros / Infarto</span>
-              </label>
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasHeartDisease}
+                    onChange={(e) => setHasHeartDisease(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span>Doença do coração / Sopro</span>
+                </label>
 
-              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1]">
-                <input
-                  type="checkbox"
-                  checked={hasPacemaker}
-                  onChange={(e) => setHasPacemaker(e.target.checked)}
-                  className="rounded text-[#5a5a40] focus:ring-0"
-                />
-                <span>Usa Marca-passo ou Prótese Valvular</span>
-              </label>
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasHypertension}
+                    onChange={(e) => setHasHypertension(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span>Hipertensão arterial</span>
+                </label>
 
-              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1]">
-                <input
-                  type="checkbox"
-                  checked={hasShortnessOfBreath}
-                  onChange={(e) => setHasShortnessOfBreath(e.target.checked)}
-                  className="rounded text-[#5a5a40] focus:ring-0"
-                />
-                <span>Sente falta de ar com frequência (Dispneia)</span>
-              </label>
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasAllergies}
+                    onChange={(e) => setHasAllergies(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span className="font-semibold text-rose-700">Alergia (medicamentos/látex)</span>
+                </label>
 
-              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1]">
-                <input
-                  type="checkbox"
-                  checked={hasDiabetes}
-                  onChange={(e) => setHasDiabetes(e.target.checked)}
-                  className="rounded text-[#5a5a40] focus:ring-0"
-                />
-                <span className="font-semibold">Possui Diabetes</span>
-              </label>
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasAsthma}
+                    onChange={(e) => setHasAsthma(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span>Asma / Bronquite</span>
+                </label>
 
-              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1]">
-                <input
-                  type="checkbox"
-                  checked={hasHypertension}
-                  onChange={(e) => setHasHypertension(e.target.checked)}
-                  className="rounded text-[#5a5a40] focus:ring-0"
-                />
-                <span>Hipertensão Arterial (Pressão Alta)</span>
-              </label>
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasArthritis}
+                    onChange={(e) => setHasArthritis(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span>Artrite / Reumatismo</span>
+                </label>
 
-              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1]">
-                <input
-                  type="checkbox"
-                  checked={usesAnticoagulants}
-                  onChange={(e) => setUsesAnticoagulants(e.target.checked)}
-                  className="rounded text-[#5a5a40] focus:ring-0"
-                />
-                <span className="font-semibold text-rose-700">Usa Anticoagulantes (AAS, Marevan, Xarelto)</span>
-              </label>
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasSeizures}
+                    onChange={(e) => setHasSeizures(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span>Epilepsia / Convulsões</span>
+                </label>
 
-              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1]">
-                <input
-                  type="checkbox"
-                  checked={usesBisphosphonates}
-                  onChange={(e) => setUsesBisphosphonates(e.target.checked)}
-                  className="rounded text-[#5a5a40] focus:ring-0"
-                />
-                <span className="font-semibold text-rose-800">Usa Bisfosfonatos (Alendronato, Zometa)</span>
-              </label>
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasDiabetes}
+                    onChange={(e) => setHasDiabetes(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span className="font-semibold">Diabetes</span>
+                </label>
 
-              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1]">
-                <input
-                  type="checkbox"
-                  checked={hasCancerHistory}
-                  onChange={(e) => setHasCancerHistory(e.target.checked)}
-                  className="rounded text-[#5a5a40] focus:ring-0"
-                />
-                <span>Histórico de Câncer / Quimio / Radioterapia</span>
-              </label>
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasFaintingSpells}
+                    onChange={(e) => setHasFaintingSpells(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span>Desmaios frequentes / Síncopes</span>
+                </label>
 
-              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1]">
-                <input
-                  type="checkbox"
-                  checked={hasSeizures}
-                  onChange={(e) => setHasSeizures(e.target.checked)}
-                  className="rounded text-[#5a5a40] focus:ring-0"
-                />
-                <span>Convulsões / Epilepsia / AVC</span>
-              </label>
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasSinusitis}
+                    onChange={(e) => setHasSinusitis(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span>Sinusite</span>
+                </label>
 
-              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1]">
-                <input
-                  type="checkbox"
-                  checked={hasHadSurgery}
-                  onChange={(e) => setHasHadSurgery(e.target.checked)}
-                  className="rounded text-[#5a5a40] focus:ring-0"
-                />
-                <span>Já realizou cirurgias ou internações anteriores</span>
-              </label>
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasHepatitis}
+                    onChange={(e) => setHasHepatitis(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span>Hepatite / Icterícia</span>
+                </label>
 
-              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1]">
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasOtherInfections}
+                    onChange={(e) => setHasOtherInfections(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span>Outras infecções</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={usesAnticoagulants}
+                    onChange={(e) => setUsesAnticoagulants(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span className="text-rose-700 font-semibold">Usa Anticoagulantes</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={usesBisphosphonates}
+                    onChange={(e) => setUsesBisphosphonates(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span className="text-rose-800 font-semibold">Bisfosfonatos</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasCancerHistory}
+                    onChange={(e) => setHasCancerHistory(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span>Histórico de Câncer / Quimioterapia</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasHadSurgery}
+                    onChange={(e) => setHasHadSurgery(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span>Cirurgias ou internações anteriores</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={familyMedicalHistory}
+                    onChange={(e) => setFamilyMedicalHistory(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span>Histórico familiar de doenças</span>
+                </label>
+              </div>
+            </div>
+
+            {hasOtherInfections && (
+              <div className="bg-amber-50 p-3 rounded-xl border border-amber-200">
+                <label className="block text-xs font-semibold text-amber-900 mb-1">Especifique as outras infecções:</label>
                 <input
-                  type="checkbox"
-                  checked={familyMedicalHistory}
-                  onChange={(e) => setFamilyMedicalHistory(e.target.checked)}
-                  className="rounded text-[#5a5a40] focus:ring-0"
+                  type="text"
+                  value={otherInfectionsDetails}
+                  onChange={(e) => setOtherInfectionsDetails(e.target.value)}
+                  placeholder="Ex: Tuberculose, IST, Mononucleose..."
+                  className="w-full text-xs p-2 bg-white border border-amber-300 rounded-lg focus:outline-none"
                 />
-                <span>Histórico familiar de doenças graves</span>
-              </label>
+              </div>
+            )}
+
+            {/* Traumatismos, Tratamento por Raios-X e Reação Odontológica */}
+            <div className="space-y-3 pt-2">
+              {/* Raios-X na face ou maxilares */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="text-xs font-bold text-gray-800">
+                    Você já sofreu tratamento pelos raios-X, na face ou nos maxilares (Radioterapia)?
+                  </label>
+                  <div className="flex items-center gap-4 text-xs">
+                    <label className="flex items-center gap-1 cursor-pointer font-medium text-rose-700">
+                      <input
+                        type="radio"
+                        name="hasRadiationTherapyFaceJaw"
+                        checked={hasRadiationTherapyFaceJaw === true}
+                        onChange={() => setHasRadiationTherapyFaceJaw(true)}
+                        className="text-rose-600 focus:ring-0"
+                      />
+                      <span>Sim</span>
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer font-medium">
+                      <input
+                        type="radio"
+                        name="hasRadiationTherapyFaceJaw"
+                        checked={hasRadiationTherapyFaceJaw === false}
+                        onChange={() => setHasRadiationTherapyFaceJaw(false)}
+                        className="text-[#5a5a40] focus:ring-0"
+                      />
+                      <span>Não</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Traumatismo na face ou maxilares */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="text-xs font-bold text-gray-800">
+                    Você já sofreu algum traumatismo na face ou nos maxilares?
+                  </label>
+                  <div className="flex items-center gap-4 text-xs">
+                    <label className="flex items-center gap-1 cursor-pointer font-medium text-amber-700">
+                      <input
+                        type="radio"
+                        name="hasFaceJawTrauma"
+                        checked={hasFaceJawTrauma === true}
+                        onChange={() => setHasFaceJawTrauma(true)}
+                        className="text-amber-600 focus:ring-0"
+                      />
+                      <span>Sim</span>
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer font-medium">
+                      <input
+                        type="radio"
+                        name="hasFaceJawTrauma"
+                        checked={hasFaceJawTrauma === false}
+                        onChange={() => setHasFaceJawTrauma(false)}
+                        className="text-[#5a5a40] focus:ring-0"
+                      />
+                      <span>Não</span>
+                    </label>
+                  </div>
+                </div>
+                {hasFaceJawTrauma && (
+                  <input
+                    type="text"
+                    value={faceJawTraumaDetails}
+                    onChange={(e) => setFaceJawTraumaDetails(e.target.value)}
+                    placeholder="Se afirmativo, quando e como ocorreu o traumatismo?"
+                    className="w-full text-xs p-2 bg-amber-50/50 border border-amber-300 rounded-lg focus:outline-none"
+                  />
+                )}
+              </div>
+
+              {/* Reação desfavorável ao tratamento dentário */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="text-xs font-bold text-gray-800">
+                    Você já teve alguma reação desfavorável ao tratamento dentário?
+                  </label>
+                  <div className="flex items-center gap-4 text-xs">
+                    <label className="flex items-center gap-1 cursor-pointer font-medium text-rose-700">
+                      <input
+                        type="radio"
+                        name="hasAdverseDentalReaction"
+                        checked={hasAdverseDentalReaction === true}
+                        onChange={() => setHasAdverseDentalReaction(true)}
+                        className="text-rose-600 focus:ring-0"
+                      />
+                      <span>Sim</span>
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer font-medium">
+                      <input
+                        type="radio"
+                        name="hasAdverseDentalReaction"
+                        checked={hasAdverseDentalReaction === false}
+                        onChange={() => setHasAdverseDentalReaction(false)}
+                        className="text-[#5a5a40] focus:ring-0"
+                      />
+                      <span>Não</span>
+                    </label>
+                  </div>
+                </div>
+                {hasAdverseDentalReaction && (
+                  <input
+                    type="text"
+                    value={adverseDentalReactionDetails}
+                    onChange={(e) => setAdverseDentalReactionDetails(e.target.value)}
+                    placeholder="Se afirmativo, descreva o que aconteceu (ex: síncope por anestésico, dor intensa, náusea)..."
+                    className="w-full text-xs p-2 bg-rose-50/50 border border-rose-300 rounded-lg focus:outline-none"
+                  />
+                )}
+              </div>
+
+              {/* Qualquer enfermidade não-relacionada */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="text-xs font-bold text-gray-800">
+                    Você tem qualquer enfermidade não-relacionada aqui?
+                  </label>
+                  <div className="flex items-center gap-4 text-xs">
+                    <label className="flex items-center gap-1 cursor-pointer font-medium text-amber-700">
+                      <input
+                        type="radio"
+                        name="hasOtherUnlistedDiseases"
+                        checked={hasOtherUnlistedDiseases === true}
+                        onChange={() => setHasOtherUnlistedDiseases(true)}
+                        className="text-amber-600 focus:ring-0"
+                      />
+                      <span>Sim</span>
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer font-medium">
+                      <input
+                        type="radio"
+                        name="hasOtherUnlistedDiseases"
+                        checked={hasOtherUnlistedDiseases === false}
+                        onChange={() => setHasOtherUnlistedDiseases(false)}
+                        className="text-[#5a5a40] focus:ring-0"
+                      />
+                      <span>Não</span>
+                    </label>
+                  </div>
+                </div>
+                {hasOtherUnlistedDiseases && (
+                  <input
+                    type="text"
+                    value={otherUnlistedDiseasesDetails}
+                    onChange={(e) => setOtherUnlistedDiseasesDetails(e.target.value)}
+                    placeholder="Se afirmativo, especifique a enfermidade..."
+                    className="w-full text-xs p-2 bg-amber-50/50 border border-amber-300 rounded-lg focus:outline-none"
+                  />
+                )}
+              </div>
             </div>
 
             {/* Conditional Subfields */}

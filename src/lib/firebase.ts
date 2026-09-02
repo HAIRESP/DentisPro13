@@ -44,7 +44,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, { label: string; description: st
   admin: {
     label: 'Administrador(a)',
     description: 'Acesso irrestrito a todos os módulos, parâmetros do sistema, finanças e gestão de usuários.',
-    allowedTabs: ['dashboard', 'pacientes', 'agendamento', 'relatorios', 'documentos', 'triagem', 'exame_clinico', 'odontograma', 'estoque', 'financeiro', 'configuracoes'],
+    allowedTabs: ['dashboard', 'pacientes', 'agendamento', 'relatorios', 'documentos', 'laudos', 'triagem', 'exame_clinico', 'odontograma', 'estoque', 'financeiro', 'configuracoes'],
     canManageSettings: true,
     canViewFinancial: true,
     canManageUsers: true
@@ -52,7 +52,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, { label: string; description: st
   dentist: {
     label: 'Dentista / Profissional',
     description: 'Acesso a atendimento clínico, agenda, pacientes, exames, evolução e documentos.',
-    allowedTabs: ['dashboard', 'pacientes', 'agendamento', 'relatorios', 'documentos', 'triagem', 'exame_clinico', 'odontograma', 'estoque'],
+    allowedTabs: ['dashboard', 'pacientes', 'agendamento', 'relatorios', 'documentos', 'laudos', 'triagem', 'exame_clinico', 'odontograma', 'estoque'],
     canManageSettings: false,
     canViewFinancial: false,
     canManageUsers: false
@@ -60,7 +60,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, { label: string; description: st
   receptionist: {
     label: 'Recepcionista / Atendente',
     description: 'Acesso à gestão de agenda, cadastro de pacientes, envio de WhatsApp e recepção.',
-    allowedTabs: ['dashboard', 'pacientes', 'agendamento', 'triagem', 'documentos'],
+    allowedTabs: ['dashboard', 'pacientes', 'agendamento', 'triagem', 'documentos', 'laudos'],
     canManageSettings: false,
     canViewFinancial: false,
     canManageUsers: false

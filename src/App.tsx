@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { Sidebar } from './components/common/Sidebar';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { PatientList } from './components/patients/PatientList';
 import { AppointmentCalendar } from './components/appointments/AppointmentCalendar';
@@ -12,8 +11,10 @@ import { SettingsView } from './components/settings/SettingsView';
 import { ReportsView } from './components/reports/ReportsView';
 import { WhatsAppBotView } from './components/whatsapp/WhatsAppBotView';
 import { DentalDocumentManager } from './components/documents/DentalDocumentManager';
+import { LaudosView } from './components/laudos/LaudosView';
+import { SectionHeaderBar } from './components/common/SectionHeaderBar';
 import { UserSessionModal } from './components/common/UserSessionModal';
-import { Lock, ShieldAlert, KeyRound } from 'lucide-react';
+import { ShieldAlert, KeyRound } from 'lucide-react';
 
 const MainContent: React.FC = () => {
   const { activeTab, layoutTheme } = useApp();
@@ -69,19 +70,25 @@ const MainContent: React.FC = () => {
   }
 
   return (
-    <div className={`flex-1 min-w-0 ${themeBg} p-4 sm:p-6 lg:p-8 overflow-y-auto transition-colors duration-300`}>
-      {activeTab === 'dashboard' && <DashboardView />}
-      {activeTab === 'pacientes' && <PatientList />}
-      {activeTab === 'agendamento' && <AppointmentCalendar />}
-      {activeTab === 'triagem' && <WhatsAppBotView />}
-      {activeTab === 'relatorios' && <ReportsView />}
-      {activeTab === 'configuracoes' && <SettingsView />}
-      {activeTab === 'exame_clinico' && <ClinicalExamView />}
-      {activeTab === 'odontograma' && <ClinicalExamView />}
-      {activeTab === 'estoque' && <InventoryManager />}
-      {activeTab === 'financeiro' && <ReportsView />}
-      {activeTab === 'documentos' && <DentalDocumentManager />}
-    </div>
+    <main className={`flex-1 min-w-0 ${themeBg} p-3 sm:p-4 md:p-5 lg:p-6 overflow-y-auto transition-colors duration-300`}>
+      <div className="w-full max-w-[1700px] mx-auto">
+        {/* Top bar with back to home button for all sub-sections */}
+        {activeTab !== 'dashboard' && <SectionHeaderBar />}
+
+        {activeTab === 'dashboard' && <DashboardView />}
+        {activeTab === 'pacientes' && <PatientList />}
+        {activeTab === 'agendamento' && <AppointmentCalendar />}
+        {activeTab === 'triagem' && <WhatsAppBotView />}
+        {activeTab === 'relatorios' && <ReportsView />}
+        {activeTab === 'configuracoes' && <SettingsView />}
+        {activeTab === 'exame_clinico' && <ClinicalExamView />}
+        {activeTab === 'odontograma' && <ClinicalExamView />}
+        {activeTab === 'estoque' && <InventoryManager />}
+        {activeTab === 'financeiro' && <ReportsView />}
+        {activeTab === 'documentos' && <DentalDocumentManager />}
+        {activeTab === 'laudos' && <LaudosView />}
+      </div>
+    </main>
   );
 };
 
@@ -98,8 +105,7 @@ const AppShell: React.FC = () => {
   }
 
   return (
-    <div className={`min-h-screen ${shellBg} flex flex-col lg:flex-row font-sans transition-colors duration-300`} data-theme={layoutTheme}>
-      <Sidebar />
+    <div className={`min-h-screen ${shellBg} flex flex-col font-sans transition-colors duration-300`} data-theme={layoutTheme}>
       <MainContent />
     </div>
   );

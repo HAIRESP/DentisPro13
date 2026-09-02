@@ -15,6 +15,7 @@ import {
   Bot,
   MessageCircle,
   FileText,
+  FileCheck2,
   ShieldCheck,
   KeyRound,
   Lock,
@@ -105,6 +106,7 @@ export const Sidebar: React.FC = () => {
     { id: 'pacientes', label: 'Pacientes', icon: Users },
     { id: 'agendamento', label: 'Agenda', icon: Calendar },
     { id: 'documentos', label: 'Documentos', icon: FileText },
+    { id: 'laudos', label: 'Laudos', icon: FileCheck2 },
     { id: 'triagem', label: 'WhatsApp', icon: Bot },
     { id: 'estoque', label: 'Estoque', icon: Boxes, badge: lowStockCount > 0 ? lowStockCount : undefined },
     { id: 'relatorios', label: 'Relatórios', icon: TrendingUp },
@@ -203,6 +205,17 @@ export const Sidebar: React.FC = () => {
         >
           <FileText className={`w-5 h-5 ${activeTab === 'documentos' ? 'text-white' : brandAccent}`} />
           <span>Documentos</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('laudos')}
+          className={`min-h-[48px] flex-1 flex flex-col items-center justify-center text-[10px] font-bold rounded-xl transition cursor-pointer active:scale-95 ${
+            activeTab === 'laudos' ? 'bg-[#d4a373] text-white shadow-xs' : 'text-white/70 hover:text-white'
+          }`}
+        >
+          <FileCheck2 className={`w-5 h-5 ${activeTab === 'laudos' ? 'text-white' : brandAccent}`} />
+          <span>Laudos</span>
         </button>
 
         <button

@@ -44,10 +44,28 @@ export interface Professional {
 
 export interface Anamnesis {
   // --- Saúde Geral & Histórico Médico ---
+  hasGoodHealth?: boolean; // Você goza de boa saúde?
+  isUndergoingMedicalTreatment?: boolean; // Está atualmente fazendo qualquer tratamento médico?
+  medicalTreatmentDetails?: string;
   hasAllergies: boolean;
   allergyDetails?: string; // Ex: Penicilina, anestésicos, látex, AINEs
   bloodPressureStatus?: 'normal' | 'alta' | 'baixa' | 'controlada_medicamento'; // Pressão arterial
-  hasHeartDisease: boolean; // Doença cardíaca / infarto / sopro
+  hasHeartDisease: boolean; // Doença do coração / infarto / sopro
+  hasRheumaticFever?: boolean; // Febre reumática
+  hasAsthma?: boolean; // Asma
+  hasArthritis?: boolean; // Artrite
+  hasFaintingSpells?: boolean; // Desmaios frequentes / síncope
+  hasSinusitis?: boolean; // Sinusite
+  hasHepatitis?: boolean; // Hepatite
+  hasOtherInfections?: boolean; // Outras infecções
+  otherInfectionsDetails?: string;
+  hasRadiationTherapyFaceJaw?: boolean; // Tratamento pelos raios-X na face ou nos maxilares
+  hasFaceJawTrauma?: boolean; // Traumatismo na face ou nos maxilares
+  faceJawTraumaDetails?: string;
+  hasAdverseDentalReaction?: boolean; // Reação desfavorável ao tratamento dentário
+  adverseDentalReactionDetails?: string;
+  hasOtherUnlistedDiseases?: boolean; // Qualquer enfermidade não-relacionada
+  otherUnlistedDiseasesDetails?: string;
   hasPacemaker?: boolean; // Marca-passo ou próteses cardíacas/valvulares
   hasShortnessOfBreath?: boolean; // Sente falta de ar com frequência / dispneia
   hasDiabetes: boolean;
@@ -501,6 +519,19 @@ export interface TreatmentPlanItem {
   notes?: string;
   fullProcedureDetails?: string;
   status: 'pendente' | 'em_andamento' | 'concluido';
+  selectedForPlan?: boolean; // Whether the patient/dentist chose this option in the final plan
+  alternativeOptions?: string[]; // Alternative treatment options considered
+}
+
+export interface TreatmentConsentAttachment {
+  id: string;
+  name: string;
+  fileUrl: string; // Base64 data URI or storage URL
+  fileType: 'image' | 'pdf' | 'document';
+  uploadedAt: string;
+  notes?: string;
+  signedByPatient?: boolean;
+  signatureDate?: string;
 }
 
 export interface TreatmentPlan {
@@ -521,6 +552,22 @@ export interface TreatmentPlan {
   finalValue: number;
   paymentConditions?: string;
   notes?: string;
+  // Patient Formal Acceptance & Consent (Laudo de Aceite e Formalização de Tratamento)
+  consentAccepted?: boolean;
+  consentAcceptedAt?: string;
+  consentSignatureType?: 'digital' | 'manual_upload' | 'presencial';
+  consentSignedDocumentUrl?: string; // Attached photo / document with patient signature
+  consentAttachments?: TreatmentConsentAttachment[];
+  consentSelectedOptionTitle?: string;
+  consentFinancialSummary?: {
+    totalBudget: number;
+    discount: number;
+    finalAgreed: number;
+    paymentMethod: string;
+    installments?: number;
+    installmentValue?: number;
+    notes?: string;
+  };
 }
 
 export interface ExtraoralExam {
@@ -548,11 +595,91 @@ export interface IntraoralExam {
   notes?: string;
 }
 
+export type ExamCategoryType = 'rotina' | 'urgencia';
+
+export type SplitSignValue = '' | '+' | '++' | '+++' | '-' | '--' | '---';
+
+export type MobilityClass = '0' | '1' | '2' | '3' | '';
+export type PocketDepth = '0' | '1' | '2' | '3' | '';
+
+export interface PainCharacteristics {
+  provocada?: boolean;
+  espontanea?: boolean;
+  intermitente?: boolean;
+  intensa?: boolean;
+  moderada?: boolean;
+  precipitadaFrio?: boolean;
+  precipitadaCalor?: boolean;
+  precipitadaMastigacao?: boolean;
+}
+
+export interface SwellingEvaluation {
+  localizacao?: string;
+  duracao?: string;
+  consistencia?: string;
+}
+
+export interface AffectedAreaEvaluation {
+  inspecaoSign?: SplitSignValue;
+  inspecaoNotes?: string;
+  percussaoSign?: SplitSignValue;
+  percussaoNotes?: string;
+  palpacaoSign?: SplitSignValue;
+  palpacaoNotes?: string;
+  mobilidadeClasse?: MobilityClass;
+  mobilidadeNotes?: string;
+  outrosAchados?: string;
+}
+
+export interface SupplementaryExams {
+  radiografia?: string;
+  outrosSolicitados?: string;
+}
+
+export interface ToothPainSummaryItem {
+  id: string;
+  toothNumber: number;
+  calor?: boolean;
+  frio?: boolean;
+  sensibilidadePulpar?: boolean;
+  percussao?: boolean;
+  palpacao?: boolean;
+  mobilidade?: MobilityClass;
+  bolsaV?: boolean;
+  bolsaM?: boolean;
+  bolsaD?: boolean;
+  bolsaL?: boolean;
+  bolsaProfundidade?: PocketDepth;
+  fratura?: boolean;
+  carie?: boolean;
+  fistula?: boolean;
+  notes?: string;
+}
+
+export interface PainEvaluationExam {
+  id?: string;
+  patientId: string;
+  examType: ExamCategoryType; // 'rotina' | 'urgencia'
+  examDate: string;
+  chiefComplaint?: string;
+  painCharacteristics: PainCharacteristics;
+  swelling: SwellingEvaluation;
+  hda: string;
+  affectedArea: AffectedAreaEvaluation;
+  supplementary: SupplementaryExams;
+  toothSummaries: ToothPainSummaryItem[];
+  diagnostico?: string;
+  tratamentoUrgenciaProposto?: string;
+  tratamentoExecutado?: string;
+  updatedAt?: string;
+}
+
 export interface ClinicalExam {
   patientId: string;
   updatedAt: string;
   extraoral: ExtraoralExam;
   intraoral: IntraoralExam;
+  painExam?: PainEvaluationExam;
   odontogramImages?: string[];
   generalNotes?: string;
 }
@@ -571,112 +698,6 @@ export interface SavedClinicDocument {
   summary: string;
   status: 'gerado' | 'assinado_govbr' | 'impresso';
   govBrSignedAt?: string;
-}
-
-export interface UrgentToothEvaluation {
-  id: string;
-  toothNumber: string;
-  calor?: boolean;
-  frio?: boolean;
-  sensibilidadePulpar?: boolean;
-  percussao?: boolean;
-  palpacao?: boolean;
-  mobilidade?: boolean;
-  bolsaV?: boolean;
-  bolsaM?: boolean;
-  bolsaD?: boolean;
-  bolsaL?: boolean;
-  fratura?: boolean;
-  carie?: boolean;
-  fistula?: boolean;
-}
-
-export interface UrgentCareExam {
-  id: string;
-  patientId: string;
-  patientName: string;
-  recordNumber?: string; // Ficha nº
-  patientAddress?: string;
-  patientPhone?: string;
-  patientAge?: string | number;
-  patientGender?: string;
-  patientCivilStatus?: string; // Est. Civil
-  examDate: string; // Data de Exame (YYYY-MM-DD)
-  dentistName?: string;
-  dentistCro?: string;
-  clinicId?: string;
-  clinicName?: string;
-  createdAt: string;
-  updatedAt?: string;
-
-  // 1. HISTÓRIA CLÍNICA
-  chiefComplaint: string; // Queixa principal
-  pain: {
-    provocada?: boolean;
-    espontanea?: boolean;
-    intermitente?: boolean;
-    intensa?: boolean;
-    moderada?: boolean;
-    precipitadaFrio?: boolean;
-    precipitadaCalor?: boolean;
-    precipitadaMastigacao?: boolean;
-  };
-  swelling: {
-    localizacao?: string;
-    duracao?: string;
-    consistencia?: string;
-  };
-  currentIllnessHistory: string; // História da doença atual
-  medicalHistory: {
-    goodHealth?: string; // você goza de boa saúde?
-    currentMedicalTreatment?: string; // você está atualmente fazendo qualquer tratamento médico?
-    conditions: {
-      febreReumatica?: boolean;
-      doencaCoracao?: boolean;
-      hipertensaoArterial?: boolean;
-      alergia?: boolean;
-      asma?: boolean;
-      artrite?: boolean;
-      epilepsia?: boolean;
-      diabetes?: boolean;
-      desmaiosFrequentes?: boolean;
-      sinusite?: boolean;
-      hepatite?: boolean;
-      outrasInfeccoes?: boolean;
-    };
-    hasRadiotherapyFaceJaw?: string; // já sofreu tratamento pelos raios-X, na face ou nos maxilares?
-    currentMedications?: string; // está fazendo uso de algum medicamento?
-    hasFaceJawTrauma?: string; // já sofreu algum traumatismo na face ou nos maxilares?
-    hasAdverseDentalReaction?: string; // já teve alguma reação desfavorável ao tratamento dentário?
-    isPregnant?: string; // (mulher) você está grávida atualmente?
-    otherConditions?: string; // você tem qualquer enfermidade não-relacionada aqui?
-  };
-
-  // 2. EXAME CLÍNICO (OBJETIVO)
-  generalAppearance?: string; // Aparência geral
-  affectedArea: {
-    inspecaoStatus?: '+' | '-' | '';
-    inspecaoDetails?: string;
-    percussaoStatus?: '+' | '-' | '';
-    percussaoDetails?: string;
-    palpacaoStatus?: '+' | '-' | '';
-    palpacaoDetails?: string;
-    mobilidadeClasse?: '1' | '2' | '3' | '';
-    mobilidadeDetails?: string;
-  };
-  otherFindings?: string; // Outros achados
-  supplementaryExams: {
-    radiografia?: string; // Radiografia
-    outrosSolicitados?: string; // outros solicitados
-  };
-
-  // 3. RESUMO (Avaliação por dente)
-  toothEvaluations: UrgentToothEvaluation[];
-
-  // 4. CONCLUSÕES
-  diagnosis: string; // Diagnóstico
-  proposedUrgentTreatment: string; // Tratamento de Urgência Proposto
-  executedTreatment: string; // Tratamento Executado
 }
 
 export interface GovBrProfile {
