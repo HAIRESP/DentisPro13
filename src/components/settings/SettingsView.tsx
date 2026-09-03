@@ -181,6 +181,10 @@ export const SettingsView: React.FC = () => {
   const [footerText, setFooterText] = useState(
     clinicInfo.footerText || `${clinicInfo.address || 'Av. Paulista, 1500 - Conjunto 304'} - ${clinicInfo.city || 'São Paulo / SP'} | Tel: ${clinicInfo.phone || '+55 (85) 98111-0826'}`
   );
+  const [patientAssistedJustificationText, setPatientAssistedJustificationText] = useState<string>(
+    clinicInfo.patientAssistedJustificationText ||
+    'Ficam prestadas as informações aos pacientes assistidos que justifiquem a recusa do atendimento, a interrupção do tratamento ou o tempo mais longo para a conclusão do tratamento, em razão da complexidade do caso, da finalidade pedagógica, do estágio de formação em que o profissional se encontre em relação às habilidades e aos conhecimentos que o caso clínico demande, ou mesmo delonga em razão de casos fortuitos que forçam a paralisação dos atendimentos nas clínicas da instituição.'
+  );
   const [signatureLabel, setSignatureLabel] = useState(
     clinicInfo.signatureLabel || `${clinicInfo.dentistName || 'Dr. Lucas Mendes'} • ${clinicInfo.cro || 'CRO/SP 123456'} - Responsável Técnico`
   );
@@ -637,6 +641,7 @@ export const SettingsView: React.FC = () => {
       watermarkOpacity,
       showWatermark,
       footerText,
+      patientAssistedJustificationText,
       signatureLabel,
       showSignatureLine,
       signatureImageUrl,
@@ -1957,6 +1962,36 @@ export const SettingsView: React.FC = () => {
                     className="w-full bg-white border border-[#e5e5d1] rounded-xl px-3 py-1.5 text-xs font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Informações aos Pacientes Assistidos e Justificativas de Atendimento */}
+            <div className="bg-[#fbfbf9] p-4 rounded-2xl border border-[#e5e5d1] space-y-3">
+              <div className="flex items-center justify-between border-b border-[#e5e5d1] pb-2">
+                <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center gap-1.5`}>
+                  <ShieldCheck className={`w-4 h-4 ${t.accentText}`} />
+                  Informações aos Pacientes Assistidos e Justificativas de Atendimento
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPatientAssistedJustificationText('Ficam prestadas as informações aos pacientes assistidos que justifiquem a recusa do atendimento, a interrupção do tratamento ou o tempo mais longo para a conclusão do tratamento, em razão da complexidade do caso, da finalidade pedagógica, do estágio de formação em que o profissional se encontre em relação às habilidades e aos conhecimentos que o caso clínico demande, ou mesmo delonga em razão de casos fortuitos que forçam a paralisação dos atendimentos nas clínicas da instituição.')}
+                  className="text-[11px] text-[#5a5a40] hover:underline font-semibold cursor-pointer"
+                >
+                  Restaurar Padrão
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[11px] text-stone-500 leading-normal">
+                  Texto legal e institucional exibido nos Relatórios de Atendimento (Inicial, Final e Unificado) justificando prazos pedagógicos, complexidade e contingências clínicas.
+                </p>
+                <textarea
+                  rows={4}
+                  value={patientAssistedJustificationText}
+                  onChange={(e) => setPatientAssistedJustificationText(e.target.value)}
+                  placeholder="Insira o texto informativo e justificativa padrão para pacientes assistidos..."
+                  className="w-full bg-white border border-[#e5e5d1] rounded-xl p-3 text-xs text-stone-800 leading-relaxed focus:outline-none focus:border-[#5a5a40] resize-y"
+                />
               </div>
             </div>
 

@@ -44,6 +44,7 @@ export interface Professional {
 
 export interface Anamnesis {
   // === 1. Identificação e Dados Demográficos (Vigilância & Suscetibilidade) ===
+  gender?: Gender;
   ageAndBiologicalSexNotes?: string; // Observações sobre suscetibilidade por idade e sexo biológico (ex: cardiovasculares, câncer de próstata/colo do útero)
   ethnicity?: 'branca' | 'preta' | 'parda' | 'amarela' | 'indigena' | 'outra'; // Raça/Etnia (predisposições genéticas como anemia falciforme)
   ethnicityDetails?: string;

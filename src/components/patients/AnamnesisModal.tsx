@@ -127,6 +127,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
   };
 
   // === 1. Identificação e Dados Demográficos (Vigilância & Suscetibilidade) ===
+  const [gender, setGender] = useState<Gender>(initial.gender || patient.gender || 'cisgenero');
   const [ageAndBiologicalSexNotes, setAgeAndBiologicalSexNotes] = useState(initial.ageAndBiologicalSexNotes || '');
   const [ethnicity, setEthnicity] = useState<Anamnesis['ethnicity']>(initial.ethnicity || patient.ethnicity || 'branca');
   const [ethnicityDetails, setEthnicityDetails] = useState(initial.ethnicityDetails || '');
@@ -284,6 +285,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       const curr = patient.anamnesis || ({} as Anamnesis);
+      setGender(curr.gender || patient.gender || 'cisgenero');
       setAgeAndBiologicalSexNotes(curr.ageAndBiologicalSexNotes || '');
       setEthnicity(curr.ethnicity || patient.ethnicity || 'branca');
       setEthnicityDetails(curr.ethnicityDetails || '');
@@ -424,6 +426,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
 
     const updatedAnamnesis: Anamnesis = {
       // 1. Identificação e Dados Demográficos
+      gender,
       ageAndBiologicalSexNotes,
       ethnicity,
       ethnicityDetails,
@@ -733,19 +736,28 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Identificação de Gênero Notes */}
+              {/* Identificação de Gênero */}
               <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
                 <label className="block text-xs font-bold text-gray-800">
                   Identificação de Gênero:
                 </label>
-                <p className="text-[11px] text-gray-500">
-                  Paciente com <strong>{patientAgeFormatted}</strong> • Identificação: <strong>{patient.gender || 'Não informado'}</strong>.
-                </p>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value as Gender)}
+                  className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none font-semibold text-stone-800"
+                >
+                  <option value="cisgenero">Cisgênero</option>
+                  <option value="transgenero">Transgênero</option>
+                  <option value="nao_binario">Não-binário</option>
+                  <option value="masculino">Masculino</option>
+                  <option value="feminino">Feminino</option>
+                  <option value="outro">Outro / Prefere não declarar</option>
+                </select>
                 <input
                   type="text"
                   value={ageAndBiologicalSexNotes}
                   onChange={(e) => setAgeAndBiologicalSexNotes(e.target.value)}
-                  placeholder="Anotações e identificação de gênero / considerações clínicas do paciente..."
+                  placeholder="Anotações e considerações clínicas do paciente..."
                   className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
                 />
               </div>

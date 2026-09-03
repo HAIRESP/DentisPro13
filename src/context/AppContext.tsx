@@ -77,6 +77,7 @@ export interface ClinicInfo {
   watermarkOpacity?: number; // percentage 0 to 100
   showWatermark?: boolean;
   footerText?: string;
+  patientAssistedJustificationText?: string;
   signatureLabel?: string;
   showSignatureLine?: boolean;
   signatureImageUrl?: string;
@@ -436,6 +437,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       watermarkOpacity: 15,
       showWatermark: true,
       footerText: 'Av. Dom Luís, 1200 - Meireles - Fortaleza - CE • CEP: 60.160-110 | Tel: +55 (85) 98111-0826',
+      patientAssistedJustificationText: 'Ficam prestadas as informações aos pacientes assistidos que justifiquem a recusa do atendimento, a interrupção do tratamento ou o tempo mais longo para a conclusão do tratamento, em razão da complexidade do caso, da finalidade pedagógica, do estágio de formação em que o profissional se encontre em relação às habilidades e aos conhecimentos que o caso clínico demande, ou mesmo delonga em razão de casos fortuitos que forçam a paralisação dos atendimentos nas clínicas da instituição.',
       signatureLabel: 'Hugo Andres Iglesias Ricoy • CRO/CE 5925 - Cirurgião-Dentista Responsável',
       showSignatureLine: true,
       showSignatureImage: true,

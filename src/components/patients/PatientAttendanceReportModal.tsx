@@ -27,7 +27,7 @@ import {
 
 export interface AttendanceReportEvent {
   id: string;
-  type: 'evolution' | 'financial' | 'treatment_plan' | 'appointment' | 'document';
+  type: 'evolution' | 'financial' | 'treatment_plan' | 'appointment' | 'document' | 'file';
   date: string;
   timestamp: number;
   title: string;
@@ -38,6 +38,7 @@ export interface AttendanceReportEvent {
   toothNumber?: number;
   professionalName?: string;
   categoryTag: string;
+  imageUrl?: string;
 }
 
 interface PatientAttendanceReportModalProps {
@@ -203,6 +204,24 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
       }
     });
 
+    // 6. Arquivos e Mídias / Imagens do Prontuário
+    (patient.images || []).forEach((imgUrl, idx) => {
+      const key = `img_${idx}_${imgUrl.slice(-10)}`;
+      if (!eventMap.has(key)) {
+        const todayDate = new Date().toISOString().split('T')[0];
+        eventMap.set(key, {
+          id: key,
+          type: 'file',
+          date: todayDate,
+          timestamp: parseTimestamp(todayDate) - idx * 1000,
+          title: `Arquivo / Foto #${idx + 1}`,
+          subtitle: 'Arquivo anexado ao prontuário clínico',
+          categoryTag: 'Arquivo',
+          imageUrl: imgUrl
+        });
+      }
+    });
+
     // Sort strictly in DESCENDING CHRONOLOGICAL ORDER (newest to oldest)
     const sorted = Array.from(eventMap.values()).sort((a, b) => b.timestamp - a.timestamp);
 
@@ -214,7 +233,7 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
         balanceDue
       }
     };
-  }, [patient.id, clinicalEvolutions, patientPayments, treatmentPlans, appointments, savedClinicDocuments]);
+  }, [patient.id, patient.images, clinicalEvolutions, patientPayments, treatmentPlans, appointments, savedClinicDocuments]);
 
   if (!isOpen) return null;
 
@@ -394,19 +413,63 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
             </div>
           </div>
 
-          {/* Patient Header Details */}
-          <div className="bg-[#fbfbf9] border border-[#e5e5d1] rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          {/* Patient Header Details (Identificação Completa: Nome, Idade, Raça/Etnia, Gênero, CPF, Convênio) */}
+          <div className="bg-[#fbfbf9] border border-[#e5e5d1] rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 text-xs">
             <div>
-              <span className="text-[10px] font-bold text-[#5a5a40] uppercase tracking-wider block">Paciente:</span>
-              <strong className="text-sm text-stone-900">{patient.name}</strong>
+              <span className="text-[10px] font-bold text-[#5a5a40] uppercase tracking-wider block">Nome do Paciente:</span>
+              <strong className="text-sm text-stone-900 block">{patient.name}</strong>
             </div>
             <div>
-              <span className="text-[10px] font-bold text-[#5a5a40] uppercase tracking-wider block">CPF & Idade:</span>
-              <span className="font-mono text-stone-800">{formatCPF(patient.cpf)}</span> ({age})
+              <span className="text-[10px] font-bold text-[#5a5a40] uppercase tracking-wider block">Idade / Nascimento:</span>
+              <span className="font-semibold text-stone-800">{age}</span>
+              {patient.birthDate && (
+                <span className="text-stone-500 ml-1.5 text-[11px]">
+                  ({new Date(patient.birthDate + 'T12:00:00').toLocaleDateString('pt-BR')})
+                </span>
+              )}
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-[#5a5a40] uppercase tracking-wider block">Raça / Etnia:</span>
+              <span className="font-semibold text-stone-800 capitalize">
+                {(() => {
+                  const eth = patient.ethnicity || patient.anamnesis?.ethnicity;
+                  const details = patient.anamnesis?.ethnicityDetails;
+                  if (!eth) return 'Não declarada';
+                  const labels: Record<string, string> = {
+                    branca: 'Branca',
+                    preta: 'Preta',
+                    parda: 'Parda',
+                    amarela: 'Amarela',
+                    indigena: 'Indígena',
+                    outra: 'Outra'
+                  };
+                  const label = labels[eth] || eth;
+                  return details ? `${label} (${details})` : label;
+                })()}
+              </span>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-[#5a5a40] uppercase tracking-wider block">Identificação de Gênero:</span>
+              <span className="text-stone-800 font-semibold">
+                {(() => {
+                  const g = patient.gender;
+                  if (!g) return 'Não informado';
+                  if (g === 'cisgenero') return 'Cisgênero';
+                  if (g === 'transgenero') return 'Transgênero';
+                  if (g === 'nao_binario') return 'Não-binário';
+                  if (g === 'masculino') return 'Masculino';
+                  if (g === 'feminino') return 'Feminino';
+                  return g;
+                })()}
+              </span>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-[#5a5a40] uppercase tracking-wider block">Documento CPF:</span>
+              <span className="font-mono text-stone-800 font-medium">{formatCPF(patient.cpf)}</span>
             </div>
             <div>
               <span className="text-[10px] font-bold text-[#5a5a40] uppercase tracking-wider block">Telefone / Convênio:</span>
-              <span>{patient.phone}</span> • <span className="font-semibold text-amber-700">{patient.healthInsurance || 'Particular'}</span>
+              <span className="text-stone-800">{patient.phone || 'N/A'}</span> • <span className="font-semibold text-amber-700">{patient.healthInsurance || 'Particular'}</span>
             </div>
           </div>
 
@@ -441,7 +504,8 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
               { id: 'financial', label: `Financeiro (${timelineEvents.filter(e => e.type === 'financial').length})` },
               { id: 'treatment_plan', label: `Planos (${timelineEvents.filter(e => e.type === 'treatment_plan').length})` },
               { id: 'appointment', label: `Consultas (${timelineEvents.filter(e => e.type === 'appointment').length})` },
-              { id: 'document', label: `Documentos (${timelineEvents.filter(e => e.type === 'document').length})` }
+              { id: 'document', label: `Documentos (${timelineEvents.filter(e => e.type === 'document').length})` },
+              { id: 'file', label: `Arquivos (${timelineEvents.filter(e => e.type === 'file').length})` }
             ].map(btn => (
               <button
                 key={btn.id}
@@ -485,6 +549,7 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
                       ev.type === 'financial' ? 'bg-amber-500' :
                       ev.type === 'treatment_plan' ? 'bg-blue-600' :
                       ev.type === 'appointment' ? 'bg-purple-600' :
+                      ev.type === 'file' ? 'bg-teal-600' :
                       'bg-stone-600'
                     }`} />
 
@@ -500,6 +565,7 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
                             ev.type === 'financial' ? 'bg-amber-100 text-amber-800' :
                             ev.type === 'treatment_plan' ? 'bg-blue-100 text-blue-800' :
                             ev.type === 'appointment' ? 'bg-purple-100 text-purple-800' :
+                            ev.type === 'file' ? 'bg-teal-100 text-teal-800' :
                             'bg-stone-200 text-stone-800'
                           }`}>
                             {ev.categoryTag}
@@ -521,6 +587,18 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
                           )}
                         </div>
                       </div>
+
+                      {/* Image Preview if type is file */}
+                      {ev.imageUrl && (
+                        <div className="mt-2 rounded-xl overflow-hidden border border-[#e5e5d1] max-w-xs bg-black/5">
+                          <img
+                            src={ev.imageUrl}
+                            alt={ev.title}
+                            className="w-full max-h-48 object-cover rounded-xl"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                      )}
 
                       {/* Subtitle & Details */}
                       {ev.subtitle && (
@@ -557,8 +635,8 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
               <span>Informações aos Pacientes Assistidos e Justificativas de Atendimento</span>
             </div>
             
-            <p className="text-stone-700 leading-relaxed text-xs text-justify bg-white p-3 rounded-xl border border-[#e5e5d1] print:border-none print:p-0">
-              Ficam prestadas as informações aos pacientes assistidos que justifiquem a recusa do atendimento, a interrupção do tratamento ou o tempo mais longo para a conclusão do tratamento, em razão da complexidade do caso, da finalidade pedagógica, do estágio de formação em que o profissional se encontre em relação às habilidades e aos conhecimentos que o caso clínico demande, ou mesmo delonga em razão de casos fortuitos que forçam a paralisação dos atendimentos nas clínicas da instituição.
+            <p className="text-stone-700 leading-relaxed text-xs text-justify bg-white p-3 rounded-xl border border-[#e5e5d1] print:border-none print:p-0 whitespace-pre-wrap">
+              {clinicInfo.patientAssistedJustificationText || 'Ficam prestadas as informações aos pacientes assistidos que justifiquem a recusa do atendimento, a interrupção do tratamento ou o tempo mais longo para a conclusão do tratamento, em razão da complexidade do caso, da finalidade pedagógica, do estágio de formação em que o profissional se encontre em relação às habilidades e aos conhecimentos que o caso clínico demande, ou mesmo delonga em razão de casos fortuitos que forçam a paralisação dos atendimentos nas clínicas da instituição.'}
             </p>
 
             {customJustificationNote && (

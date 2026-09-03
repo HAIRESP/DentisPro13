@@ -603,6 +603,22 @@ export const PatientList: React.FC = () => {
                         </p>
 
                         <p className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-stone-600">Identificação de Gênero:</span>
+                          <span className="font-medium text-stone-800">
+                            {(() => {
+                              const g = selectedPatient.gender;
+                              if (!g) return 'Não informado';
+                              if (g === 'cisgenero') return 'Cisgênero';
+                              if (g === 'transgenero') return 'Transgênero';
+                              if (g === 'nao_binario') return 'Não-binário';
+                              if (g === 'masculino') return 'Masculino';
+                              if (g === 'feminino') return 'Feminino';
+                              return g;
+                            })()}
+                          </span>
+                        </p>
+
+                        <p className="flex flex-wrap items-center gap-2">
                           <span className="font-bold text-stone-600">E-mail:</span>
                           <span>{selectedPatient.email || 'Não informado'}</span>
                         </p>
@@ -714,14 +730,14 @@ export const PatientList: React.FC = () => {
                     className={`px-4 py-2 rounded-2xl font-bold transition flex items-center gap-1.5 cursor-pointer ${activeProfileTab === 'documentos' ? `${t.btnPrimaryBg} ${t.btnPrimaryText}` : `${t.btnSecondaryBg} ${t.btnSecondaryText} hover:opacity-80`}`}
                   >
                     <FileText className="w-4 h-4" />
-                    Receitas & Documentos ({patientDocs.length})
+                    Documentos ({patientDocs.length})
                   </button>
                   <button
                     onClick={() => setActiveProfileTab('galeria')}
                     className={`px-4 py-2 rounded-2xl font-bold transition flex items-center gap-1.5 cursor-pointer ${activeProfileTab === 'galeria' ? `${t.btnPrimaryBg} ${t.btnPrimaryText}` : `${t.btnSecondaryBg} ${t.btnSecondaryText} hover:opacity-80`}`}
                   >
                     <ImageIcon className="w-4 h-4" />
-                    Fotos & Mídia ({(selectedPatient.images || []).length})
+                    Arquivos ({(selectedPatient.images || []).length})
                   </button>
                 </div>
 
@@ -1181,6 +1197,37 @@ export const PatientList: React.FC = () => {
                 </div>
 
                 <div>
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Identificação de Gênero</label>
+                  <select
+                    value={newGender}
+                    onChange={(e) => setNewGender(e.target.value as Gender)}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold`}
+                  >
+                    <option value="cisgenero">Cisgênero (Identifica-se com o sexo biológico ao nascer)</option>
+                    <option value="transgenero">Transgênero (Identifica-se com gênero diferente do biológico)</option>
+                    <option value="nao_binario">Não-binário (Não se encaixa exclusivamente em homem/mulher)</option>
+                    <option value="masculino">Masculino</option>
+                    <option value="feminino">Feminino</option>
+                    <option value="outro">Outro / Prefere não declarar</option>
+                  </select>
+                  {newGender === 'cisgenero' && (
+                    <p className="text-[10px] text-stone-500 mt-1 leading-tight">
+                      Cisgênero: Quando a pessoa se identifica com o sexo biológico que recebeu ao nascer.
+                    </p>
+                  )}
+                  {newGender === 'transgenero' && (
+                    <p className="text-[10px] text-stone-500 mt-1 leading-tight">
+                      Transgênero: Quando a pessoa se identifica com um gênero diferente do seu sexo biológico de nascimento.
+                    </p>
+                  )}
+                  {newGender === 'nao_binario' && (
+                    <p className="text-[10px] text-stone-500 mt-1 leading-tight">
+                      Não-binário: Quando a pessoa não se encaixa de forma exclusiva nas categorias tradicionais de homem ou de mulher.
+                    </p>
+                  )}
+                </div>
+
+                <div>
                   <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>E-mail (Para Notificações) *</label>
                   <input
                     type="email"
@@ -1402,7 +1449,10 @@ export const PatientList: React.FC = () => {
           onClose={() => setIsAnamnesisModalOpen(false)}
           onSave={(updatedAnamnesis) => {
             updatePatient(selectedPatient.id, {
-              anamnesis: updatedAnamnesis
+              anamnesis: updatedAnamnesis,
+              gender: updatedAnamnesis.gender || selectedPatient.gender,
+              ethnicity: updatedAnamnesis.ethnicity || selectedPatient.ethnicity,
+              profession: updatedAnamnesis.profession || selectedPatient.profession,
             });
           }}
         />
@@ -1574,16 +1624,34 @@ export const PatientList: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Gênero</label>
+                  <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Identificação de Gênero</label>
                   <select
                     value={editGender}
                     onChange={(e) => setEditGender(e.target.value as Gender)}
-                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none`}
+                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold`}
                   >
+                    <option value="cisgenero">Cisgênero (Identifica-se com o sexo biológico ao nascer)</option>
+                    <option value="transgenero">Transgênero (Identifica-se com gênero diferente do biológico)</option>
+                    <option value="nao_binario">Não-binário (Não se encaixa exclusivamente em homem/mulher)</option>
                     <option value="masculino">Masculino</option>
                     <option value="feminino">Feminino</option>
-                    <option value="outro">Outro</option>
+                    <option value="outro">Outro / Prefere não declarar</option>
                   </select>
+                  {editGender === 'cisgenero' && (
+                    <p className="text-[10px] text-stone-500 mt-1 leading-tight">
+                      Cisgênero: Quando a pessoa se identifica com o sexo biológico que recebeu ao nascer.
+                    </p>
+                  )}
+                  {editGender === 'transgenero' && (
+                    <p className="text-[10px] text-stone-500 mt-1 leading-tight">
+                      Transgênero: Quando a pessoa se identifica com um gênero diferente do seu sexo biológico de nascimento.
+                    </p>
+                  )}
+                  {editGender === 'nao_binario' && (
+                    <p className="text-[10px] text-stone-500 mt-1 leading-tight">
+                      Não-binário: Quando a pessoa não se encaixa de forma exclusiva nas categorias tradicionais de homem ou de mulher.
+                    </p>
+                  )}
                 </div>
 
                 <div>

@@ -26,7 +26,9 @@ import {
   Package,
   ChevronDown,
   ChevronUp,
-  Boxes
+  Boxes,
+  ArrowLeft,
+  Printer
 } from 'lucide-react';
 
 interface TussManagerModalProps {
@@ -268,8 +270,8 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-[#fcfcf9] rounded-2xl border border-[#e5e5d1] shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-2 bg-black/70 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-[#fcfcf9] rounded-none md:rounded-2xl border border-[#e5e5d1] shadow-2xl w-full h-full md:w-[99vw] md:h-[98vh] max-w-none max-h-none flex flex-col overflow-hidden">
         
         {/* Header */}
         <div className="p-4 bg-[#2c3e2e] text-white flex items-center justify-between">
@@ -282,12 +284,33 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
               <p className="text-xs text-gray-300">Gerencie a lista de procedimentos, pacientes, adequação de preços por convênio e regiões</p>
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-[#3d523f] text-gray-300 hover:text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-1.5 rounded-lg bg-[#3d523f] hover:bg-[#4d6650] text-stone-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+              title="Voltar"
+            >
+              <ArrowLeft className="w-4 h-4 text-amber-400" />
+              <span>Voltar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="px-3 py-1.5 rounded-lg bg-[#3d523f] hover:bg-[#4d6650] text-stone-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+              title="Imprimir"
+            >
+              <Printer className="w-4 h-4 text-amber-400" />
+              <span>Imprimir</span>
+            </button>
+            <button 
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-[#3d523f] text-gray-300 hover:text-white transition-colors cursor-pointer"
+              title="Fechar"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Navigation Tabs */}
