@@ -21,7 +21,8 @@ import {
   MessageSquare,
   ChevronRight,
   TrendingUp,
-  FileCheck2
+  FileCheck2,
+  ArrowLeft
 } from 'lucide-react';
 
 export interface AttendanceReportEvent {
@@ -281,6 +282,16 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs rounded-2xl flex items-center gap-1.5 shadow-xs transition cursor-pointer border border-[#e5e5d1]"
+              title="Voltar"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#5a5a40]" />
+              <span>Voltar</span>
+            </button>
+
             <button
               type="button"
               onClick={handleSendWhatsApp}

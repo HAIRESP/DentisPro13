@@ -19,7 +19,8 @@ import {
   Sparkles,
   MousePointerClick,
   ChevronRight,
-  Check
+  Check,
+  Printer
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -522,14 +523,34 @@ export const GovBrSignatureWizardModal: React.FC<GovBrSignatureWizardModalProps>
               </div>
             </div>
 
-            {/* Close Modal Button */}
-            <button
-              onClick={onClose}
-              className="px-2 py-1 rounded-lg text-stone-400 hover:text-white hover:bg-stone-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-              <span>Sair do Navegador</span>
-            </button>
+            {/* Window Controls (Voltar, Imprimir, Sair) */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-2.5 py-1 rounded-lg bg-stone-700 hover:bg-stone-600 text-stone-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                title="Voltar ao sistema"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 text-amber-400" />
+                <span>Voltar</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-2.5 py-1 rounded-lg bg-stone-700 hover:bg-stone-600 text-stone-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                title="Imprimir"
+              >
+                <Printer className="w-3.5 h-3.5 text-amber-400" />
+                <span>Imprimir</span>
+              </button>
+              <button
+                onClick={onClose}
+                className="px-2 py-1 rounded-lg text-stone-400 hover:text-white hover:bg-stone-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+                <span>Sair</span>
+              </button>
+            </div>
           </div>
 
           {/* Navigation Controls & Address Bar */}

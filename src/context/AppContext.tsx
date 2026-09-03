@@ -376,9 +376,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [clinicalExams, setClinicalExams] = useState<Record<string, ClinicalExam>>(() => loadInitial(STORAGE_KEYS.CLINICAL_EXAMS, {}));
   const [tussProcedures, setTussProcedures] = useState<TUSSProcedure[]>(() => {
     const loaded = loadInitial<TUSSProcedure[]>(STORAGE_KEYS.TUSS_PROCEDURES, INITIAL_TUSS_PROCEDURES);
-    const existingCodes = new Set(loaded.map(p => p.code));
-    const missing = INITIAL_TUSS_PROCEDURES.filter(p => !existingCodes.has(p.code));
-    return [...loaded, ...missing];
+    const officialMap = new Map(INITIAL_TUSS_PROCEDURES.map(p => [p.code, p]));
+    const result: TUSSProcedure[] = [];
+    const seenCodes = new Set<string>();
+
+    loaded.forEach(item => {
+      if (!item || !item.code) return;
+      seenCodes.add(item.code);
+      const official = officialMap.get(item.code);
+      if (official) {
+        result.push({
+          ...official,
+          ...item,
+          subgroup: item.subgroup || official.subgroup,
+          odontoGrouping: item.odontoGrouping || official.odontoGrouping,
+          coverageLevel: item.coverageLevel || official.coverageLevel,
+          ansRolCurrent: official.ansRolCurrent ?? item.ansRolCurrent,
+          vigenciaAns: official.vigenciaAns || item.vigenciaAns,
+          specialty: item.specialty || official.specialty,
+          allowedRegions: item.allowedRegions || official.allowedRegions,
+          defaultRegion: item.defaultRegion || official.defaultRegion,
+        });
+      } else {
+        result.push(item);
+      }
+    });
+
+    INITIAL_TUSS_PROCEDURES.forEach(official => {
+      if (!seenCodes.has(official.code)) {
+        result.push(official);
+        seenCodes.add(official.code);
+      }
+    });
+
+    return result;
   });
   const [priceTables, setPriceTables] = useState<PriceTable[]>(() => loadInitial(STORAGE_KEYS.PRICE_TABLES, DEFAULT_PRICE_TABLES));
   const [treatmentPlans, setTreatmentPlans] = useState<TreatmentPlan[]>(() => loadInitial(STORAGE_KEYS.TREATMENT_PLANS, INITIAL_TREATMENT_PLANS));

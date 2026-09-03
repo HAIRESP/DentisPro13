@@ -22,7 +22,9 @@ import {
   Share2,
   Copy,
   ExternalLink,
-  Globe
+  Globe,
+  ArrowLeft,
+  Printer
 } from 'lucide-react';
 
 interface UserSessionModalProps {
@@ -503,20 +505,39 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-[#fbfbf9] border-t border-[#e5e5d1] flex items-center justify-between shrink-0 text-xs">
-          {currentUser ? (
+        <div className="p-4 bg-[#fbfbf9] border-t border-[#e5e5d1] flex items-center justify-between shrink-0 text-xs flex-wrap gap-2">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => {
-                logout();
-                setFeedbackMsg({ type: 'success', text: 'Sessão encerrada.' });
-              }}
-              className="text-rose-700 hover:text-rose-900 font-bold flex items-center gap-1 cursor-pointer"
+              onClick={onClose}
+              className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 border border-[#e5e5d1]"
             >
-              <LogOut className="w-4 h-4" />
-              <span>Sair da Sessão</span>
+              <ArrowLeft className="w-4 h-4 text-[#5a5a40]" />
+              <span>Voltar</span>
             </button>
-          ) : <div />}
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 border border-[#e5e5d1]"
+            >
+              <Printer className="w-4 h-4 text-[#5a5a40]" />
+              <span>Imprimir</span>
+            </button>
+
+            {currentUser && (
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  setFeedbackMsg({ type: 'success', text: 'Sessão encerrada.' });
+                }}
+                className="text-rose-700 hover:text-rose-900 font-bold flex items-center gap-1 cursor-pointer ml-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sair da Sessão</span>
+              </button>
+            )}
+          </div>
 
           <button
             type="button"

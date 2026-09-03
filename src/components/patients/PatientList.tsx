@@ -33,7 +33,8 @@ import {
   Sparkles,
   Check,
   Edit2,
-  Pencil
+  Pencil,
+  ArrowLeft
 } from 'lucide-react';
 import { Odontogram } from './Odontogram';
 import { ClinicalEvolution } from './ClinicalEvolution';
@@ -368,7 +369,16 @@ export const PatientList: React.FC = () => {
           <p className="text-xs opacity-75">Gerencie ficha cadastral, história médica, odontograma e histórico de atendimento.</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Cadastrar Novo Paciente as the First Button */}
+          <button
+            onClick={() => setIsNewPatientModalOpen(true)}
+            className={`px-5 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-xs transition cursor-pointer`}
+          >
+            <Plus className="w-4 h-4" />
+            Cadastrar Novo Paciente
+          </button>
+
           {/* Yellow Print Button for Relatório de Atendimento */}
           <button
             type="button"
@@ -440,14 +450,6 @@ export const PatientList: React.FC = () => {
               }}
             />
           </label>
-
-          <button
-            onClick={() => setIsNewPatientModalOpen(true)}
-            className={`px-5 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-xs transition cursor-pointer`}
-          >
-            <Plus className="w-4 h-4" />
-            Cadastrar Novo Paciente
-          </button>
         </div>
       </div>
 
@@ -762,7 +764,7 @@ export const PatientList: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Detail Badges for Medical and Dental */}
+                      {/* Detail Badges for Medical, Dental, and Epidemiological History */}
                       <div className="space-y-2 text-xs">
                         {selectedPatient.anamnesis?.allergyDetails && (
                           <p className="text-rose-800 bg-rose-50 p-2.5 rounded-xl border border-rose-200">
@@ -775,6 +777,84 @@ export const PatientList: React.FC = () => {
                             💊 Medicamentos de Uso Contínuo: <strong>{selectedPatient.anamnesis.continuousMedication}</strong>
                           </p>
                         )}
+
+                        {/* 4 Pillars Summary Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                          {/* 1. Identificação e Demografia */}
+                          {(selectedPatient.anamnesis?.ethnicity || selectedPatient.anamnesis?.profession || selectedPatient.anamnesis?.occupationalRisks || selectedPatient.anamnesis?.endemicAreaExposure) && (
+                            <div className="p-3 rounded-xl bg-white border border-[#e5e5d1] space-y-1 text-gray-700">
+                              <span className="text-[10px] font-bold text-[#5a5a40] uppercase tracking-wider block">
+                                📍 Demografia & Ocupação
+                              </span>
+                              {selectedPatient.anamnesis.ethnicity && (
+                                <p className="text-[11px]">Etnia: <strong className="capitalize">{selectedPatient.anamnesis.ethnicity}</strong> {selectedPatient.anamnesis.ethnicityDetails && `(${selectedPatient.anamnesis.ethnicityDetails})`}</p>
+                              )}
+                              {selectedPatient.anamnesis.profession && (
+                                <p className="text-[11px]">Profissão: <strong>{selectedPatient.anamnesis.profession}</strong></p>
+                              )}
+                              {selectedPatient.anamnesis.occupationalRisks && (
+                                <p className="text-[11px] text-amber-800">Risco Ocupacional: {selectedPatient.anamnesis.occupationalRisks}</p>
+                              )}
+                              {selectedPatient.anamnesis.endemicAreaExposure && (
+                                <p className="text-[11px] text-amber-800">Áreas Endêmicas: {selectedPatient.anamnesis.endemicAreaExposure}</p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* 2. Histórico Clínico & Imunológico */}
+                          {(selectedPatient.anamnesis?.vaccinationDetails || selectedPatient.anamnesis?.comorbiditiesSummary || selectedPatient.anamnesis?.previousInfectionsHistory) && (
+                            <div className="p-3 rounded-xl bg-white border border-[#e5e5d1] space-y-1 text-gray-700">
+                              <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
+                                💉 Imunização & Comorbidades
+                              </span>
+                              {selectedPatient.anamnesis.vaccinationDetails && (
+                                <p className="text-[11px]">Vacinas: <strong>{selectedPatient.anamnesis.vaccinationDetails}</strong></p>
+                              )}
+                              {selectedPatient.anamnesis.comorbiditiesSummary && (
+                                <p className="text-[11px]">Comorbidades: <strong>{selectedPatient.anamnesis.comorbiditiesSummary}</strong></p>
+                              )}
+                              {selectedPatient.anamnesis.previousInfectionsHistory && (
+                                <p className="text-[11px]">Infecções Prévias: <strong>{selectedPatient.anamnesis.previousInfectionsHistory}</strong></p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* 3. Exposição & Comportamento */}
+                          {(selectedPatient.anamnesis?.travelHistory || selectedPatient.anamnesis?.closeContactsInfectious || selectedPatient.anamnesis?.lifestyleDiet || selectedPatient.anamnesis?.environmentalExposure) && (
+                            <div className="p-3 rounded-xl bg-white border border-[#e5e5d1] space-y-1 text-gray-700">
+                              <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">
+                                ✈️ Exposição & Vigilância
+                              </span>
+                              {selectedPatient.anamnesis.travelHistory && (
+                                <p className="text-[11px]">Viagens Recentes: <strong>{selectedPatient.anamnesis.travelHistory}</strong></p>
+                              )}
+                              {selectedPatient.anamnesis.closeContactsInfectious && (
+                                <p className="text-[11px] text-rose-700 font-semibold">Contato Infectocontagioso: {selectedPatient.anamnesis.closeContactsDetails || 'Sim'}</p>
+                              )}
+                              {selectedPatient.anamnesis.environmentalExposure && (
+                                <p className="text-[11px] text-amber-800">Exposição Ambiental: {selectedPatient.anamnesis.environmentalExposureDetails || 'Sim'}</p>
+                              )}
+                              {selectedPatient.anamnesis.lifestyleDiet && (
+                                <p className="text-[11px]">Dieta / Estilo de Vida: {selectedPatient.anamnesis.lifestyleDiet}</p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* 4. Dados Genéticos e Familiares */}
+                          {(selectedPatient.anamnesis?.familyMedicalHistory || selectedPatient.anamnesis?.geneticMarkers) && (
+                            <div className="p-3 rounded-xl bg-white border border-[#e5e5d1] space-y-1 text-gray-700">
+                              <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">
+                                🧬 Genética & Histórico Familiar
+                              </span>
+                              {selectedPatient.anamnesis.familyMedicalHistory && (
+                                <p className="text-[11px]">Histórico Familiar (1º grau): <strong>{selectedPatient.anamnesis.familyHistoryDetails || 'Sim'}</strong></p>
+                              )}
+                              {selectedPatient.anamnesis.geneticMarkers && (
+                                <p className="text-[11px] text-purple-900 font-semibold">Marcadores Genéticos: {selectedPatient.anamnesis.geneticMarkersDetails || 'Sim'}</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
 
                         {selectedPatient.anamnesis?.chiefComplaint && (
                           <p className={`p-2.5 rounded-xl border ${t.cardBg} ${t.cardBorder} ${t.headingText}`}>
@@ -1274,21 +1354,40 @@ export const PatientList: React.FC = () => {
                 )}
               </div>
 
-              <div className={`flex items-center justify-end gap-3 pt-3 border-t ${t.modalBorder}`}>
-                <button
-                  type="button"
-                  onClick={() => setIsNewPatientModalOpen(false)}
-                  className={`px-4 py-2 ${t.btnSecondaryBg} ${t.btnSecondaryText} font-bold text-xs rounded-2xl cursor-pointer`}
-                >
-                  Cancelar
-                </button>
+              <div className={`flex items-center justify-between gap-3 pt-3 border-t ${t.modalBorder} flex-wrap`}>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsNewPatientModalOpen(false)}
+                    className={`px-4 py-2 border ${t.cardBorder} text-xs font-semibold ${t.btnSecondaryText} ${t.btnSecondaryBg} rounded-2xl transition cursor-pointer flex items-center gap-1.5`}
+                  >
+                    <ArrowLeft className="w-4 h-4" /> Voltar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-2xl transition cursor-pointer flex items-center gap-1.5 border border-[#e5e5d1]"
+                  >
+                    <Printer className="w-4 h-4 text-[#5a5a40]" /> Imprimir
+                  </button>
+                </div>
 
-                <button
-                  type="submit"
-                  className={`px-5 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-2xl shadow-xs cursor-pointer`}
-                >
-                  Salvar Paciente
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsNewPatientModalOpen(false)}
+                    className={`px-4 py-2 ${t.btnSecondaryBg} ${t.btnSecondaryText} font-bold text-xs rounded-2xl cursor-pointer`}
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="submit"
+                    className={`px-5 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-2xl shadow-xs cursor-pointer`}
+                  >
+                    Salvar Paciente
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -1367,36 +1466,55 @@ export const PatientList: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#e5e5d1]">
-              <button
-                type="button"
-                onClick={() => setIsAddInsuranceModalOpen(false)}
-                className="px-4 py-2 text-xs font-bold text-gray-500 hover:bg-stone-100 rounded-xl cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!newInsuranceNameInput.trim()) {
-                    alert('Por favor, informe o nome do convênio.');
-                    return;
-                  }
-                  const name = newInsuranceNameInput.trim();
-                  if (!availableInsurances.includes(name)) {
-                    setAvailableInsurances(prev => [...prev, name]);
-                  }
-                  if (selectedPatient) {
-                    updatePatient(selectedPatient.id, { healthInsurance: name });
-                  }
-                  setNewInsuranceNameInput('');
-                  setIsAddInsuranceModalOpen(false);
-                }}
-                className="px-5 py-2 bg-[#5a5a40] hover:bg-[#2c3e2e] text-white font-bold text-xs rounded-xl cursor-pointer shadow-xs flex items-center gap-1.5"
-              >
-                <Check className="w-4 h-4" />
-                Cadastrar e Selecionar
-              </button>
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#e5e5d1] flex-wrap">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddInsuranceModalOpen(false)}
+                  className="px-3 py-2 text-xs font-bold text-gray-700 bg-stone-100 hover:bg-stone-200 rounded-xl cursor-pointer flex items-center gap-1 border border-stone-300"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Voltar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-3 py-2 text-xs font-bold text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-xl cursor-pointer flex items-center gap-1 border border-[#e5e5d1]"
+                >
+                  <Printer className="w-4 h-4 text-[#5a5a40]" /> Imprimir
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddInsuranceModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-gray-500 hover:bg-stone-100 rounded-xl cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!newInsuranceNameInput.trim()) {
+                      alert('Por favor, informe o nome do convênio.');
+                      return;
+                    }
+                    const name = newInsuranceNameInput.trim();
+                    if (!availableInsurances.includes(name)) {
+                      setAvailableInsurances(prev => [...prev, name]);
+                    }
+                    if (selectedPatient) {
+                      updatePatient(selectedPatient.id, { healthInsurance: name });
+                    }
+                    setNewInsuranceNameInput('');
+                    setIsAddInsuranceModalOpen(false);
+                  }}
+                  className="px-5 py-2 bg-[#5a5a40] hover:bg-[#2c3e2e] text-white font-bold text-xs rounded-xl cursor-pointer shadow-xs flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  Cadastrar e Selecionar
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1589,22 +1707,41 @@ export const PatientList: React.FC = () => {
                 />
               </div>
 
-              <div className={`flex items-center justify-end gap-3 pt-3 border-t ${t.modalBorder}`}>
-                <button
-                  type="button"
-                  onClick={() => setIsEditPatientModalOpen(false)}
-                  className={`px-4 py-2 ${t.btnSecondaryBg} ${t.btnSecondaryText} font-bold text-xs rounded-2xl cursor-pointer`}
-                >
-                  Cancelar
-                </button>
+              <div className={`flex items-center justify-between gap-3 pt-3 border-t ${t.modalBorder} flex-wrap`}>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditPatientModalOpen(false)}
+                    className={`px-4 py-2 border ${t.cardBorder} text-xs font-semibold ${t.btnSecondaryText} ${t.btnSecondaryBg} rounded-2xl transition cursor-pointer flex items-center gap-1.5`}
+                  >
+                    <ArrowLeft className="w-4 h-4" /> Voltar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-2xl transition cursor-pointer flex items-center gap-1.5 border border-[#e5e5d1]"
+                  >
+                    <Printer className="w-4 h-4 text-[#5a5a40]" /> Imprimir
+                  </button>
+                </div>
 
-                <button
-                  type="submit"
-                  className={`px-5 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-2xl shadow-xs cursor-pointer flex items-center gap-1.5`}
-                >
-                  <Check className="w-4 h-4" />
-                  Salvar Alterações
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditPatientModalOpen(false)}
+                    className={`px-4 py-2 ${t.btnSecondaryBg} ${t.btnSecondaryText} font-bold text-xs rounded-2xl cursor-pointer`}
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="submit"
+                    className={`px-5 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-2xl shadow-xs cursor-pointer flex items-center gap-1.5`}
+                  >
+                    <Check className="w-4 h-4" />
+                    Salvar Alterações
+                  </button>
+                </div>
               </div>
             </form>
           </div>

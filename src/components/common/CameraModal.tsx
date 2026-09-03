@@ -12,7 +12,8 @@ import {
   Minimize2, 
   Timer, 
   AlertCircle,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ArrowLeft
 } from 'lucide-react';
 
 interface CameraModalProps {
@@ -248,8 +249,17 @@ export const CameraModal: React.FC<CameraModalProps> = ({
       >
         {/* TOP BAR / CONTROLS */}
         <div className="absolute top-0 inset-x-0 z-20 p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent flex items-center justify-between text-xs font-semibold">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer border border-white/10"
+              title="Voltar"
+            >
+              <ArrowLeft className="w-4 h-4 text-amber-400" />
+              <span>Voltar</span>
+            </button>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse hidden sm:block" />
             <div>
               <h3 className="font-bold text-white text-sm leading-tight drop-shadow-sm">{title}</h3>
               <p className="text-[11px] text-gray-300 hidden sm:block">{subtitle}</p>

@@ -56,8 +56,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser) {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(currentUser));
       localStorage.setItem(LEGACY_AUTH_STORAGE_KEY, JSON.stringify(currentUser));
-      // Save profile to Firestore
-      saveUserProfileToFirestore(currentUser);
+      // Only sync to Firestore if user is an authenticated Firebase user
+      if (auth.currentUser && auth.currentUser.uid === currentUser.uid) {
+        saveUserProfileToFirestore(currentUser);
+      }
     } else {
       localStorage.removeItem(AUTH_STORAGE_KEY);
       localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);

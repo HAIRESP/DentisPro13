@@ -112,6 +112,9 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
   const filteredProcedures = tussProcedures.filter(proc => {
     const matchesSearch = proc.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           proc.code.includes(searchTerm) ||
+                          (proc.tissCode && proc.tissCode.includes(searchTerm)) ||
+                          (proc.subgroup && proc.subgroup.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          (proc.odontoGrouping && proc.odontoGrouping.toLowerCase().includes(searchTerm.toLowerCase())) ||
                           (proc.faces && proc.faces.toLowerCase().includes(searchTerm.toLowerCase())) ||
                           (proc.defaultRegion && proc.defaultRegion.toLowerCase().includes(searchTerm.toLowerCase())) ||
                           (proc.requiredMaterials && proc.requiredMaterials.some(m => m.materialName.toLowerCase().includes(searchTerm.toLowerCase())));
@@ -693,10 +696,25 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
                     return (
                       <React.Fragment key={proc.code}>
                         <tr className="hover:bg-[#fcfdf9] transition-colors">
-                          <td className="p-3 font-mono font-bold text-[#d4a373]">{proc.code}</td>
+                          <td className="p-3 font-mono font-bold text-[#d4a373]">
+                            <div>{proc.code}</div>
+                            {proc.tissCode && proc.tissCode !== proc.code && (
+                              <span className="text-[10px] text-gray-400 font-normal">TISS: {proc.tissCode}</span>
+                            )}
+                          </td>
                           <td className="p-3 font-semibold text-gray-800">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span>{proc.description}</span>
+                              {proc.ansRolCurrent && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-200" title="Procedimento integrante do Rol de Procedimentos e Eventos em Saúde da ANS">
+                                  Rol ANS
+                                </span>
+                              )}
+                              {proc.odontoGrouping && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-blue-50 text-blue-800 border border-blue-200">
+                                  {proc.odontoGrouping}
+                                </span>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => setExpandedProcCode(isExpanded ? null : proc.code)}

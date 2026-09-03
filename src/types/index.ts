@@ -1,4 +1,4 @@
-export type Gender = 'masculino' | 'feminino' | 'outro';
+export type Gender = 'cisgenero' | 'transgenero' | 'nao_binario' | 'masculino' | 'feminino' | 'outro' | string;
 
 export interface ClinicUnit {
   id: string;
@@ -43,6 +43,37 @@ export interface Professional {
 }
 
 export interface Anamnesis {
+  // === 1. Identificação e Dados Demográficos (Vigilância & Suscetibilidade) ===
+  ageAndBiologicalSexNotes?: string; // Observações sobre suscetibilidade por idade e sexo biológico (ex: cardiovasculares, câncer de próstata/colo do útero)
+  ethnicity?: 'branca' | 'preta' | 'parda' | 'amarela' | 'indigena' | 'outra'; // Raça/Etnia (predisposições genéticas como anemia falciforme)
+  ethnicityDetails?: string;
+  profession?: string; // Profissão/Ocupação (riscos de agentes químicos, físicos ou biológicos no trabalho)
+  occupationalRisks?: string;
+  currentResidence?: string; // Local de residência atual
+  previousResidence?: string; // Residência anterior (mapeamento de áreas endêmicas de dengue, malária, poluição)
+  endemicAreaExposure?: string;
+
+  // === 2. Histórico Clínico e Imunológico ===
+  vaccinationStatus?: string; // Status vacinal: Registro de vacinas ao longo da vida (COVID-19, Tétano, Hepatite B, Febre Amarela, etc.)
+  vaccinationDetails?: string;
+  hasVaccinationUpToDate?: boolean;
+  comorbiditiesSummary?: string; // Comorbidades: Doenças crônicas preexistentes (diabetes, hipertensão, asma, imunodeficiências)
+  previousInfectionsHistory?: string; // Histórico de infecções anteriores (Covid-19, catapora, dengue, etc. - imunidade ou sequelas)
+
+  // === 3. Exposição e Comportamento (Vigilância) ===
+  travelHistory?: string; // Histórico de viagens nos últimos meses (cidades, estados, países - identificar doenças importadas)
+  closeContactsInfectious?: boolean; // Convivência com pessoas que testaram positivo para doenças infectocontagiosas
+  closeContactsDetails?: string;
+  lifestyleDiet?: string; // Estilo de vida: Dieta e hábitos nutricionais
+  physicalActivityLevel?: 'sedentario' | 'leve' | 'moderado' | 'intenso'; // Atividade física
+  sexualHealthBehavior?: string; // Comportamento de saúde e prevenção
+  environmentalExposure?: boolean; // Exposição ambiental (água contaminada, vetores mosquitos/barbeiros, animais silvestres, esgoto aberto)
+  environmentalExposureDetails?: string;
+
+  // === 4. Dados Genéticos e Familiares ===
+  geneticMarkers?: boolean; // Marcadores genéticos / predisposição a mutações e condições específicas
+  geneticMarkersDetails?: string;
+
   // --- Saúde Geral & Histórico Médico ---
   hasGoodHealth?: boolean; // Você goza de boa saúde?
   isUndergoingMedicalTreatment?: boolean; // Está atualmente fazendo qualquer tratamento médico?
@@ -172,6 +203,9 @@ export interface Patient {
   gender: Gender;
   phone: string;
   email: string;
+  profession?: string;
+  ethnicity?: 'branca' | 'preta' | 'parda' | 'amarela' | 'indigena' | 'outra';
+  previousResidence?: string;
   address: {
     street: string;
     number: string;
@@ -236,6 +270,8 @@ export type ToothConditionType =
   | 'calculo_supragengival' // Cálculo Supragengival (Âmbar)
   | 'calculo_subgengival'; // Cálculo Subgengival (Marrom)
 
+export type RegionAggregationMode = 'dente' | 'hemiarco' | 'sextante' | 'arcada' | 'ambas_arcadas' | 'face';
+
 export interface CorrelationRule {
   id: string;
   conditionType: ToothConditionType;
@@ -246,6 +282,8 @@ export interface CorrelationRule {
   specialty: string;
   suggestedCost?: number;
   regionCode?: string;
+  aggregationMode?: RegionAggregationMode;
+  priceTableId?: string;
 }
 
 export interface ToothCondition {
@@ -467,6 +505,20 @@ export interface TUSSProcedure {
   requiresToothNumber?: boolean; // Exige indicação do dente exato (FDI 11-48 / 51-85)
   toothFacesCount?: '1_face' | '2_faces' | '3_faces' | '4_ou_mais_faces' | 'nao_aplica'; // Faces TUSS
   anatomicalScope?: 'dente' | 'intra_oral' | 'extra_oral' | 'buco_maxilo_facial' | 'arcada_sextante'; // Região anatômica da intervenção TUSS
+
+  // Diretrizes ANS / TUSS Rol
+  rolAns?: boolean; // Cobertura obrigatória pelo ROL ANS (true = SIM, false = NÃO)
+  ansRolCurrent?: boolean; // Indicador de Rol Vigente da ANS
+  rolAnsDescription?: string; // Nomenclatura no ROL ANS (RN 211/2010 alt RN 262/2011)
+  odontoGrouping?: string; // Agrupamento Odontológico ANS (ex: Cirurgia Odontológica, Dentística, Endodontia)
+  coverageLevel?: string; // Nível de cobertura contratual ANS
+  vigenciaAns?: string; // Informações de vigência regulatória ANS
+  tissRefGroup?: string; // Referência no grupo TISS
+  subgroup?: string; // Subgrupo da Tabela 22 (ex: BOCA, LÁBIO, LÍNGUA, MANDÍBULA E MAXILA, RADIOGRAFIAS, etc.)
+  group?: string; // Grupo da Tabela 22 (ex: CABEÇA E PESCOÇO, MÉTODOS DIAGNÓSTICOS)
+  chapter?: string; // Capítulo da Tabela 22 (ex: PROCEDIMENTOS ODONTOLÓGICOS)
+  dut?: string; // Diretriz de Utilização (DUT) da ANS
+  segmentation?: string; // Segmentação (ex: OD, AMB, HCO, HSO, PAC)
 
   // Diretrizes de Auditoria e Comprovação do Convênio (Evitamento de Glosas)
   requiresInitialXRay?: boolean; // Exige Radiografia Inicial (Pré-Operatória)

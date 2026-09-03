@@ -2,11 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getPatientAgeAndBirthDate } from '../../utils/patientUtils';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
-import { TreatmentPlan, TreatmentPlanItem, TUSSProcedure, CorrelationRule, ToothConditionType } from '../../types';
+import { TreatmentPlan, TreatmentPlanItem, TUSSProcedure, CorrelationRule, ToothConditionType, RegionAggregationMode } from '../../types';
 import { TussManagerModal } from './TussManagerModal';
 import { RegionSelector } from './RegionSelector';
 import { ProcedureModulesModal } from '../common/ProcedureModulesModal';
-import { formatRegionDisplay, REGION_LEGENDS } from '../../data/regionData';
+import { 
+  formatRegionDisplay, 
+  REGION_LEGENDS, 
+  getHemiArcoForTooth, 
+  getSextanteForTooth, 
+  getArcadaForTooth, 
+  groupTeethByHemiArco, 
+  groupTeethBySextante, 
+  groupTeethByArcada 
+} from '../../data/regionData';
 import { TreatmentPlanConsentModal } from '../laudos/TreatmentPlanConsentModal';
 import { 
   FileCheck2, 
@@ -36,7 +45,8 @@ import {
   Square,
   ListFilter,
   ArrowLeft,
-  X
+  X,
+  Hash
 } from 'lucide-react';
 
 import { getThemeStyles } from '../../utils/themeUtils';
@@ -44,6 +54,8 @@ import { getThemeStyles } from '../../utils/themeUtils';
 interface TreatmentPlanManagerProps {
   patientId: string;
 }
+
+export type PlanInclusionMode = 'convenio' | 'tuss' | 'procedimento' | 'regiao';
 
 export interface CorrelatedProcedureOption {
   id: string;
@@ -426,7 +438,8 @@ const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
     procedureDescription: 'Restauração de 1 Face em Resina Composta',
     specialty: 'Dentística & Estética',
     suggestedCost: 220,
-    regionCode: 'Dente'
+    regionCode: 'Dente',
+    aggregationMode: 'dente'
   },
   {
     id: 'rule-carie-2',
@@ -437,7 +450,8 @@ const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
     procedureDescription: 'Restauração de 2 Faces em Resina Composta',
     specialty: 'Dentística & Estética',
     suggestedCost: 280,
-    regionCode: 'Dente'
+    regionCode: 'Dente',
+    aggregationMode: 'dente'
   },
   {
     id: 'rule-carie-3',
@@ -448,7 +462,8 @@ const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
     procedureDescription: 'Restauração de 3 Faces ou Reconstrução Coronária',
     specialty: 'Dentística & Estética',
     suggestedCost: 350,
-    regionCode: 'Dente'
+    regionCode: 'Dente',
+    aggregationMode: 'dente'
   },
   {
     id: 'rule-rest-insat-1',
@@ -459,7 +474,8 @@ const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
     procedureDescription: 'Substituição de restauração insatisfatória em resina',
     specialty: 'Dentística & Estética',
     suggestedCost: 250,
-    regionCode: 'Dente'
+    regionCode: 'Dente',
+    aggregationMode: 'dente'
   },
   {
     id: 'rule-rest-insat-2',
@@ -470,7 +486,8 @@ const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
     procedureDescription: 'Reconstrução dentária / Inlay / Onlay em porcelana',
     specialty: 'Dentística & Estética',
     suggestedCost: 650,
-    regionCode: 'RMSD'
+    regionCode: 'RMSD',
+    aggregationMode: 'dente'
   },
   {
     id: 'rule-girovertido',
@@ -481,7 +498,8 @@ const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
     procedureDescription: 'Alinhamento ortodôntico / Correção de giroversão',
     specialty: 'Ortodontia',
     suggestedCost: 450,
-    regionCode: 'AS'
+    regionCode: 'AS',
+    aggregationMode: 'arcada'
   },
   {
     id: 'rule-canal',
@@ -492,7 +510,8 @@ const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
     procedureDescription: 'Tratamento de canal (Endodontia)',
     specialty: 'Endodontia',
     suggestedCost: 600,
-    regionCode: 'RMID'
+    regionCode: 'RMID',
+    aggregationMode: 'dente'
   },
   {
     id: 'rule-extracao',
@@ -503,7 +522,8 @@ const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
     procedureDescription: 'Exodontia simples / dente permanente',
     specialty: 'Cirurgia Bocheco-Maxilo',
     suggestedCost: 220,
-    regionCode: 'Dente'
+    regionCode: 'Dente',
+    aggregationMode: 'dente'
   },
   {
     id: 'rule-ausente',
@@ -514,7 +534,8 @@ const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
     procedureDescription: 'Implante dental osseointegrado / Prótese fixa',
     specialty: 'Implantodontia',
     suggestedCost: 1800,
-    regionCode: 'RMID'
+    regionCode: 'RMID',
+    aggregationMode: 'dente'
   },
   {
     id: 'rule-protese',
@@ -525,7 +546,8 @@ const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
     procedureDescription: 'Confecção e cimentação de coroa total zircônia / e-Max',
     specialty: 'Prótese Dentária',
     suggestedCost: 1200,
-    regionCode: 'RMSD'
+    regionCode: 'RMSD',
+    aggregationMode: 'dente'
   },
   {
     id: 'rule-calculo-supra',
@@ -536,7 +558,8 @@ const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
     procedureDescription: 'Raspagem Supra-gengival e Polimento Coronário',
     specialty: 'Periodontia',
     suggestedCost: 320,
-    regionCode: 'ASAI'
+    regionCode: 'ASAI',
+    aggregationMode: 'ambas_arcadas'
   },
   {
     id: 'rule-calculo-sub',
@@ -547,7 +570,8 @@ const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
     procedureDescription: 'Raspagem Subgengival e Aplanamento Radicular',
     specialty: 'Periodontia',
     suggestedCost: 380,
-    regionCode: 'HASD'
+    regionCode: 'HASD',
+    aggregationMode: 'hemiarco'
   }
 ];
 
@@ -581,14 +605,18 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
   const [isTussManagerOpen, setIsTussManagerOpen] = useState(false);
   const [selectedPriceTableId, setSelectedPriceTableId] = useState<string>('particular');
 
+  // Strategy for Adding Procedures into Treatment Plan ('convenio' | 'tuss' | 'procedimento' | 'regiao')
+  const [planInclusionMode, setPlanInclusionMode] = useState<PlanInclusionMode>('convenio');
+
   // Correlation Rules State
   const [correlationRules, setCorrelationRules] = useState<CorrelationRule[]>(() => {
     const saved = localStorage.getItem('clinic_correlation_rules');
     return saved ? JSON.parse(saved) : DEFAULT_CORRELATION_RULES;
   });
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
+  const [ruleSearchQuery, setRuleSearchQuery] = useState('');
 
-  // New Rule Form State
+  // New Rule Form State (Separation of TUSS Code, Procedure Name, and Category/Price Table)
   const [newRuleCond, setNewRuleCond] = useState<ToothConditionType>('carie');
   const [newRuleMinSurf, setNewRuleMinSurf] = useState('1');
   const [newRuleMaxSurf, setNewRuleMaxSurf] = useState('2');
@@ -597,6 +625,10 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
   const [newRuleSpec, setNewRuleSpec] = useState('Dentística & Estética');
   const [newRuleCost, setNewRuleCost] = useState('250');
   const [newRuleRegionCode, setNewRuleRegionCode] = useState('Dente');
+  const [newRuleAggregationMode, setNewRuleAggregationMode] = useState<RegionAggregationMode>('dente');
+  const [newRulePriceTableId, setNewRulePriceTableId] = useState<string>('particular');
+  const [tussDropdownSearch, setTussDropdownSearch] = useState('');
+  const [isTussDropdownOpen, setIsTussDropdownOpen] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -613,6 +645,10 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
     setNewRuleSpec('Dentística & Estética');
     setNewRuleCost('250');
     setNewRuleRegionCode('Dente');
+    setNewRuleAggregationMode('dente');
+    setNewRulePriceTableId('particular');
+    setTussDropdownSearch('');
+    setIsTussDropdownOpen(false);
   };
 
   const handleStartEditRule = (rule: CorrelationRule) => {
@@ -625,6 +661,10 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
     setNewRuleSpec(rule.specialty);
     setNewRuleCost((rule.suggestedCost ?? 0).toString());
     setNewRuleRegionCode(rule.regionCode || 'Dente');
+    setNewRuleAggregationMode(rule.aggregationMode || 'dente');
+    setNewRulePriceTableId(rule.priceTableId || 'particular');
+    setTussDropdownSearch(rule.tussCode ? `${rule.tussCode} - ${rule.procedureDescription}` : '');
+    setIsTussDropdownOpen(false);
 
     const formEl = document.getElementById('correlation-rules-form-container');
     if (formEl) {
@@ -644,11 +684,13 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
             conditionType: newRuleCond,
             minSurfaces: parseInt(newRuleMinSurf) || 0,
             maxSurfaces: parseInt(newRuleMaxSurf) || 5,
-            tussCode: newRuleTussCode || undefined,
+            tussCode: newRuleTussCode.trim() || undefined,
             procedureDescription: newRuleDesc.trim(),
             specialty: newRuleSpec,
             suggestedCost: parseFloat(newRuleCost) || 200,
-            regionCode: newRuleRegionCode || 'Dente'
+            regionCode: newRuleRegionCode || 'Dente',
+            aggregationMode: newRuleAggregationMode,
+            priceTableId: newRulePriceTableId
           };
         }
         return r;
@@ -660,15 +702,16 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
         conditionType: newRuleCond,
         minSurfaces: parseInt(newRuleMinSurf) || 0,
         maxSurfaces: parseInt(newRuleMaxSurf) || 5,
-        tussCode: newRuleTussCode || undefined,
+        tussCode: newRuleTussCode.trim() || undefined,
         procedureDescription: newRuleDesc.trim(),
         specialty: newRuleSpec,
         suggestedCost: parseFloat(newRuleCost) || 200,
-        regionCode: newRuleRegionCode || 'Dente'
+        regionCode: newRuleRegionCode || 'Dente',
+        aggregationMode: newRuleAggregationMode,
+        priceTableId: newRulePriceTableId
       };
       setCorrelationRules(prev => [...prev, rule]);
-      setNewRuleDesc('');
-      setNewRuleTussCode('');
+      resetRuleForm();
     }
   };
 
@@ -680,14 +723,17 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
   };
 
   const handleExportRulesCSV = () => {
-    const headers = ['ID', 'Condição Clínica', 'Código TUSS', 'Procedimento Sugerido', 'Região / Dente', 'Mín. Faces', 'Máx. Faces', 'Especialidade', 'Valor Sugerido (R$)'];
+    const headers = ['ID', 'Condição Clínica', 'Código TUSS', 'Procedimento Sugerido', 'Modalidade / Tabela', 'Região / Dente', 'Agrupamento', 'Mín. Faces', 'Máx. Faces', 'Especialidade', 'Valor Sugerido (R$)'];
     const rows = correlationRules.map(r => {
+      const tableName = priceTables.find(t => t.id === r.priceTableId)?.name || (r.priceTableId === 'particular' || !r.priceTableId ? 'Particular' : r.priceTableId);
       return [
         `"${r.id}"`,
         `"${r.conditionType}"`,
         `"${r.tussCode || ''}"`,
         `"${r.procedureDescription.replace(/"/g, '""')}"`,
+        `"${tableName}"`,
         `"${r.regionCode || 'Dente'}"`,
+        `"${r.aggregationMode || 'dente'}"`,
         r.minSurfaces ?? 0,
         r.maxSurfaces ?? 5,
         `"${r.specialty.replace(/"/g, '""')}"`,
@@ -712,10 +758,12 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
   const [notes, setNotes] = useState('Plano sujeito a reavaliação após conclusão da fase inicial.');
   const [items, setItems] = useState<TreatmentPlanItem[]>([]);
 
-  // Add Item Dialog State
+  // Add Item Dialog State (Separation of TUSS Code and Procedure Name)
   const [isProcedureModalOpen, setIsProcedureModalOpen] = useState(false);
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('todas');
   const [searchTuss, setSearchTuss] = useState('');
+  const [customTussCode, setCustomTussCode] = useState('');
+  const [customProcedureName, setCustomProcedureName] = useState('');
   const [customToothNumber, setCustomToothNumber] = useState('');
   const [customSurface, setCustomSurface] = useState('');
   const [customRegionCode, setCustomRegionCode] = useState('');
@@ -768,6 +816,216 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
     return result.slice(0, 3);
   };
 
+  // Smart Calculation of Treatment Plan Items from Odontogram Findings respecting Mode ('convenio' | 'tuss' | 'procedimento' | 'regiao')
+  const calculatePlanItemsForTeethAndProcedure = (
+    teeth: number[],
+    proc: CorrelatedProcedureOption,
+    modeOverride?: PlanInclusionMode
+  ): TreatmentPlanItem[] => {
+    if (teeth.length === 0) return [];
+
+    const effectiveMode = modeOverride || planInclusionMode;
+    const matchedRule = correlationRules.find(r => r.id === proc.id || (r.tussCode && r.tussCode === proc.tussCode));
+    let mode: RegionAggregationMode = matchedRule?.aggregationMode || 'dente';
+
+    const lowerName = proc.procedureName.toLowerCase();
+    const regCode = (proc.regionCode || matchedRule?.regionCode || '').toUpperCase();
+
+    // Auto-detect mode if not explicitly specified on rule
+    if (!matchedRule?.aggregationMode) {
+      if (['HASD', 'HASE', 'HAIE', 'HAID'].includes(regCode) || lowerName.includes('hemi-arco') || lowerName.includes('hemiarco') || lowerName.includes('quadrante') || lowerName.includes('subgengival')) {
+        mode = 'hemiarco';
+      } else if (['S1', 'S2', 'S3', 'S4', 'S5', 'S6'].includes(regCode) || lowerName.includes('sextante')) {
+        mode = 'sextante';
+      } else if (['AS', 'AI'].includes(regCode) || lowerName.includes('por arcada')) {
+        mode = 'arcada';
+      } else if (regCode === 'ASAI' || lowerName.includes('ambas as arcadas') || lowerName.includes('boca toda') || lowerName.includes('supragengival')) {
+        mode = 'ambas_arcadas';
+      }
+    }
+
+    // Resolve price according to active price table if in convenio mode or matching rule
+    let itemCost = proc.suggestedCost;
+    if (effectiveMode === 'convenio') {
+      const activeTussObj = tussProcedures.find(t => t.code === proc.tussCode);
+      if (activeTussObj?.prices?.[selectedPriceTableId]) {
+        itemCost = activeTussObj.prices[selectedPriceTableId];
+      }
+    }
+
+    // Format procedure title based on active inclusion mode
+    const formatTitle = (rawName: string, regionSuffix?: string) => {
+      if (effectiveMode === 'tuss') {
+        return proc.tussCode && proc.tussCode !== 'CORR-ODONTO' ? `[TUSS ${proc.tussCode}] ${rawName}` : rawName;
+      }
+      if (effectiveMode === 'convenio') {
+        return regionSuffix ? `${rawName} (${regionSuffix})` : rawName;
+      }
+      if (effectiveMode === 'procedimento') {
+        return rawName;
+      }
+      // 'regiao'
+      return rawName;
+    };
+
+    // If 'regiao' mode is active or rule is strictly 'dente', force tooth-by-tooth with detailed surfaces
+    if (effectiveMode === 'regiao' || (effectiveMode !== 'convenio' && mode === 'dente')) {
+      return teeth.map(toothNum => {
+        const toothData = activeConditions.find(c => c.toothNumber === toothNum);
+        const activeSurfaces = toothData?.surfaces 
+          ? Object.entries(toothData.surfaces).filter(([_, type]) => type && type !== 'sio').map(s => s[0]).join(', ')
+          : 'Geral';
+
+        const surfaceLabel = activeSurfaces || 'Geral';
+        const formattedTitle = formatTitle(proc.procedureName);
+
+        return {
+          id: `item-${Date.now()}-${Math.floor(Math.random() * 1000000)}-${toothNum}`,
+          tussCode: proc.tussCode || 'CORR-ODONTO',
+          procedureName: formattedTitle,
+          specialty: proc.specialty,
+          toothNumber: toothNum,
+          toothSurface: surfaceLabel,
+          regionCode: 'Dente',
+          regionDescription: `Dente #${toothNum}${surfaceLabel !== 'Geral' ? ` (Faces: ${surfaceLabel})` : ''}`,
+          cost: itemCost,
+          discountPercentage: 0,
+          finalCost: itemCost,
+          notes: effectiveMode === 'tuss'
+            ? `TUSS ANS ${proc.tussCode} • Dente #${toothNum} • Faces: ${surfaceLabel}`
+            : effectiveMode === 'procedimento'
+            ? `Procedimento Clínico • Dente #${toothNum} • Faces: ${surfaceLabel}`
+            : `Cobrança Dente a Dente • Dente #${toothNum} • Faces: ${surfaceLabel}`,
+          status: 'pendente' as const
+        };
+      });
+    }
+
+    // Hemi-Arco Aggregation (HASD, HASE, HAIE, HAID) in 'convenio' or 'tuss' mode
+    if (mode === 'hemiarco') {
+      const grouped = groupTeethByHemiArco(teeth);
+      return Object.entries(grouped).map(([code, teethInHemi]) => {
+        const { name } = getHemiArcoForTooth(teethInHemi[0]);
+        const formattedTitle = formatTitle(proc.procedureName, `${code} - ${name}`);
+        return {
+          id: `item-${Date.now()}-${Math.floor(Math.random() * 1000000)}-${code}`,
+          tussCode: proc.tussCode || 'CORR-ODONTO',
+          procedureName: formattedTitle,
+          specialty: proc.specialty,
+          toothNumber: undefined,
+          toothSurface: undefined,
+          regionCode: code,
+          regionDescription: `${code} - ${name}`,
+          cost: itemCost,
+          discountPercentage: 0,
+          finalCost: itemCost,
+          notes: effectiveMode === 'convenio'
+            ? `Convênio / Região • ${name} (${code}) • Dentes: ${teethInHemi.map(t => `#${t}`).join(', ')}`
+            : `TUSS ANS ${proc.tussCode} • ${name} (${code}) • Dentes: ${teethInHemi.map(t => `#${t}`).join(', ')}`,
+          status: 'pendente' as const
+        };
+      });
+    }
+
+    // Sextante Aggregation (S1..S6)
+    if (mode === 'sextante') {
+      const grouped = groupTeethBySextante(teeth);
+      return Object.entries(grouped).map(([code, teethInSext]) => {
+        const { name } = getSextanteForTooth(teethInSext[0]);
+        const formattedTitle = formatTitle(proc.procedureName, `${code} - ${name}`);
+        return {
+          id: `item-${Date.now()}-${Math.floor(Math.random() * 1000000)}-${code}`,
+          tussCode: proc.tussCode || 'CORR-ODONTO',
+          procedureName: formattedTitle,
+          specialty: proc.specialty,
+          toothNumber: undefined,
+          toothSurface: undefined,
+          regionCode: code,
+          regionDescription: `${code} - ${name}`,
+          cost: itemCost,
+          discountPercentage: 0,
+          finalCost: itemCost,
+          notes: effectiveMode === 'convenio'
+            ? `Convênio / Região • ${name} (${code}) • Dentes: ${teethInSext.map(t => `#${t}`).join(', ')}`
+            : `TUSS ANS ${proc.tussCode} • ${name} (${code}) • Dentes: ${teethInSext.map(t => `#${t}`).join(', ')}`,
+          status: 'pendente' as const
+        };
+      });
+    }
+
+    // Arcada Aggregation (AS, AI)
+    if (mode === 'arcada') {
+      const grouped = groupTeethByArcada(teeth);
+      return Object.entries(grouped).map(([code, teethInArcada]) => {
+        const { name } = getArcadaForTooth(teethInArcada[0]);
+        const formattedTitle = formatTitle(proc.procedureName, `${code} - ${name}`);
+        return {
+          id: `item-${Date.now()}-${Math.floor(Math.random() * 1000000)}-${code}`,
+          tussCode: proc.tussCode || 'CORR-ODONTO',
+          procedureName: formattedTitle,
+          specialty: proc.specialty,
+          toothNumber: undefined,
+          toothSurface: undefined,
+          regionCode: code,
+          regionDescription: `${code} - ${name}`,
+          cost: itemCost,
+          discountPercentage: 0,
+          finalCost: itemCost,
+          notes: effectiveMode === 'convenio'
+            ? `Convênio / Região • ${name} (${code}) • Dentes: ${teethInArcada.map(t => `#${t}`).join(', ')}`
+            : `TUSS ANS ${proc.tussCode} • ${name} (${code}) • Dentes: ${teethInArcada.map(t => `#${t}`).join(', ')}`,
+          status: 'pendente' as const
+        };
+      });
+    }
+
+    // Ambas as Arcadas (ASAI / Boca Toda)
+    if (mode === 'ambas_arcadas') {
+      const formattedTitle = formatTitle(proc.procedureName, `ASAI - Ambas as Arcadas`);
+      return [{
+        id: `item-${Date.now()}-${Math.floor(Math.random() * 1000000)}-ASAI`,
+        tussCode: proc.tussCode || 'CORR-ODONTO',
+        procedureName: formattedTitle,
+        specialty: proc.specialty,
+        toothNumber: undefined,
+        toothSurface: undefined,
+        regionCode: 'ASAI',
+        regionDescription: `ASAI - Ambas as Arcadas (Boca Toda)`,
+        cost: itemCost,
+        discountPercentage: 0,
+        finalCost: itemCost,
+        notes: effectiveMode === 'convenio'
+          ? `Convênio / Região • Ambas as Arcadas (Boca Toda) • Dentes: ${teeth.map(t => `#${t}`).join(', ')}`
+          : `TUSS ANS ${proc.tussCode} • Ambas as Arcadas (Boca Toda) • Dentes: ${teeth.map(t => `#${t}`).join(', ')}`,
+        status: 'pendente' as const
+      }];
+    }
+
+    // Default fallback to tooth-by-tooth
+    return teeth.map(toothNum => {
+      const toothData = activeConditions.find(c => c.toothNumber === toothNum);
+      const activeSurfaces = toothData?.surfaces 
+        ? Object.entries(toothData.surfaces).filter(([_, type]) => type && type !== 'sio').map(s => s[0]).join(', ')
+        : 'Geral';
+
+      return {
+        id: `item-${Date.now()}-${Math.floor(Math.random() * 1000000)}-${toothNum}`,
+        tussCode: proc.tussCode || 'CORR-ODONTO',
+        procedureName: formatTitle(proc.procedureName),
+        specialty: proc.specialty,
+        toothNumber: toothNum,
+        toothSurface: activeSurfaces || 'Geral',
+        regionCode: 'Dente',
+        regionDescription: `Dente #${toothNum}`,
+        cost: itemCost,
+        discountPercentage: 0,
+        finalCost: itemCost,
+        notes: `Sugerido via Odontograma • Dente #${toothNum}`,
+        status: 'pendente' as const
+      };
+    });
+  };
+
   // Toggle procedure selection inside a card or group
   const toggleProcedureOptionForCard = (cardKey: string, procId: string, allAvailable: CorrelatedProcedureOption[]) => {
     setSelectedProcedureOptionIds(prev => {
@@ -797,7 +1055,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
     setSelectedTeethForBatch([]);
   };
 
-  // Batch Add Multiple Correlated Procedures for Selected Teeth into Treatment Plan
+  // Batch Add Multiple Correlated Procedures for Selected Teeth into Treatment Plan respecting Selected Mode
   const handleAddMultipleCorrelatedProceduresToPlan = (
     teethToApply: number[],
     proceduresToApply: CorrelatedProcedureOption[]
@@ -806,30 +1064,12 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
 
     const newItems: TreatmentPlanItem[] = [];
 
-    teethToApply.forEach(toothNum => {
-      const toothData = activeConditions.find(c => c.toothNumber === toothNum);
-      const activeSurfaces = toothData?.surfaces 
-        ? Object.entries(toothData.surfaces).filter(([_, type]) => type && type !== 'sio').map(s => s[0]).join(', ')
-        : 'Geral';
-
-      proceduresToApply.forEach(proc => {
-        newItems.push({
-          id: `item-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
-          tussCode: proc.tussCode || 'CORR-ODONTO',
-          procedureName: proc.procedureName,
-          specialty: proc.specialty,
-          toothNumber: toothNum,
-          toothSurface: activeSurfaces || 'Geral',
-          regionCode: proc.regionCode || 'Dente',
-          regionDescription: proc.regionCode || 'Dente',
-          cost: proc.suggestedCost,
-          discountPercentage: 0,
-          finalCost: proc.suggestedCost,
-          notes: `Sugerido automaticamente via Odontograma (Dente #${toothNum})`,
-          status: 'pendente'
-        });
-      });
+    proceduresToApply.forEach(proc => {
+      const generated = calculatePlanItemsForTeethAndProcedure(teethToApply, proc, planInclusionMode);
+      newItems.push(...generated);
     });
+
+    if (newItems.length === 0) return;
 
     if (isCreating) {
       setItems(prev => [...prev, ...newItems]);
@@ -859,7 +1099,9 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
       }
     }
 
-    setAddedNotice(`✓ ${newItems.length} procedimento(s) incluído(s) no Plano para ${teethToApply.length} dente(s) com sucesso!`);
+    const uniqueRegions = Array.from(new Set(newItems.map(i => i.regionCode || `Dente #${i.toothNumber}`)));
+    const modeLabel = planInclusionMode === 'convenio' ? 'Convênio' : planInclusionMode === 'tuss' ? 'Número TUSS' : planInclusionMode === 'procedimento' ? 'Procedimento' : 'Região/Dente';
+    setAddedNotice(`✓ ${newItems.length} item(s) incluído(s) no Plano [Modo: ${modeLabel}] abrangendo ${teethToApply.length} dente(s) [${uniqueRegions.slice(0, 3).join(', ')}${uniqueRegions.length > 3 ? '...' : ''}]!`);
     setTimeout(() => setAddedNotice(null), 4000);
   };
 
@@ -920,6 +1162,8 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
 
   const handleSelectTuss = (proc: TUSSProcedure) => {
     setSelectedTuss(proc);
+    setCustomTussCode(proc.code);
+    setCustomProcedureName(proc.description);
     const tableCost = proc.prices?.[selectedPriceTableId] ?? proc.suggestedCost;
     setCustomItemCost(tableCost.toString());
     const allowed = proc.allowedRegionsByPriceTable?.[selectedPriceTableId] || proc.allowedRegions;
@@ -940,11 +1184,15 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
 
     const tableCost = selectedTuss.prices?.[selectedPriceTableId] ?? selectedTuss.suggestedCost;
     const costNum = parseFloat(customItemCost) || tableCost;
+    const finalTuss = customTussCode.trim() || selectedTuss.code;
+    const finalProcName = customProcedureName.trim() || selectedTuss.description;
+
+    const activeTableName = priceTables.find(t => t.id === selectedPriceTableId)?.name || 'Particular';
 
     const newItem: TreatmentPlanItem = {
       id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      tussCode: selectedTuss.code,
-      procedureName: selectedTuss.description,
+      tussCode: finalTuss,
+      procedureName: finalProcName,
       specialty: selectedTuss.specialty,
       toothNumber: customToothNumber ? parseInt(customToothNumber) : undefined,
       toothSurface: customSurface || undefined,
@@ -953,7 +1201,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
       cost: costNum,
       discountPercentage: 0,
       finalCost: costNum,
-      notes: customItemNotes,
+      notes: customItemNotes ? `${customItemNotes} (Tabela: ${activeTableName})` : `Tabela: ${activeTableName}`,
       fullProcedureDetails: selectedTuss.fullDescription,
       status: 'pendente'
     };
@@ -962,6 +1210,8 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
 
     // Reset selection modal
     setSelectedTuss(null);
+    setCustomTussCode('');
+    setCustomProcedureName('');
     setCustomToothNumber('');
     setCustomSurface('');
     setCustomRegionCode('');
@@ -1075,55 +1325,131 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
       {/* REGISTRO DE ACHADOS NO ODONTOGRAMA (Correlated procedure suggestions & Multi-tooth selection helper) */}
       <div className="bg-[#fbfbf9] p-5 rounded-3xl border border-[#e5e5d1] space-y-4 shadow-2xs">
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#e5e5d1] pb-3">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#e5e5d1] pb-3">
           <div>
             <h3 className="text-sm font-bold text-[#5a5a40] flex items-center gap-2">
               <Smile className="w-4 h-4 text-[#d4a373]" />
               Registro de Achados & Procedimentos Correlacionados
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Selecione dentes individuais ou múltiplos para incluir até 3 procedimentos correlacionados diretamente no plano de tratamento.
+              Selecione dentes individuais ou múltiplos para incluir procedimentos correlacionados calculados por dente ou por regiões (arcadas/sextantes/hemi-arcos).
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* 4-Way Mode Selector: Convênio vs Número TUSS vs Procedimento vs Região/Dente */}
+            <div className="bg-white p-1 rounded-2xl border border-[#e5e5d1] flex items-center gap-1 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setPlanInclusionMode('convenio')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
+                  planInclusionMode === 'convenio'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-stone-600 hover:bg-[#f0f0e8]'
+                }`}
+                title="Modo Convênio: Agrupa dentes em regiões (arcadas, sextantes, hemi-arcos) e aplica tabela de convênio ativa"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Convênio</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPlanInclusionMode('tuss')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
+                  planInclusionMode === 'tuss'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-stone-600 hover:bg-[#f0f0e8]'
+                }`}
+                title="Modo Número TUSS: Prioriza o código ANS oficial no título e descrições dos itens do plano"
+              >
+                <Hash className="w-3.5 h-3.5" />
+                <span>Número TUSS</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPlanInclusionMode('procedimento')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
+                  planInclusionMode === 'procedimento'
+                    ? 'bg-[#5a5a40] text-white shadow-xs'
+                    : 'text-stone-600 hover:bg-[#f0f0e8]'
+                }`}
+                title="Modo Procedimento: Descrição clínica clara do procedimento odontológico"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Procedimento</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPlanInclusionMode('regiao')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
+                  planInclusionMode === 'regiao'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-stone-600 hover:bg-[#f0f0e8]'
+                }`}
+                title="Modo Região / Dente: Cobrança discriminada dente a dente com detalhamento anatômico de faces"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Região / Dente</span>
+              </button>
+            </div>
+
             {/* View Mode Switcher */}
-            <div className="bg-white p-1 rounded-xl border border-[#e5e5d1] flex items-center gap-1 shadow-2xs">
+            <div className="bg-white p-1 rounded-2xl border border-[#e5e5d1] flex items-center gap-1 shadow-2xs">
               <button
                 type="button"
                 onClick={() => setFindingsViewMode('grouped')}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition flex items-center gap-1 cursor-pointer ${
+                className={`px-2.5 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1 cursor-pointer ${
                   findingsViewMode === 'grouped' 
                     ? 'bg-[#5a5a40] text-white shadow-2xs' 
                     : 'text-gray-600 hover:bg-[#f0f0e8]'
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>Agrupado por Achado</span>
+                <span>Agrupado</span>
               </button>
               <button
                 type="button"
                 onClick={() => setFindingsViewMode('individual')}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition flex items-center gap-1 cursor-pointer ${
+                className={`px-2.5 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1 cursor-pointer ${
                   findingsViewMode === 'individual' 
                     ? 'bg-[#5a5a40] text-white shadow-2xs' 
                     : 'text-gray-600 hover:bg-[#f0f0e8]'
                 }`}
               >
                 <ListFilter className="w-3.5 h-3.5" />
-                <span>Dentes Individuais</span>
+                <span>Individual</span>
               </button>
             </div>
 
             <button
               type="button"
               onClick={() => setIsRulesModalOpen(true)}
-              className="px-3 py-1.5 bg-white border border-[#e5e5d1] hover:bg-[#f0f0e8] text-[#5a5a40] font-bold text-[11px] rounded-xl flex items-center gap-1.5 transition shrink-0"
+              className="px-3.5 py-2 bg-white border border-[#e5e5d1] hover:bg-[#f0f0e8] text-[#5a5a40] font-bold text-xs rounded-2xl flex items-center gap-1.5 transition shrink-0 cursor-pointer shadow-2xs"
             >
               <Settings className="w-3.5 h-3.5 text-[#d4a373]" />
               <span>Configurar Regras</span>
             </button>
           </div>
+        </div>
+
+        {/* Informative Mode Description Banner */}
+        <div className="bg-white/80 border border-[#e5e5d1] rounded-2xl px-3.5 py-2 flex items-center justify-between gap-2 text-[11px] text-stone-600">
+          <div className="flex items-center gap-2">
+            <Info className="w-3.5 h-3.5 text-[#d4a373] shrink-0" />
+            <span>
+              <strong>Modo de Inclusão Ativo: </strong>
+              {planInclusionMode === 'convenio' && 'Convênio (Agrupamento por arcadas/sextantes/hemi-arcos e tabela do convênio)'}
+              {planInclusionMode === 'tuss' && 'Número TUSS (Identificação precisa do código ANS e detalhamento normativo)'}
+              {planInclusionMode === 'procedimento' && 'Procedimento (Foco na descrição clínica do procedimento a ser executado)'}
+              {planInclusionMode === 'regiao' && 'Região / Dente (Itemização estrita dente a dente com faces anatômicas)'}
+            </span>
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-stone-100 text-stone-700">
+            {planInclusionMode}
+          </span>
         </div>
 
         {activeConditions.length === 0 ? (
@@ -1261,8 +1587,12 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                     const selectedTeethInGroup = group.teeth.filter(t => selectedTeethForBatch.length === 0 || selectedTeethForBatch.includes(t));
                     const isAllGroupTeethSelected = group.teeth.every(t => selectedTeethForBatch.includes(t));
 
-                    const costPerTooth = chosenProcedures.reduce((acc, p) => acc + p.suggestedCost, 0);
-                    const totalCostForGroup = costPerTooth * selectedTeethInGroup.length;
+                    // Calculate real items respecting regions & grouping
+                    const simulatedItems: TreatmentPlanItem[] = [];
+                    chosenProcedures.forEach(proc => {
+                      simulatedItems.push(...calculatePlanItemsForTeethAndProcedure(selectedTeethInGroup, proc, planInclusionMode));
+                    });
+                    const totalCostForGroup = simulatedItems.reduce((acc, item) => acc + item.finalCost, 0);
 
                     return (
                       <div key={condTypeKey} className="bg-white p-4 rounded-2xl border border-[#e5e5d1] shadow-2xs space-y-3 flex flex-col justify-between">
@@ -1319,7 +1649,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                           <div className="space-y-1.5 pt-1">
                             <label className="text-[11px] font-extrabold text-[#5a5a40] uppercase tracking-wider flex items-center gap-1">
                               <Lightbulb className="w-3.5 h-3.5 text-amber-600" />
-                              Procedimentos Correlacionados Sugeridos (Selecione 1 ou mais):
+                              Procedimentos Correlacionados Sugeridos:
                             </label>
 
                             <div className="space-y-1.5">
@@ -1384,7 +1714,9 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                         {/* Card Action */}
                         <div className="pt-2 border-t border-[#e5e5d1] space-y-2">
                           <div className="flex items-center justify-between text-[11px] text-stone-600 font-medium">
-                            <span>{chosenProcedures.length} procedimento(s) × {selectedTeethInGroup.length} dente(s)</span>
+                            <span>
+                              {simulatedItems.length} item(ns) ({chosenProcedures.length} proc. em {selectedTeethInGroup.length} dente(s))
+                            </span>
                             <span className="font-mono font-bold text-xs text-[#2c2c2c]">
                               Total: R$ {totalCostForGroup.toFixed(2)}
                             </span>
@@ -1398,7 +1730,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                           >
                             <Plus className="w-4 h-4" />
                             <span>
-                              Incluir {chosenProcedures.length * selectedTeethInGroup.length} procedimento(s) em {selectedTeethInGroup.length} dente(s)
+                              Incluir {simulatedItems.length} item(ns) no Plano ({selectedTeethInGroup.length} dentes)
                             </span>
                           </button>
                         </div>
@@ -1919,12 +2251,75 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
               })}
             </div>
 
-            {/* Options when TUSS selected */}
+            {/* Options when TUSS selected with dedicated separation of Número TUSS and Procedimento TUSS */}
             {selectedTuss && (
-              <div className="bg-[#f0f0e8] p-3.5 rounded-2xl border border-[#e5e5d1] space-y-3 shrink-0">
-                <div className="text-xs font-bold text-[#5a5a40] flex items-center justify-between">
-                  <span>Opções do Procedimento: {selectedTuss.description}</span>
-                  <span className="font-mono text-[#d4a373]">TUSS {selectedTuss.code}</span>
+              <div className="bg-[#f0f0e8] p-4 rounded-2xl border border-[#e5e5d1] space-y-3.5 shrink-0">
+                <div className="flex items-center justify-between border-b border-[#e5e5d1] pb-2">
+                  <span className="text-xs font-bold text-[#5a5a40] flex items-center gap-1.5">
+                    <Edit2 className="w-3.5 h-3.5 text-[#d4a373]" />
+                    <span>Configuração do Procedimento para Inclusão</span>
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white text-[#5a5a40] border border-[#e5e5d1]">
+                    Especialidade: {selectedTuss.specialty}
+                  </span>
+                </div>
+
+                {/* Separation: Convênio / Particular Price Table Selector */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#5a5a40] mb-1 flex items-center gap-1">
+                      <Building2 className="w-3 h-3 text-[#d4a373]" />
+                      Modalidade / Tabela de Preço
+                    </label>
+                    <select
+                      value={selectedPriceTableId}
+                      onChange={(e) => {
+                        const newTblId = e.target.value;
+                        setSelectedPriceTableId(newTblId);
+                        const tableCost = selectedTuss.prices?.[newTblId] ?? selectedTuss.suggestedCost;
+                        setCustomItemCost(tableCost.toString());
+                      }}
+                      className="w-full bg-white border border-[#e5e5d1] rounded-xl px-2.5 py-1.5 text-xs font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
+                    >
+                      {priceTables.map(tbl => (
+                        <option key={tbl.id} value={tbl.id}>
+                          {tbl.name} {tbl.isDefault ? '(Padrão)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Dedicated Field 1: Número TUSS (Código ANS) */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#5a5a40] mb-1 flex items-center gap-1">
+                      <Hash className="w-3 h-3 text-[#d4a373]" />
+                      Número TUSS (Código ANS) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: 85100010"
+                      value={customTussCode}
+                      onChange={(e) => setCustomTussCode(e.target.value)}
+                      className="w-full bg-white border border-[#e5e5d1] rounded-xl px-2.5 py-1.5 font-mono text-xs font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
+                    />
+                  </div>
+
+                  {/* Dedicated Field 2: Procedimento TUSS (Descrição / Nome) */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#5a5a40] mb-1 flex items-center gap-1">
+                      <FileText className="w-3 h-3 text-[#d4a373]" />
+                      Procedimento TUSS (Descrição) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Nome do procedimento..."
+                      value={customProcedureName}
+                      onChange={(e) => setCustomProcedureName(e.target.value)}
+                      className="w-full bg-white border border-[#e5e5d1] rounded-xl px-2.5 py-1.5 text-xs font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
+                    />
+                  </div>
                 </div>
 
                 {/* Region & Tooth Selector */}
@@ -1933,7 +2328,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                   selectedToothNumber={customToothNumber ? parseInt(customToothNumber) : undefined}
                   allowedRegions={selectedTuss.allowedRegionsByPriceTable?.[selectedPriceTableId] || selectedTuss.allowedRegions}
                   regionRulesNote={selectedTuss.regionRulesNote}
-                  procedureName={selectedTuss.description}
+                  procedureName={customProcedureName || selectedTuss.description}
                   onSelectRegion={(code, desc, cat, teeth) => {
                     setCustomRegionCode(code);
                     setCustomRegionDesc(desc);
@@ -1975,7 +2370,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                       type="number"
                       value={customItemCost}
                       onChange={(e) => setCustomItemCost(e.target.value)}
-                      className="w-full bg-white border border-[#e5e5d1] rounded-xl px-2.5 py-1.5 font-mono text-xs font-bold"
+                      className="w-full bg-white border border-[#e5e5d1] rounded-xl px-2.5 py-1.5 font-mono text-xs font-bold text-[#2d6a4f]"
                     />
                   </div>
                 </div>
@@ -1983,9 +2378,10 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                 <button
                   type="button"
                   onClick={handleAddItemToPlan}
-                  className={`w-full py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-xl shadow-xs cursor-pointer`}
+                  className={`w-full py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center justify-center gap-1.5`}
                 >
-                  Adicionar ao Plano de Tratamento
+                  <Plus className="w-4 h-4" />
+                  <span>Adicionar Procedimento ao Plano de Tratamento</span>
                 </button>
               </div>
             )}
@@ -2302,14 +2698,84 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                   <button
                     type="button"
                     onClick={resetRuleForm}
-                    className="text-[11px] text-amber-800 hover:text-amber-950 underline font-semibold"
+                    className="text-[11px] text-amber-800 hover:text-amber-950 underline font-semibold cursor-pointer"
                   >
                     Cancelar Edição
                   </button>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              {/* Progressive TUSS Search & Auto-complete */}
+              <div className="relative">
+                <label className="block text-[11px] font-semibold text-[#5a5a40] mb-1">
+                  Buscar Procedimento no Rol TUSS (Filtro por Digitação Progressiva)
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Digite o código TUSS ou nome do procedimento para filtrar..."
+                    value={tussDropdownSearch}
+                    onChange={(e) => {
+                      setTussDropdownSearch(e.target.value);
+                      setIsTussDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsTussDropdownOpen(true)}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-xl pl-8 pr-8 py-2 text-xs font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
+                  />
+                  <Search className="w-4 h-4 text-stone-400 absolute left-2.5 top-2.5" />
+                  {tussDropdownSearch && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTussDropdownSearch('');
+                        setIsTussDropdownOpen(false);
+                      }}
+                      className="absolute right-2.5 top-2.5 text-stone-400 hover:text-stone-600 cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {isTussDropdownOpen && (
+                  <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-[#e5e5d1] rounded-2xl shadow-xl max-h-56 overflow-y-auto divide-y divide-[#f0f0e8]">
+                    {filteredTussList.length === 0 ? (
+                      <div className="p-3 text-xs text-stone-400 text-center">
+                        Nenhum procedimento TUSS encontrado para "{tussDropdownSearch}"
+                      </div>
+                    ) : (
+                      filteredTussList.slice(0, 30).map(proc => (
+                        <div
+                          key={proc.code}
+                          onClick={() => {
+                            setNewRuleTussCode(proc.code);
+                            setNewRuleDesc(proc.description);
+                            setNewRuleSpec(proc.specialty);
+                            const tableCost = proc.prices?.[selectedPriceTableId] ?? proc.suggestedCost;
+                            setNewRuleCost(tableCost.toString());
+                            if (proc.defaultRegion) {
+                              setNewRuleRegionCode(proc.defaultRegion);
+                            }
+                            setTussDropdownSearch(`[${proc.code}] ${proc.description}`);
+                            setIsTussDropdownOpen(false);
+                          }}
+                          className="p-2.5 hover:bg-amber-50 cursor-pointer text-xs flex items-center justify-between gap-2 transition"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-bold text-[#2c2c2c] text-[11px] truncate">{proc.description}</p>
+                            <p className="text-[10px] text-stone-500 font-mono">TUSS: {proc.code} • {proc.specialty}</p>
+                          </div>
+                          <span className="font-mono font-bold text-xs text-[#5a5a40] shrink-0">
+                            R$ {(proc.prices?.[selectedPriceTableId] ?? proc.suggestedCost).toFixed(2)}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
                 <div>
                   <label className="block text-[11px] font-semibold text-[#5a5a40] mb-1">Achado / Condição</label>
                   <select
@@ -2331,7 +2797,24 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#5a5a40] mb-1">Mín. Faces Afetadas</label>
+                  <label className="block text-[11px] font-semibold text-[#5a5a40] mb-1">
+                    Tabela / Convênio
+                  </label>
+                  <select
+                    value={newRulePriceTableId}
+                    onChange={(e) => setNewRulePriceTableId(e.target.value)}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-xl p-2 text-xs font-bold text-[#5a5a40]"
+                  >
+                    {priceTables.map(tbl => (
+                      <option key={tbl.id} value={tbl.id}>
+                        {tbl.name} {tbl.isDefault ? '(Padrão)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#5a5a40] mb-1">Mín. Faces</label>
                   <input
                     type="number"
                     min="0"
@@ -2343,7 +2826,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#5a5a40] mb-1">Máx. Faces Afetadas</label>
+                  <label className="block text-[11px] font-semibold text-[#5a5a40] mb-1">Máx. Faces</label>
                   <input
                     type="number"
                     min="0"
@@ -2356,34 +2839,35 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div className="sm:col-span-2">
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#5a5a40] mb-1 flex items-center gap-1">
+                    <Hash className="w-3.5 h-3.5 text-[#d4a373]" />
+                    <span>Número TUSS (Código ANS) *</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: 31102036"
+                    value={newRuleTussCode}
+                    onChange={(e) => setNewRuleTussCode(e.target.value)}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-xl p-2 text-xs font-mono font-bold text-[#2c2c2c]"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-[11px] font-semibold text-[#5a5a40] mb-1">
-                    Procedimento Sugerido (Tabela TUSS) *
+                    Modo de Agrupamento / Convênio
                   </label>
                   <select
-                    value={newRuleTussCode}
-                    onChange={(e) => {
-                      const code = e.target.value;
-                      setNewRuleTussCode(code);
-                      const proc = tussProcedures.find(p => p.code === code);
-                      if (proc) {
-                        setNewRuleDesc(proc.description);
-                        setNewRuleSpec(proc.specialty);
-                        const tableCost = proc.prices?.[selectedPriceTableId] ?? proc.suggestedCost;
-                        setNewRuleCost(tableCost.toString());
-                        if (proc.defaultRegion) {
-                          setNewRuleRegionCode(proc.defaultRegion);
-                        }
-                      }
-                    }}
-                    className="w-full bg-white border border-[#e5e5d1] rounded-xl p-2 text-xs font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
+                    value={newRuleAggregationMode}
+                    onChange={(e) => setNewRuleAggregationMode(e.target.value as RegionAggregationMode)}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-xl p-2 text-xs font-bold text-[#5a5a40]"
                   >
-                    <option value="">-- Selecione um procedimento TUSS --</option>
-                    {tussProcedures.map(proc => (
-                      <option key={proc.code} value={proc.code}>
-                        [{proc.code}] {proc.description} ({proc.specialty})
-                      </option>
-                    ))}
+                    <option value="dente">🦷 Por Dente Individual</option>
+                    <option value="hemiarco">📐 Por Hemi-Arco / Quadrante (HASD, HASE, etc.)</option>
+                    <option value="sextante">🔢 Por Sextante (S1 a S6)</option>
+                    <option value="arcada">🌐 Por Arcada (Superior AS / Inferior AI)</option>
+                    <option value="ambas_arcadas">✨ Ambas as Arcadas (ASAI / Boca Toda)</option>
                   </select>
                 </div>
 
@@ -2408,11 +2892,14 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-semibold text-[#5a5a40] mb-1">Descrição Personalizada</label>
+                  <label className="block text-[11px] font-semibold text-[#5a5a40] mb-1 flex items-center gap-1">
+                    <FileText className="w-3.5 h-3.5 text-[#d4a373]" />
+                    <span>Procedimento TUSS (Descrição Clínica) *</span>
+                  </label>
                   <input
                     type="text"
                     required
-                    placeholder="Descrição da regra..."
+                    placeholder="Descrição do procedimento..."
                     value={newRuleDesc}
                     onChange={(e) => setNewRuleDesc(e.target.value)}
                     className="w-full bg-white border border-[#e5e5d1] rounded-xl p-2 text-xs font-bold text-[#2c2c2c]"
@@ -2436,7 +2923,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                   <button
                     type="button"
                     onClick={resetRuleForm}
-                    className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs rounded-xl transition"
+                    className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs rounded-xl transition cursor-pointer"
                   >
                     Cancelar
                   </button>
@@ -2466,9 +2953,21 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
 
             {/* List of Registered Correlation Rules */}
             <div className="space-y-2">
-              <h4 className="text-xs font-bold text-[#5a5a40] uppercase tracking-wider">
-                Regras de Correlação Ativas ({correlationRules.length})
-              </h4>
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-xs font-bold text-[#5a5a40] uppercase tracking-wider">
+                  Regras de Correlação Ativas ({correlationRules.length})
+                </h4>
+                <div className="relative w-60">
+                  <input
+                    type="text"
+                    placeholder="Filtrar regras..."
+                    value={ruleSearchQuery}
+                    onChange={(e) => setRuleSearchQuery(e.target.value)}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-xl pl-7 pr-2 py-1 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
+                  />
+                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2 top-2" />
+                </div>
+              </div>
 
               <div className="overflow-x-auto border border-[#e5e5d1] rounded-2xl bg-white">
                 <table className="w-full text-left text-xs text-[#2c2c2c]">
@@ -2476,7 +2975,8 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                     <tr>
                       <th className="p-2.5">Condição</th>
                       <th className="p-2.5">Procedimento Sugerido</th>
-                      <th className="p-2.5">Região/Dente</th>
+                      <th className="p-2.5">Tabela / Convênio</th>
+                      <th className="p-2.5">Modo / Região</th>
                       <th className="p-2.5">Faces</th>
                       <th className="p-2.5">Especialidade</th>
                       <th className="p-2.5">Valor</th>
@@ -2484,79 +2984,105 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#e5e5d1]">
-                    {correlationRules.map(rule => {
-                      const regionDisplay = rule.regionCode 
-                        ? formatRegionDisplay(rule.regionCode)
-                        : 'Dente';
-                      const regionAbbrev = rule.regionCode || 'Dente';
-                      const isBeingEdited = rule.id === editingRuleId;
+                    {correlationRules
+                      .filter(rule => {
+                        if (!ruleSearchQuery.trim()) return true;
+                        const q = ruleSearchQuery.toLowerCase();
+                        return (
+                          rule.procedureDescription.toLowerCase().includes(q) ||
+                          rule.conditionType.toLowerCase().includes(q) ||
+                          (rule.tussCode && rule.tussCode.includes(q)) ||
+                          (rule.specialty && rule.specialty.toLowerCase().includes(q)) ||
+                          (rule.aggregationMode && rule.aggregationMode.toLowerCase().includes(q))
+                        );
+                      })
+                      .map(rule => {
+                        const regionDisplay = rule.regionCode 
+                          ? formatRegionDisplay(rule.regionCode)
+                          : 'Dente';
+                        const regionAbbrev = rule.regionCode || 'Dente';
+                        const isBeingEdited = rule.id === editingRuleId;
+                        const aggMode = rule.aggregationMode || 'dente';
+                        const tableName = priceTables.find(t => t.id === rule.priceTableId)?.name || (rule.priceTableId === 'particular' || !rule.priceTableId ? 'Particular' : rule.priceTableId);
 
-                      return (
-                        <tr 
-                          key={rule.id} 
-                          className={`transition ${
-                            isBeingEdited 
-                              ? 'bg-amber-50/80 font-semibold' 
-                              : 'hover:bg-[#fbfbf9]'
-                          }`}
-                        >
-                          <td className="p-2.5 font-bold capitalize text-[#5a5a40] whitespace-nowrap">
-                            {rule.conditionType.replace('_', ' ')}
-                          </td>
-                          <td className="p-2.5 font-bold text-[#2c2c2c]">
-                            <div className="flex flex-col">
-                              <span>{rule.procedureDescription}</span>
-                              {rule.tussCode && (
-                                <span className="text-[10px] font-mono text-[#d4a373]">
-                                  TUSS: {rule.tussCode}
+                        return (
+                          <tr 
+                            key={rule.id} 
+                            className={`transition ${
+                              isBeingEdited 
+                                ? 'bg-amber-50/80 font-semibold' 
+                                : 'hover:bg-[#fbfbf9]'
+                            }`}
+                          >
+                            <td className="p-2.5 font-bold capitalize text-[#5a5a40] whitespace-nowrap">
+                              {rule.conditionType.replace('_', ' ')}
+                            </td>
+                            <td className="p-2.5 font-bold text-[#2c2c2c]">
+                              <div className="flex flex-col">
+                                <span>{rule.procedureDescription}</span>
+                                {rule.tussCode && (
+                                  <span className="text-[10px] font-mono text-[#d4a373]">
+                                    TUSS: {rule.tussCode}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-2.5 whitespace-nowrap">
+                              <span className="px-2 py-0.5 bg-stone-100 border border-stone-200 rounded-md font-medium text-[10px] text-stone-700">
+                                {tableName}
+                              </span>
+                            </td>
+                            <td className="p-2.5 font-mono text-xs font-bold text-[#2c3e2e]">
+                              <div className="flex flex-col gap-1">
+                                <span 
+                                  className="px-2 py-0.5 bg-[#f0f0e8] border border-[#e5e5d1] rounded-md inline-block shadow-2xs w-fit" 
+                                  title={regionDisplay}
+                                >
+                                  {regionAbbrev}
                                 </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="p-2.5 font-mono text-xs font-bold text-[#2c3e2e]">
-                            <span 
-                              className="px-2 py-0.5 bg-[#f0f0e8] border border-[#e5e5d1] rounded-md inline-block shadow-2xs" 
-                              title={regionDisplay}
-                            >
-                              {regionAbbrev}
-                            </span>
-                          </td>
-                          <td className="p-2.5 font-mono text-gray-500 whitespace-nowrap">
-                            {rule.minSurfaces === rule.maxSurfaces ? `${rule.minSurfaces} face` : `${rule.minSurfaces} a ${rule.maxSurfaces} faces`}
-                          </td>
-                          <td className="p-2.5 text-gray-600 whitespace-nowrap">
-                            {rule.specialty}
-                          </td>
-                          <td className="p-2.5 font-mono font-bold text-amber-900 whitespace-nowrap">
-                            R$ {(rule.suggestedCost ?? 0).toFixed(2)}
-                          </td>
-                          <td className="p-2.5 text-right whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleStartEditRule(rule)}
-                                className={`p-1.5 rounded transition ${
-                                  isBeingEdited 
-                                    ? 'bg-amber-200 text-amber-900 font-bold' 
-                                    : 'text-[#5a5a40] hover:bg-[#e5e5d1] hover:text-[#2c2c2c]'
-                                }`}
-                                title="Modificar / Editar Regra"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteRule(rule.id)}
-                                className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded transition"
-                                title="Remover Regra"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                                {aggMode !== 'dente' && (
+                                  <span className="text-[10px] font-sans font-bold text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded border border-amber-200 w-fit">
+                                    {aggMode === 'hemiarco' ? 'Hemi-Arco' : aggMode === 'sextante' ? 'Sextante' : aggMode === 'arcada' ? 'Arcada' : 'Ambas Arcadas'}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-2.5 font-mono text-gray-500 whitespace-nowrap">
+                              {rule.minSurfaces === rule.maxSurfaces ? `${rule.minSurfaces} face` : `${rule.minSurfaces} a ${rule.maxSurfaces} faces`}
+                            </td>
+                            <td className="p-2.5 text-gray-600 whitespace-nowrap">
+                              {rule.specialty}
+                            </td>
+                            <td className="p-2.5 font-mono font-bold text-amber-900 whitespace-nowrap">
+                              R$ {(rule.suggestedCost ?? 0).toFixed(2)}
+                            </td>
+                            <td className="p-2.5 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEditRule(rule)}
+                                  className={`p-1.5 rounded transition cursor-pointer ${
+                                    isBeingEdited 
+                                      ? 'bg-amber-200 text-amber-900 font-bold' 
+                                      : 'text-[#5a5a40] hover:bg-[#e5e5d1] hover:text-[#2c2c2c]'
+                                  }`}
+                                  title="Modificar / Editar Regra"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteRule(rule.id)}
+                                  className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                                  title="Remover Regra"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>

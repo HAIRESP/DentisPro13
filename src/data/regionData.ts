@@ -176,3 +176,70 @@ export const formatRegionDisplay = (regionCodeOrTooth?: string | number): string
 
   return str;
 };
+
+// --- Helpers for Hemi-Arcos, Sextantes, Arcadas and Tooth Aggregations ---
+
+export const getHemiArcoForTooth = (tooth: number): { code: string; name: string } => {
+  const quad = Math.floor(tooth / 10);
+  if (quad === 1 || quad === 5) return { code: 'HASD', name: 'Hemi-Arco Superior Direito' };
+  if (quad === 2 || quad === 6) return { code: 'HASE', name: 'Hemi-Arco Superior Esquerdo' };
+  if (quad === 3 || quad === 7) return { code: 'HAIE', name: 'Hemi-Arco Inferior Esquerdo' };
+  if (quad === 4 || quad === 8) return { code: 'HAID', name: 'Hemi-Arco Inferior Direito' };
+  return { code: 'HASD', name: 'Hemi-Arco Superior Direito' };
+};
+
+export const getSextanteForTooth = (tooth: number): { code: string; name: string } => {
+  const s1Teeth = [18, 17, 16, 15, 14, 55, 54];
+  const s2Teeth = [13, 12, 11, 21, 22, 23, 53, 52, 51, 61, 62, 63];
+  const s3Teeth = [24, 25, 26, 27, 28, 64, 65];
+  const s4Teeth = [38, 37, 36, 35, 34, 75, 74];
+  const s5Teeth = [33, 32, 31, 41, 42, 43, 73, 72, 71, 81, 82, 83];
+  const s6Teeth = [44, 45, 46, 47, 48, 84, 85];
+
+  if (s1Teeth.includes(tooth)) return { code: 'S1', name: 'Sextante 1 (Sup. Post. Direito)' };
+  if (s2Teeth.includes(tooth)) return { code: 'S2', name: 'Sextante 2 (Sup. Anterior)' };
+  if (s3Teeth.includes(tooth)) return { code: 'S3', name: 'Sextante 3 (Sup. Post. Esquerdo)' };
+  if (s4Teeth.includes(tooth)) return { code: 'S4', name: 'Sextante 4 (Inf. Post. Esquerdo)' };
+  if (s5Teeth.includes(tooth)) return { code: 'S5', name: 'Sextante 5 (Inf. Anterior)' };
+  if (s6Teeth.includes(tooth)) return { code: 'S6', name: 'Sextante 6 (Inf. Post. Direito)' };
+  return { code: 'S1', name: 'Sextante 1' };
+};
+
+export const getArcadaForTooth = (tooth: number): { code: string; name: string } => {
+  const quad = Math.floor(tooth / 10);
+  if (quad === 1 || quad === 2 || quad === 5 || quad === 6) {
+    return { code: 'AS', name: 'Arcada Superior' };
+  }
+  return { code: 'AI', name: 'Arcada Inferior' };
+};
+
+export const groupTeethByHemiArco = (teeth: number[]): Record<string, number[]> => {
+  const groups: Record<string, number[]> = {};
+  teeth.forEach(t => {
+    const { code } = getHemiArcoForTooth(t);
+    if (!groups[code]) groups[code] = [];
+    if (!groups[code].includes(t)) groups[code].push(t);
+  });
+  return groups;
+};
+
+export const groupTeethBySextante = (teeth: number[]): Record<string, number[]> => {
+  const groups: Record<string, number[]> = {};
+  teeth.forEach(t => {
+    const { code } = getSextanteForTooth(t);
+    if (!groups[code]) groups[code] = [];
+    if (!groups[code].includes(t)) groups[code].push(t);
+  });
+  return groups;
+};
+
+export const groupTeethByArcada = (teeth: number[]): Record<string, number[]> => {
+  const groups: Record<string, number[]> = {};
+  teeth.forEach(t => {
+    const { code } = getArcadaForTooth(t);
+    if (!groups[code]) groups[code] = [];
+    if (!groups[code].includes(t)) groups[code].push(t);
+  });
+  return groups;
+};
+

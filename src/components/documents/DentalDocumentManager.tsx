@@ -46,18 +46,23 @@ import {
   Home,
   Copy,
   Lock,
-  QrCode
+  QrCode,
+  Pill,
+  Layers,
+  Eye,
+  FileSpreadsheet,
+  DollarSign
 } from 'lucide-react';
 import { DENTAL_MEDICATIONS_CATALOG } from '../../data/medicationsCatalog';
 import { MedicationItem } from '../../types';
 
 import { getThemeStyles } from '../../utils/themeUtils';
 
-export type DocumentCategory = 'declaracao' | 'atestado' | 'solicitacao' | 'todos';
+export type DocumentCategory = 'receituario' | 'atestado' | 'declaracao' | 'termo' | 'solicitacao' | 'todos';
 
 export interface DocumentTemplate {
   id: string;
-  category: 'declaracao' | 'atestado' | 'solicitacao';
+  category: 'receituario' | 'atestado' | 'declaracao' | 'termo' | 'solicitacao';
   title: string;
   subtitle: string;
   icon: React.FC<{ className?: string }>;
@@ -171,15 +176,41 @@ export const COMMON_DENTAL_CIDS = [
 ];
 
 export const DENTAL_DOCUMENT_TEMPLATES: DocumentTemplate[] = [
-  // ATESTADOS & RECEITUÁRIOS
+  // 1. CLASSE RECEITUÁRIOS
+  {
+    id: 'receituario_simples',
+    category: 'receituario',
+    title: 'Receituário Simples (1 ou 2 Vias)',
+    subtitle: 'Prescrição de medicamentos de uso comum (analgésicos, anti-inflamatórios, enxaguantes)',
+    icon: Pill,
+    description: 'Receituário simples com identificação clínica, cabeçalho, posologia personalizada e opção de 1 ou 2 vias para medicamentos de venda livre e uso geral.'
+  },
   {
     id: 'receituario_controle_especial',
-    category: 'atestado',
+    category: 'receituario',
     title: 'Receituário de Controle Especial (2 Vias)',
     subtitle: 'Modelo em 2 Vias (Farmácia / Paciente) - Medicamentos Controlados / Antibióticos',
     icon: FileText,
-    description: 'Receituário de controle especial em 2 vias com identificação do emitente, comprador e fornecedor (Portaria 344/98 / Anvisa).'
+    description: 'Receituário de controle especial em 2 vias com identificação do emitente, comprador e fornecedor (Portaria 344/98 / Anvisa - C1, C5, antimicrobianos).'
   },
+  {
+    id: 'receituario_notificacao_b_azul',
+    category: 'receituario',
+    title: 'Notificação de Receita B (Azul - Psicotrópicos)',
+    subtitle: 'Prescrição de ansiolíticos, benzodiazepínicos e sedativos odontológicos (Portaria 344/98)',
+    icon: Pill,
+    description: 'Modelo oficial de Notificação de Receita B (Azul) para pré-medicação ansiolítica e sedação consciente em consultório (Midazolam, Diazepam, Lorazepam).'
+  },
+  {
+    id: 'receituario_notificacao_a_amarela',
+    category: 'receituario',
+    title: 'Notificação de Receita A (Amarela - Entorpecentes)',
+    subtitle: 'Prescrição de analgésicos entorpecentes e opioides de controle estrito (Portaria 344/98)',
+    icon: FileSpreadsheet,
+    description: 'Notificação de Receita A (Amarela) para medicamentos entorpecentes e analgésicos opioides sob regime de controle sanitário estrito (Morfina, Codeína alta dose).'
+  },
+
+  // 2. CLASSE ATESTADOS
   {
     id: 'atestado_padrao',
     category: 'atestado',
@@ -192,12 +223,20 @@ export const DENTAL_DOCUMENT_TEMPLATES: DocumentTemplate[] = [
     id: 'atestado_comparecimento',
     category: 'atestado',
     title: 'Atestado de Horas de Comparecimento',
-    subtitle: 'Comprovação de presença no consultório',
+    subtitle: 'Comprovação de presença no consultório (Entrada / Saída)',
     icon: Clock,
     description: 'Comprova o horário de entrada e saída do paciente no atendimento odontológico para fins empregatícios.'
   },
+  {
+    id: 'atestado_aptidao_odontologica',
+    category: 'atestado',
+    title: 'Atestado de Aptidão Odontológica / Sanidade Bucal',
+    subtitle: 'Aptidão para concursos, cirurgias eletivas, exames admissionais e esportes',
+    icon: ShieldCheck,
+    description: 'Atestado de higidez bucal e ausência de focos infecciosos ativos para procedimentos médicos, cirurgias cardíacas, transplantes ou concursos.'
+  },
 
-  // DECLARAÇÕES & TERMOS
+  // 3. CLASSE DECLARAÇÕES
   {
     id: 'relatorio_atendimento_inicial_final',
     category: 'declaracao',
@@ -210,13 +249,31 @@ export const DENTAL_DOCUMENT_TEMPLATES: DocumentTemplate[] = [
     id: 'declaracao_comparecimento',
     category: 'declaracao',
     title: 'Declaração de Atendimento Odontológico',
-    subtitle: 'Declaração simples de consulta',
+    subtitle: 'Declaração simples de consulta e tratamento',
     icon: FileCheck,
     description: 'Declaração formal de prestação de serviço e tratamento odontológico realizado.'
   },
   {
-    id: 'tcle_endodontia',
+    id: 'declaracao_tratamento_andamento',
     category: 'declaracao',
+    title: 'Declaração de Tratamento em Andamento',
+    subtitle: 'Comprovação de plano de tratamento em execução para convênios ou trabalho',
+    icon: Activity,
+    description: 'Declara que o paciente encontra-se em acompanhamento ou tratamento odontológico contínuo.'
+  },
+  {
+    id: 'declaracao_valores_recibo',
+    category: 'declaracao',
+    title: 'Declaração de Quitação / Recibo de Valores Odontológicos',
+    subtitle: 'Declaração para fins de comprovação financeira e imposto de renda',
+    icon: FileSpreadsheet,
+    description: 'Declaração formal de recebimento de honorários odontológicos discriminando procedimentos e paciente.'
+  },
+
+  // 4. CLASSE TERMOS & TCLE
+  {
+    id: 'tcle_endodontia',
+    category: 'termo',
     title: 'TCLE - Tratamento de Endodontia (Canal)',
     subtitle: 'Termo de Consentimento Livre e Esclarecido',
     icon: Stethoscope,
@@ -224,7 +281,7 @@ export const DENTAL_DOCUMENT_TEMPLATES: DocumentTemplate[] = [
   },
   {
     id: 'tcle_protese_pino',
-    category: 'declaracao',
+    category: 'termo',
     title: 'TCLE - Remoção de Prótese / Pino Intrarradicular',
     subtitle: 'Termo de consentimento para remoção',
     icon: FileText,
@@ -232,15 +289,39 @@ export const DENTAL_DOCUMENT_TEMPLATES: DocumentTemplate[] = [
   },
   {
     id: 'tcle_raspagem',
-    category: 'declaracao',
+    category: 'termo',
     title: 'TCLE - Raspagem Supra-Gengival / Periodontia',
     subtitle: 'Consentimento de tratamento periodontal',
     icon: Activity,
     description: 'Termo de consentimento informado para procedimentos de raspagem, profilaxia e ultrassom.'
   },
   {
+    id: 'tcle_cirurgia_implantes',
+    category: 'termo',
+    title: 'TCLE - Cirurgia de Implantes Dentários e Enxerto Ósseo',
+    subtitle: 'Consentimento informado para reabilitação com implantes osseointegráveis',
+    icon: Layers,
+    description: 'Termo de consentimento esclarecido com riscos cirúrgicos, enxertia óssea, tempo de osseointegração e orientações.'
+  },
+  {
+    id: 'tcle_clareamento_dental',
+    category: 'termo',
+    title: 'TCLE - Clareamento Dental (Caseiro / Consultório)',
+    subtitle: 'Consentimento para clareamento com peróxidos e sensibilidade',
+    icon: Sparkles,
+    description: 'Termo de consentimento informando sobre sensibilidade transitória, restrições alimentares e resultados esperados.'
+  },
+  {
+    id: 'tcle_ortodontia',
+    category: 'termo',
+    title: 'TCLE - Tratamento Ortodôntico / Alinhadores',
+    subtitle: 'Consentimento para movimentação dentária e contenções',
+    icon: SlidersHorizontal,
+    description: 'Termo para instalação de aparelhos fixos ou alinhadores invisíveis, higiene oral e uso obrigatório de contenção.'
+  },
+  {
     id: 'termo_responsabilidade_cirurgico',
-    category: 'declaracao',
+    category: 'termo',
     title: 'Termo de Responsabilidade Cirúrgica',
     subtitle: 'Cirurgias e extrações de dentes inclusos/sisos',
     icon: Scissors,
@@ -248,7 +329,7 @@ export const DENTAL_DOCUMENT_TEMPLATES: DocumentTemplate[] = [
   },
   {
     id: 'descricao_cirurgica',
-    category: 'declaracao',
+    category: 'termo',
     title: 'Descrição Cirúrgica (Formulário de Contingência)',
     subtitle: 'Relatório completo de ato cirúrgico',
     icon: Activity,
@@ -256,21 +337,29 @@ export const DENTAL_DOCUMENT_TEMPLATES: DocumentTemplate[] = [
   },
   {
     id: 'relatorio_paio_pos_procedimento',
-    category: 'declaracao',
+    category: 'termo',
     title: 'Protocolo de Anestesia Intra-Oral (PAIO)',
     subtitle: 'Atendimento clínico, anestesia tópica, anestesia injetável e registro pós-procedimento',
     icon: Stethoscope,
     description: 'Relatório clínico unificado contendo o protocolo de anestesia intra-oral (tópica e tubetes injetáveis), procedimento realizado, intercorrências e orientações.'
   },
 
-  // SOLICITAÇÕES
+  // 5. CLASSE SOLICITAÇÕES
   {
-    id: 'solicitacao_sangue',
+    id: 'solicitacao_rx_panoramico',
     category: 'solicitacao',
-    title: 'Solicitação de Exames de Sangue (Pré-Operatório)',
-    subtitle: 'Hemograma, Coagulograma, Glicemia, etc.',
-    icon: Activity,
-    description: 'Solicitação completa de exames laboratoriais hematológicos, bioquímicos e sorológicos pré-cirúrgicos.'
+    title: 'Solicitação de Radiografia Panorâmica (Ortopantomografia)',
+    subtitle: 'Panorâmica com opções de Telerradiografia, Modelos 3D, Traçado e ATMs',
+    icon: Eye,
+    description: 'Requisição completa e individualizada de Radiografia Panorâmica Digital, Telerradiografia lateral/frontal, documentação ortodôntica e avaliação de terceiros molares.'
+  },
+  {
+    id: 'solicitacao_rx_periapical_interproximal',
+    category: 'solicitacao',
+    title: 'Solicitação de Radiografia Periapical / Interproximal (Bite-Wing)',
+    subtitle: 'Radiografia intraoral para dentes específicos, cáries e periápice',
+    icon: FilePlus,
+    description: 'Pedido radiográfico intraoral com especificação de dentes de interesse, técnica periapical/bite-wing e indicação diagnóstica.'
   },
   {
     id: 'solicitacao_tomografia',
@@ -279,6 +368,14 @@ export const DENTAL_DOCUMENT_TEMPLATES: DocumentTemplate[] = [
     subtitle: 'Maxila e Mandíbula / Rebordo ósseo',
     icon: FilePlus,
     description: 'Pedido de tomografia cone beam (CBCT) para avaliação de volume ósseo, implantes e dentes inclusos.'
+  },
+  {
+    id: 'solicitacao_sangue',
+    category: 'solicitacao',
+    title: 'Solicitação de Exames de Sangue (Pré-Operatório)',
+    subtitle: 'Hemograma, Coagulograma, Glicemia, etc.',
+    icon: Activity,
+    description: 'Solicitação completa de exames laboratoriais hematológicos, bioquímicos e sorológicos pré-cirúrgicos.'
   },
   {
     id: 'solicitacao_ressonancia_atm',
@@ -1641,6 +1738,61 @@ export const DentalDocumentManager: React.FC = () => {
     instrumentist: 'TDB Maria Oliveira'
   });
 
+  // Parameters for Solicitação de Radiografia Panorâmica & Documentação Ortodôntica
+  const [rxPanoramicoOptions, setRxPanoramicoOptions] = useState({
+    panoramicaPadrao: true,
+    telerradiografiaPerfil: true,
+    tracadoCefalometrico: true,
+    telerradiografiaFrontal: false,
+    rxAtms: false,
+    escaneamentoModelos: false,
+    fotosDocumentacao: true,
+    interproximaisBiteWings: false
+  });
+  const [rxPanoramicoTeethInput, setRxPanoramicoTeethInput] = useState('Arcada Total / Região de Terceiros Molares (18, 28, 38, 48)');
+  const [rxPanoramicoFinalidade, setRxPanoramicoFinalidade] = useState('Avaliação Geral e Pré-Operatória de Terceiros Molares (Sisos)');
+  const [rxPanoramicoObservacoes, setRxPanoramicoObservacoes] = useState('Favor realizar radiografia panorâmica digital com ampliação padronizada e laudo radiológico minucioso.');
+
+  // Parameters for Radiografias Periapicais & Interproximais (Bite-Wings)
+  const [rxPeriapicalTipo, setRxPeriapicalTipo] = useState<'periapical_localizada' | 'levantamento_completo_14_tomadas' | 'interproximal_bite_wing' | 'oclusal'>('periapical_localizada');
+  const [rxPeriapicalTeethInput, setRxPeriapicalTeethInput] = useState('Dentes 11, 21 e 22');
+  const [rxPeriapicalIndication, setRxPeriapicalIndication] = useState('Avaliação endodôntica e lesão periapical');
+  const [rxPeriapicalNotes, setRxPeriapicalNotes] = useState('Favor realizar tomada periapical digital com posicionador e técnica do paralelismo.');
+
+  // Parameters for Receituário Simples
+  const [receitaSimplesUso, setReceitaSimplesUso] = useState<'Uso Interno' | 'Uso Tópico' | 'Uso Interno e Tópico'>('Uso Interno');
+  const [receitaSimplesVias, setReceitaSimplesVias] = useState<'1 via' | '2 vias'>('1 via');
+  const [receitaSimplesOrientacoes, setReceitaSimplesOrientacoes] = useState('Seguir rigorosamente as doses e horários prescritos. Não interromper o tratamento sem orientação.');
+
+  // Parameters for Notificações de Receita Especial (Azul B / Amarela A)
+  const [notificacaoBNumero, setNotificacaoBNumero] = useState('001248/2026');
+  const [notificacaoBUf, setNotificacaoBUf] = useState('CE');
+  const [notificacaoBGrafica, setNotificacaoBGrafica] = useState('Talonário Oficial / Vigilância Sanitária');
+  const [notificacaoANumero, setNotificacaoANumero] = useState('000532/2026');
+  const [notificacaoAUf, setNotificacaoAUf] = useState('CE');
+
+  // Parameters for Atestado de Aptidão Odontológica
+  const [aptidaoFinalidade, setAptidaoFinalidade] = useState('Concurso Público / Admissional');
+  const [aptidaoObservacoes, setAptidaoObservacoes] = useState('Paciente em perfeito estado de higidez bucal, com ausência de focos infecciosos ativos, cáries ou processos patológicos agudos.');
+
+  // Parameters for Declaração de Tratamento em Andamento
+  const [tratamentoAndamentoEspecialidade, setTratamentoAndamentoEspecialidade] = useState('Ortodontia e Ortopedia Facial');
+  const [tratamentoAndamentoPrevisao, setTratamentoAndamentoPrevisao] = useState('12 a 18 meses');
+  const [tratamentoAndamentoFrequencia, setTratamentoAndamentoFrequencia] = useState('Mensal');
+  const [tratamentoAndamentoObservacoes, setTratamentoAndamentoObservacoes] = useState('O(A) paciente comparece regularmente para ativação de aparelho e controle clínico odontológico.');
+
+  // Parameters for Declaração de Valores / Recibo Odontológico
+  const [reciboValor, setReciboValor] = useState('850,00');
+  const [reciboExtenso, setReciboExtenso] = useState('Oitocentos e cinquenta reais');
+  const [reciboReferente, setReciboReferente] = useState('Tratamento odontológico reabilitador e procedimentos clínicos especializados.');
+  const [reciboFormaPagamento, setReciboFormaPagamento] = useState('PIX');
+
+  // Parameters for Termos (TCLEs)
+  const [tcleImplanteRegiao, setTcleImplanteRegiao] = useState('Região dos elementos dentários 36 e 46');
+  const [tcleImplanteEnxerto, setTcleImplanteEnxerto] = useState(true);
+  const [tcleClareamentoTipo, setTcleClareamentoTipo] = useState<'caseiro' | 'consultorio' | 'combinado'>('combinado');
+  const [tcleOrtoTipo, setTcleOrtoTipo] = useState<'fixo_metalico' | 'fixo_estetico' | 'alinhadores' | 'autoligado'>('fixo_estetico');
+
   // Print & Render State
   const [isRenderModalOpen, setIsRenderModalOpen] = useState(false);
 
@@ -1785,6 +1937,39 @@ export const DentalDocumentManager: React.FC = () => {
       if (tomographyNotes) {
         bodyText += `\n\n*4. OBSERVAÇÕES E ORIENTAÇÕES CLÍNICAS:*\n${tomographyNotes}`;
       }
+    } else if (activeTemplate.id === 'solicitacao_rx_panoramico') {
+      const selectedOpts = [
+        rxPanoramicoOptions.panoramicaPadrao && 'Panorâmica Padrão',
+        rxPanoramicoOptions.telerradiografiaPerfil && 'Telerradiografia Perfil',
+        rxPanoramicoOptions.tracadoCefalometrico && 'Traçado Cefalométrico',
+        rxPanoramicoOptions.telerradiografiaFrontal && 'Telerradiografia Frontal',
+        rxPanoramicoOptions.rxAtms && 'Radiografia ATMs',
+        rxPanoramicoOptions.fotosDocumentacao && 'Documentação Fotográfica',
+        rxPanoramicoOptions.escaneamentoModelos && 'Escaneamento 3D STL',
+        rxPanoramicoOptions.interproximaisBiteWings && 'Interproximais Bite-Wings'
+      ].filter(Boolean).join(', ');
+
+      bodyText = `*SOLICITAÇÃO DE RADIOGRAFIA PANORÂMICA & DOCUMENTAÇÃO*\n\n• *Dentes / Região:* ${rxPanoramicoTeethInput}\n• *Finalidade Clínica:* ${rxPanoramicoFinalidade}\n• *Exames Solicitados:* ${selectedOpts || 'Panorâmica Padrão'}${rxPanoramicoObservacoes ? `\n• *Observações:* ${rxPanoramicoObservacoes}` : ''}`;
+    } else if (activeTemplate.id === 'solicitacao_rx_periapical_interproximal') {
+      bodyText = `*SOLICITAÇÃO DE RADIOGRAFIAS PERIAPICAIS / INTERPROXIMAIS*\n\n• *Modalidade:* ${rxPeriapicalTipo}\n• *Dentes / Região:* ${rxPeriapicalTeethInput}\n• *Indicação Clínica:* ${rxPeriapicalIndication}${rxPeriapicalNotes ? `\n• *Observações:* ${rxPeriapicalNotes}` : ''}`;
+    } else if (activeTemplate.id === 'receituario_simples') {
+      bodyText = `*RECEITUÁRIO (${receitaSimplesUso.toUpperCase()})*\n\n${specialPrescriptionText}${receitaSimplesOrientacoes ? `\n\n*Orientações:* ${receitaSimplesOrientacoes}` : ''}`;
+    } else if (activeTemplate.id === 'receituario_notificacao_b_azul') {
+      bodyText = `*NOTIFICAÇÃO DE RECEITA B (AZUL - PSICOTRÓPICOS) - Nº ${notificacaoBNumero} - UF ${notificacaoBUf}*\n\n${specialPrescriptionText}`;
+    } else if (activeTemplate.id === 'receituario_notificacao_a_amarela') {
+      bodyText = `*NOTIFICAÇÃO DE RECEITA A (AMARELA - ENTORPECENTES) - Nº ${notificacaoANumero} - UF ${notificacaoAUf}*\n\n${specialPrescriptionText}`;
+    } else if (activeTemplate.id === 'atestado_aptidao_odontologica') {
+      bodyText = `*ATESTADO DE APTIDÃO ODONTOLÓGICA*\n\nAtesto, para os devidos fins (${aptidaoFinalidade}), que o(a) paciente ${patientDisplayName} encontra-se em condições bucais satisfatórias, com ausência de infecções ativas, estando APTO(A) do ponto de vista odontológico.`;
+    } else if (activeTemplate.id === 'declaracao_tratamento_andamento') {
+      bodyText = `*DECLARAÇÃO DE TRATAMENTO EM ANDAMENTO*\n\nDeclaro que o(a) paciente ${patientDisplayName} encontra-se em tratamento odontológico (${tratamentoAndamentoEspecialidade}) com frequência ${tratamentoAndamentoFrequencia} e previsão de ${tratamentoAndamentoPrevisao}.`;
+    } else if (activeTemplate.id === 'declaracao_valores_recibo') {
+      bodyText = `*RECIBO DE PAGAMENTO ODONTOLÓGICO*\n\nRecebi de ${patientDisplayName} o valor de R$ ${reciboValor} (${reciboExtenso}) referente a ${reciboReferente}, na forma de pagamento ${reciboFormaPagamento}.`;
+    } else if (activeTemplate.id === 'tcle_cirurgia_implantes') {
+      bodyText = `*TCLE - CIRURGIA & IMPLANTODONTIA*\n\nTermo de Consentimento Livre e Esclarecido para instalação de implantes dentários na região ${tcleImplanteRegiao} firmado por ${patientDisplayName}.`;
+    } else if (activeTemplate.id === 'tcle_clareamento_dental') {
+      bodyText = `*TCLE - CLAREAMENTO DENTAL*\n\nTermo de Consentimento Livre e Esclarecido para clareamento ${tcleClareamentoTipo} firmado por ${patientDisplayName}.`;
+    } else if (activeTemplate.id === 'tcle_ortodontia') {
+      bodyText = `*TCLE - TRATAMENTO ORTODÔNTICO*\n\nTermo de Consentimento Livre e Esclarecido para tratamento ortodôntico (${tcleOrtoTipo}) firmado por ${patientDisplayName}.`;
     } else if (activeTemplate.category === 'receituario') {
       const isControlSpecial = activeTemplate.id === 'receituario_controle_especial';
       if (isControlSpecial) {
@@ -1890,6 +2075,19 @@ export const DentalDocumentManager: React.FC = () => {
 
           <button
             type="button"
+            onClick={() => setSelectedCategory('receituario')}
+            className={`min-h-[44px] px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 shrink-0 cursor-pointer active:scale-95 ${
+              selectedCategory === 'receituario'
+                ? `${t.btnPrimaryBg} ${t.btnPrimaryText} shadow-xs`
+                : `${t.btnSecondaryBg} ${t.btnSecondaryText}`
+            }`}
+          >
+            <Pill className="w-4 h-4 text-purple-500" />
+            Receituários ({DENTAL_DOCUMENT_TEMPLATES.filter(t => t.category === 'receituario').length})
+          </button>
+
+          <button
+            type="button"
             onClick={() => setSelectedCategory('atestado')}
             className={`min-h-[44px] px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 shrink-0 cursor-pointer active:scale-95 ${
               selectedCategory === 'atestado'
@@ -1911,7 +2109,20 @@ export const DentalDocumentManager: React.FC = () => {
             }`}
           >
             <FileCheck className="w-4 h-4 text-emerald-500" />
-            Declarações & Termos ({DENTAL_DOCUMENT_TEMPLATES.filter(t => t.category === 'declaracao').length})
+            Declarações ({DENTAL_DOCUMENT_TEMPLATES.filter(t => t.category === 'declaracao').length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelectedCategory('termo')}
+            className={`min-h-[44px] px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 shrink-0 cursor-pointer active:scale-95 ${
+              selectedCategory === 'termo'
+                ? `${t.btnPrimaryBg} ${t.btnPrimaryText} shadow-xs`
+                : `${t.btnSecondaryBg} ${t.btnSecondaryText}`
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4 text-indigo-500" />
+            Termos & TCLE ({DENTAL_DOCUMENT_TEMPLATES.filter(t => t.category === 'termo').length})
           </button>
 
           <button
@@ -2000,93 +2211,6 @@ export const DentalDocumentManager: React.FC = () => {
               </p>
             </div>
           </button>
-        </div>
-      </div>
-
-      {/* BANNER VISUAL DE STATUS DE VALIDADE DA ASSINATURA DIGITAL & VERIFICADOR DE HASH ITI GOV.BR */}
-      <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-teal-950 text-white p-4 sm:p-5 rounded-3xl border border-emerald-500/40 shadow-md space-y-3 font-sans">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-emerald-800/50 pb-3">
-          <div className="flex items-center gap-3">
-            <div className="relative flex items-center justify-center shrink-0">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-0.5 flex items-center justify-center shadow-md">
-                <ShieldCheck className="w-6 h-6 text-slate-950" />
-              </div>
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-              </span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  Status da Assinatura Digital: VÁLIDA
-                </span>
-                <span className="bg-emerald-900/80 text-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/40">
-                  ICP-Brasil / ITI / Gov.br
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Signatário: <strong>{activeProfessional?.name || clinicInfo.dentistName}</strong> ({activeProfessional?.cro || clinicInfo.cro})
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap">
-            <button
-              type="button"
-              onClick={() => handleCopyDocumentHash('A8F9-4B12-8C01-D9E3-2F45-6A78-90BC-4E11')}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-            >
-              {copiedHashToast ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Hash Copiado!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5 text-teal-400" />
-                  <span>Copiar Hash SHA-256</span>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleVerifyHashOnGovernmentPortal}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Verificar no Portal ITI (validar.iti.gov.br)</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800/80">
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Algoritmo de Hash & Criptografia</span>
-            <span className="font-mono text-emerald-300 font-bold text-[11px]">SHA-256 / RSA 2048 bits</span>
-          </div>
-
-          <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800/80">
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Código Hash SHA-256 do Documento</span>
-            <span className="font-mono text-slate-200 text-[10.5px] truncate block" title="A8F9-4B12-8C01-D9E3-2F45-6A78-90BC-4E11">
-              A8F9-4B12-8C01-D9E3-2F45-6A78-90BC-4E11
-            </span>
-          </div>
-
-          <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800/80">
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Validação do Governo Federal</span>
-            <a
-              href="https://validar.iti.gov.br"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-emerald-400 hover:underline font-bold text-[11px] flex items-center gap-1"
-            >
-              <span>validar.iti.gov.br</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
         </div>
       </div>
 
@@ -4278,6 +4402,536 @@ export const DentalDocumentManager: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* 8. PARÂMETROS ESPECÍFICOS: SOLICITAÇÃO DE RX PANORÂMICO E DOCUMENTAÇÃO ORTODÔNTICA */}
+              {activeTemplate.id === 'solicitacao_rx_panoramico' && (
+                <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-4`}>
+                  <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center justify-between border-b ${t.cardBorder} pb-2`}>
+                    <span className="flex items-center gap-1.5">
+                      <FileText className={`w-4 h-4 ${t.accentText}`} />
+                      3. Parâmetros da Solicitação Radiológica & Exames
+                    </span>
+                    <span className="text-[10px] bg-sky-500/10 text-sky-700 font-bold px-2 py-0.5 rounded-full border border-sky-300/40">
+                      Radiologia & Documentação
+                    </span>
+                  </span>
+
+                  {/* Seleção de Exames Radiológicos */}
+                  <div className="space-y-1.5">
+                    <label className={`block text-xs font-bold ${t.headingText}`}>
+                      A. Exames Radiológicos e Documentação Solicitada:
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
+                        <input
+                          type="checkbox"
+                          checked={rxPanoramicoOptions.panoramicaPadrao}
+                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, panoramicaPadrao: e.target.checked }))}
+                          className="w-4 h-4 text-sky-600 rounded"
+                        />
+                        <span className="text-xs font-semibold text-stone-800">Radiografia Panorâmica Padrão (com ampliações)</span>
+                      </label>
+                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
+                        <input
+                          type="checkbox"
+                          checked={rxPanoramicoOptions.telerradiografiaPerfil}
+                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, telerradiografiaPerfil: e.target.checked }))}
+                          className="w-4 h-4 text-sky-600 rounded"
+                        />
+                        <span className="text-xs font-semibold text-stone-800">Telerradiografia Lateral de Perfil</span>
+                      </label>
+                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
+                        <input
+                          type="checkbox"
+                          checked={rxPanoramicoOptions.tracadoCefalometrico}
+                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, tracadoCefalometrico: e.target.checked }))}
+                          className="w-4 h-4 text-sky-600 rounded"
+                        />
+                        <span className="text-xs font-semibold text-stone-800">Traçado Cefalométrico Padronizado (USP/Ricketts)</span>
+                      </label>
+                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
+                        <input
+                          type="checkbox"
+                          checked={rxPanoramicoOptions.telerradiografiaFrontal}
+                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, telerradiografiaFrontal: e.target.checked }))}
+                          className="w-4 h-4 text-sky-600 rounded"
+                        />
+                        <span className="text-xs font-semibold text-stone-800">Telerradiografia Frontal (Póstero-Anterior)</span>
+                      </label>
+                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
+                        <input
+                          type="checkbox"
+                          checked={rxPanoramicoOptions.rxAtms}
+                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, rxAtms: e.target.checked }))}
+                          className="w-4 h-4 text-sky-600 rounded"
+                        />
+                        <span className="text-xs font-semibold text-stone-800">Radiografia de ATMs (Boca Aberta / Fechada)</span>
+                      </label>
+                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
+                        <input
+                          type="checkbox"
+                          checked={rxPanoramicoOptions.fotosDocumentacao}
+                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, fotosDocumentacao: e.target.checked }))}
+                          className="w-4 h-4 text-sky-600 rounded"
+                        />
+                        <span className="text-xs font-semibold text-stone-800">Documentação Fotográfica (Extra e Intraoral)</span>
+                      </label>
+                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
+                        <input
+                          type="checkbox"
+                          checked={rxPanoramicoOptions.escaneamentoModelos}
+                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, escaneamentoModelos: e.target.checked }))}
+                          className="w-4 h-4 text-sky-600 rounded"
+                        />
+                        <span className="text-xs font-semibold text-stone-800">Escaneamento Intraoral 3D / Modelos Digitais STL</span>
+                      </label>
+                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
+                        <input
+                          type="checkbox"
+                          checked={rxPanoramicoOptions.interproximaisBiteWings}
+                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, interproximaisBiteWings: e.target.checked }))}
+                          className="w-4 h-4 text-sky-600 rounded"
+                        />
+                        <span className="text-xs font-semibold text-stone-800">Radiografias Interproximais (Bite-Wings)</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Dentes / Região e Finalidade */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Dentes ou Região de Interesse:</label>
+                      <input
+                        type="text"
+                        value={rxPanoramicoTeethInput}
+                        onChange={(e) => setRxPanoramicoTeethInput(e.target.value)}
+                        placeholder="Ex: Terceiros Molares (18, 28, 38, 48) ou Arcada Total"
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      />
+                    </div>
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Finalidade Clínica / Indicação:</label>
+                      <input
+                        type="text"
+                        value={rxPanoramicoFinalidade}
+                        onChange={(e) => setRxPanoramicoFinalidade(e.target.value)}
+                        placeholder="Ex: Avaliação Pré-Operatória / Planejamento Ortodôntico"
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Observações */}
+                  <div>
+                    <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Observações e Recomendações ao Centro Radiológico:</label>
+                    <textarea
+                      rows={2}
+                      value={rxPanoramicoObservacoes}
+                      onChange={(e) => setRxPanoramicoObservacoes(e.target.value)}
+                      className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl p-3 text-xs font-semibold`}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 9. PARÂMETROS ESPECÍFICOS: RADIOGRAFIAS PERIAPICAIS & INTERPROXIMAIS */}
+              {activeTemplate.id === 'solicitacao_rx_periapical_interproximal' && (
+                <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-4`}>
+                  <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center justify-between border-b ${t.cardBorder} pb-2`}>
+                    <span className="flex items-center gap-1.5">
+                      <FileText className={`w-4 h-4 ${t.accentText}`} />
+                      3. Parâmetros do Exame Periapical / Interproximal
+                    </span>
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Tipo de Tomada Radiográfica:</label>
+                      <select
+                        value={rxPeriapicalTipo}
+                        onChange={(e) => setRxPeriapicalTipo(e.target.value as any)}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      >
+                        <option value="periapical_localizada">Radiografia Periapical Localizada</option>
+                        <option value="levantamento_completo_14_tomadas">Levantamento Periapical Completo (14 tomadas)</option>
+                        <option value="interproximal_bite_wing">Radiografias Interproximais (Bite-Wings)</option>
+                        <option value="oclusal">Radiografia Oclusal Total / Parcial</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Dentes / Elementos de Interesse:</label>
+                      <input
+                        type="text"
+                        value={rxPeriapicalTeethInput}
+                        onChange={(e) => setRxPeriapicalTeethInput(e.target.value)}
+                        placeholder="Ex: Dentes 11, 21 e 22"
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Indicação Clínica do Exame:</label>
+                      <input
+                        type="text"
+                        value={rxPeriapicalIndication}
+                        onChange={(e) => setRxPeriapicalIndication(e.target.value)}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Observações Complementares:</label>
+                      <textarea
+                        rows={2}
+                        value={rxPeriapicalNotes}
+                        onChange={(e) => setRxPeriapicalNotes(e.target.value)}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl p-3 text-xs font-semibold`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 10. PARÂMETROS ESPECÍFICOS: RECEITUÁRIO SIMPLES */}
+              {activeTemplate.id === 'receituario_simples' && (
+                <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-4`}>
+                  <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center justify-between border-b ${t.cardBorder} pb-2`}>
+                    <span className="flex items-center gap-1.5">
+                      <Pill className={`w-4 h-4 ${t.accentText}`} />
+                      3. Parâmetros do Receituário Simples
+                    </span>
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Via / Modo de Administração:</label>
+                      <select
+                        value={receitaSimplesUso}
+                        onChange={(e) => setReceitaSimplesUso(e.target.value as any)}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      >
+                        <option value="Uso Interno">Uso Interno (Via Oral)</option>
+                        <option value="Uso Tópico">Uso Tópico (Bochecho / Gel / Pomada)</option>
+                        <option value="Uso Interno e Tópico">Uso Interno e Tópico</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Vias de Impressão:</label>
+                      <select
+                        value={receitaSimplesVias}
+                        onChange={(e) => setReceitaSimplesVias(e.target.value as any)}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      >
+                        <option value="1 via">1 Via (Padrão)</option>
+                        <option value="2 vias">2 Vias (1ª Via Farmácia / 2ª Via Paciente)</option>
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Orientações Gerais ao Paciente:</label>
+                      <textarea
+                        rows={2}
+                        value={receitaSimplesOrientacoes}
+                        onChange={(e) => setReceitaSimplesOrientacoes(e.target.value)}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl p-3 text-xs font-semibold`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 11. PARÂMETROS ESPECÍFICOS: NOTIFICAÇÃO DE RECEITA AZUL (B) / AMARELA (A) */}
+              {(activeTemplate.id === 'receituario_notificacao_b_azul' || activeTemplate.id === 'receituario_notificacao_a_amarela') && (
+                <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-4`}>
+                  <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center justify-between border-b ${t.cardBorder} pb-2`}>
+                    <span className="flex items-center gap-1.5">
+                      <Pill className={`w-4 h-4 ${activeTemplate.id === 'receituario_notificacao_b_azul' ? 'text-blue-600' : 'text-amber-500'}`} />
+                      3. Dados Oficiais da Notificação de Receita
+                    </span>
+                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                      activeTemplate.id === 'receituario_notificacao_b_azul' 
+                        ? 'bg-blue-100 text-blue-900 border-blue-300' 
+                        : 'bg-amber-100 text-amber-900 border-amber-300'
+                    }`}>
+                      {activeTemplate.id === 'receituario_notificacao_b_azul' ? 'Notificação B (Azul - Psicotrópicos)' : 'Notificação A (Amarela - Entorpecentes)'}
+                    </span>
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Número da Notificação (Numeração Oficial):</label>
+                      <input
+                        type="text"
+                        value={activeTemplate.id === 'receituario_notificacao_b_azul' ? notificacaoBNumero : notificacaoANumero}
+                        onChange={(e) => {
+                          if (activeTemplate.id === 'receituario_notificacao_b_azul') {
+                            setNotificacaoBNumero(e.target.value);
+                          } else {
+                            setNotificacaoANumero(e.target.value);
+                          }
+                        }}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>UF da Notificação:</label>
+                      <input
+                        type="text"
+                        value={activeTemplate.id === 'receituario_notificacao_b_azul' ? notificacaoBUf : notificacaoAUf}
+                        onChange={(e) => {
+                          if (activeTemplate.id === 'receituario_notificacao_b_azul') {
+                            setNotificacaoBUf(e.target.value);
+                          } else {
+                            setNotificacaoAUf(e.target.value);
+                          }
+                        }}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 12. PARÂMETROS ESPECÍFICOS: ATESTADO DE APTIDÃO ODONTOLÓGICA */}
+              {activeTemplate.id === 'atestado_aptidao_odontologica' && (
+                <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-4`}>
+                  <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center justify-between border-b ${t.cardBorder} pb-2`}>
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className={`w-4 h-4 ${t.accentText}`} />
+                      3. Parâmetros da Aptidão Odontológica
+                    </span>
+                  </span>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Finalidade do Atestado de Aptidão:</label>
+                      <input
+                        type="text"
+                        value={aptidaoFinalidade}
+                        onChange={(e) => setAptidaoFinalidade(e.target.value)}
+                        placeholder="Ex: Concurso Público / Procedimento Cirúrgico Médico / Atividade Física"
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Parecer Clínico de Higidez Bucal:</label>
+                      <textarea
+                        rows={3}
+                        value={aptidaoObservacoes}
+                        onChange={(e) => setAptidaoObservacoes(e.target.value)}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl p-3 text-xs font-semibold`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 13. PARÂMETROS ESPECÍFICOS: DECLARAÇÃO DE TRATAMENTO EM ANDAMENTO */}
+              {activeTemplate.id === 'declaracao_tratamento_andamento' && (
+                <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-4`}>
+                  <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center justify-between border-b ${t.cardBorder} pb-2`}>
+                    <span className="flex items-center gap-1.5">
+                      <FileText className={`w-4 h-4 ${t.accentText}`} />
+                      3. Parâmetros do Tratamento em Andamento
+                    </span>
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Especialidade / Tratamento:</label>
+                      <input
+                        type="text"
+                        value={tratamentoAndamentoEspecialidade}
+                        onChange={(e) => setTratamentoAndamentoEspecialidade(e.target.value)}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Previsão de Duração:</label>
+                      <input
+                        type="text"
+                        value={tratamentoAndamentoPrevisao}
+                        onChange={(e) => setTratamentoAndamentoPrevisao(e.target.value)}
+                        placeholder="Ex: 12 a 18 meses"
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Periodicidade das Consultas:</label>
+                      <input
+                        type="text"
+                        value={tratamentoAndamentoFrequencia}
+                        onChange={(e) => setTratamentoAndamentoFrequencia(e.target.value)}
+                        placeholder="Ex: Mensal / Quinzenal"
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3">
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Observações Complementares:</label>
+                      <textarea
+                        rows={2}
+                        value={tratamentoAndamentoObservacoes}
+                        onChange={(e) => setTratamentoAndamentoObservacoes(e.target.value)}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl p-3 text-xs font-semibold`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 14. PARÂMETROS ESPECÍFICOS: DECLARAÇÃO DE VALORES / RECIBO */}
+              {activeTemplate.id === 'declaracao_valores_recibo' && (
+                <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-4`}>
+                  <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center justify-between border-b ${t.cardBorder} pb-2`}>
+                    <span className="flex items-center gap-1.5">
+                      <DollarSign className={`w-4 h-4 ${t.accentText}`} />
+                      3. Parâmetros Financeiros do Recibo
+                    </span>
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Valor Numérico (R$):</label>
+                      <input
+                        type="text"
+                        value={reciboValor}
+                        onChange={(e) => setReciboValor(e.target.value)}
+                        placeholder="Ex: 850,00"
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Forma de Pagamento:</label>
+                      <select
+                        value={reciboFormaPagamento}
+                        onChange={(e) => setReciboFormaPagamento(e.target.value)}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      >
+                        <option value="PIX">PIX</option>
+                        <option value="Cartão de Crédito">Cartão de Crédito</option>
+                        <option value="Cartão de Débito">Cartão de Débito</option>
+                        <option value="Transferência Bancária">Transferência Bancária</option>
+                        <option value="Dinheiro em Espécie">Dinheiro em Espécie</option>
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Valor por Extenso:</label>
+                      <input
+                        type="text"
+                        value={reciboExtenso}
+                        onChange={(e) => setReciboExtenso(e.target.value)}
+                        placeholder="Ex: Oitocentos e cinquenta reais"
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Referente aos Procedimentos / Tratamento:</label>
+                      <textarea
+                        rows={2}
+                        value={reciboReferente}
+                        onChange={(e) => setReciboReferente(e.target.value)}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl p-3 text-xs font-semibold`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 15. PARÂMETROS ESPECÍFICOS: TERMOS TCLE (IMPLANTE / CLAREAMENTO / ORTODONTIA) */}
+              {activeTemplate.id === 'tcle_cirurgia_implantes' && (
+                <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-4`}>
+                  <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center justify-between border-b ${t.cardBorder} pb-2`}>
+                    <span className="flex items-center gap-1.5">
+                      <ShieldCheck className={`w-4 h-4 ${t.accentText}`} />
+                      3. Parâmetros do TCLE de Implantes & Cirurgia
+                    </span>
+                  </span>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Região / Elementos Dentários dos Implantes:</label>
+                      <input
+                        type="text"
+                        value={tcleImplanteRegiao}
+                        onChange={(e) => setTcleImplanteRegiao(e.target.value)}
+                        placeholder="Ex: Região dos elementos dentários 36 e 46"
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                      />
+                    </div>
+
+                    <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer`}>
+                      <input
+                        type="checkbox"
+                        checked={tcleImplanteEnxerto}
+                        onChange={(e) => setTcleImplanteEnxerto(e.target.checked)}
+                        className="w-4 h-4 text-amber-600 rounded"
+                      />
+                      <span className="text-xs font-semibold text-stone-800">
+                        Incluir previsão de Enxerto Ósseo / Biomaterial / Membrana Biológica
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {activeTemplate.id === 'tcle_clareamento_dental' && (
+                <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-4`}>
+                  <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center justify-between border-b ${t.cardBorder} pb-2`}>
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles className={`w-4 h-4 ${t.accentText}`} />
+                      3. Parâmetros do TCLE de Clareamento Dental
+                    </span>
+                  </span>
+
+                  <div>
+                    <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Modalidade de Clareamento:</label>
+                    <select
+                      value={tcleClareamentoTipo}
+                      onChange={(e) => setTcleClareamentoTipo(e.target.value as any)}
+                      className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                    >
+                      <option value="caseiro">Clareamento Caseiro Supervisionado (Moldeiras)</option>
+                      <option value="consultorio">Clareamento em Consultório (In-Office / Laser)</option>
+                      <option value="combinado">Clareamento Combinado (Consultório + Caseiro)</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {activeTemplate.id === 'tcle_ortodontia' && (
+                <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-4`}>
+                  <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center justify-between border-b ${t.cardBorder} pb-2`}>
+                    <span className="flex items-center gap-1.5">
+                      <ShieldCheck className={`w-4 h-4 ${t.accentText}`} />
+                      3. Parâmetros do TCLE de Ortodontia
+                    </span>
+                  </span>
+
+                  <div>
+                    <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Tipo de Aparelho Ortodôntico:</label>
+                    <select
+                      value={tcleOrtoTipo}
+                      onChange={(e) => setTcleOrtoTipo(e.target.value as any)}
+                      className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                    >
+                      <option value="fixo_metalico">Aparelho Fixo Metálico Convencional</option>
+                      <option value="fixo_estetico">Aparelho Fixo Estético (Cerâmica / Safira)</option>
+                      <option value="autoligado">Aparelho Autoligado</option>
+                      <option value="alinhadores">Alinhadores Invisíveis / Digitais</option>
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Modal Footer Actions */}
@@ -4323,14 +4977,28 @@ export const DentalDocumentManager: React.FC = () => {
                     let summaryText = '';
                     if (activeTemplate.id === 'receituario_controle_especial' || activeTemplate.title.toLowerCase().includes('controle especial')) {
                       summaryText = specialPrescriptionText;
+                    } else if (activeTemplate.id === 'solicitacao_rx_panoramico') {
+                      summaryText = `Solicitação de Radiografia Panorâmica (${rxPanoramicoTeethInput}) para ${patientDisplayName}. Finalidade: ${rxPanoramicoFinalidade}.`;
+                    } else if (activeTemplate.id === 'solicitacao_rx_periapical_interproximal') {
+                      summaryText = `Solicitação de Radiografia ${rxPeriapicalTipo} (${rxPeriapicalTeethInput}) para ${patientDisplayName}. Indicação: ${rxPeriapicalIndication}.`;
+                    } else if (activeTemplate.id === 'receituario_simples') {
+                      summaryText = `Receituário (${receitaSimplesUso}) para ${patientDisplayName}: ${specialPrescriptionText}`;
+                    } else if (activeTemplate.id === 'receituario_notificacao_b_azul' || activeTemplate.id === 'receituario_notificacao_a_amarela') {
+                      summaryText = `Notificação de Receita para ${patientDisplayName}: ${specialPrescriptionText}`;
+                    } else if (activeTemplate.id === 'atestado_aptidao_odontologica') {
+                      summaryText = `Atestado de Aptidão Odontológica para ${patientDisplayName} (${aptidaoFinalidade}).`;
+                    } else if (activeTemplate.id === 'declaracao_tratamento_andamento') {
+                      summaryText = `Declaração de Tratamento em Andamento (${tratamentoAndamentoEspecialidade}) para ${patientDisplayName}.`;
+                    } else if (activeTemplate.id === 'declaracao_valores_recibo') {
+                      summaryText = `Recibo de Pagamento no valor de R$ ${reciboValor} (${reciboExtenso}) referente a ${reciboReferente}.`;
+                    } else if (activeTemplate.id.startsWith('tcle_')) {
+                      summaryText = `Termo de Consentimento Livre e Esclarecido (${activeTemplate.title}) firmado para ${patientDisplayName}.`;
                     } else if (activeTemplate.category === 'atestado') {
                       summaryText = `Atesto, para os devidos fins, que ${patientDisplayName}, submeteu-se a atendimento odontológico ${atendimentoType} ${procedureDetail ? `(${procedureDetail})` : ''}, CID: ${isManualCid ? customCid : cidCode}, no dia ${formattedFormattedDate} às ${docTime}, período ${periodoStr}, devendo se afastar de suas atividades pelo período de ${afastamentoDias} dia(s) por estar sob meus cuidados e responsabilidade neste período.`;
                     } else if (activeTemplate.id === 'relatorio_atendimento_inicial_final') {
                       summaryText = `${relatorioDocStage === 'inicial' ? 'Relatório de Atendimento Inicial' : 'Relatório de Atendimento Final'}: ${relatorioProcedimentoDesc}. Informações prestadas aos pacientes assistidos que justifiquem recusa, interrupção ou tempo mais longo em razão de complexidade, finalidade pedagógica ou casos fortuitos.`;
                     } else if (activeTemplate.id === 'declaracao_comparecimento') {
                       summaryText = `Declaro, para os devidos fins de direito, que o(a) Sr(a). ${patientDisplayName} esteve presente neste consultório odontológico no dia ${formattedFormattedDate}, durante o período de ${docTime} (${periodoStr}), submetendo-se a tratamento e acompanhamento clínico odontológico.`;
-                    } else if (activeTemplate.id === 'tcle_endodontia') {
-                      summaryText = `Pelo presente instrumento, eu ${patientDisplayName} declaro que fui suficientemente esclarecido(a) pelo cirurgião-dentista sobre a necessidade de tratamento endodôntico (canal). Estou ciente de que existe índice de insucesso de 5 a 10% nos tratamentos endodônticos.`;
                     } else if (activeTemplate.id === 'solicitacao_sangue') {
                       const selectedExams = Object.entries(bloodExams).filter(([_, v]) => v).map(([k]) => k).join(', ');
                       summaryText = `Solicito para o(a) paciente ${patientDisplayName} a realização dos exames de sangue pré-operatórios odontológicos: ${selectedExams || 'Hemograma completo, Coagulograma, Glicemia em jejum'}.`;
@@ -4924,6 +5592,342 @@ export const DentalDocumentManager: React.FC = () => {
                           <p className="bg-stone-50 p-2 rounded border border-stone-200 mt-1">{paioPostOpInstructions}</p>
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {/* MODEL 11: SOLICITAÇÃO DE RADIOGRAFIA PANORÂMICA & DOCUMENTAÇÃO */}
+                  {activeTemplate.id === 'solicitacao_rx_panoramico' && (
+                    <div className="space-y-3.5 text-xs font-sans text-stone-800">
+                      <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between text-xs font-semibold">
+                        <div>
+                          <span className="text-stone-500 text-[10px] uppercase font-bold mr-1.5">Paciente:</span>
+                          <span className="text-stone-900 font-bold underline">{patientDisplayName}</span>
+                        </div>
+                        <div>
+                          <span className="text-stone-500 text-[10px] uppercase font-bold mr-1.5">Idade:</span>
+                          <span className="text-stone-800 font-semibold">{patientAge}</span>
+                        </div>
+                      </div>
+
+                      {/* Região e Finalidade */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200">
+                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Região / Dentes de Interesse:</span>
+                          <span className="text-stone-900 font-bold text-xs">{rxPanoramicoTeethInput}</span>
+                        </div>
+                        <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200">
+                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Indicação / Finalidade Clínica:</span>
+                          <span className="text-stone-900 font-bold text-xs">{rxPanoramicoFinalidade}</span>
+                        </div>
+                      </div>
+
+                      {/* Exames Solicitados */}
+                      <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                        <span className="font-bold text-[11px] text-stone-900 uppercase block border-b border-stone-200 pb-1">
+                          Exames e Documentação Radiológica Solicitada:
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-0.5">
+                          {rxPanoramicoOptions.panoramicaPadrao && (
+                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
+                              <span className="text-sky-700 font-bold">☑</span>
+                              <span>Radiografia Panorâmica Padrão (com ampliações)</span>
+                            </div>
+                          )}
+                          {rxPanoramicoOptions.telerradiografiaPerfil && (
+                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
+                              <span className="text-sky-700 font-bold">☑</span>
+                              <span>Telerradiografia Lateral de Perfil</span>
+                            </div>
+                          )}
+                          {rxPanoramicoOptions.tracadoCefalometrico && (
+                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
+                              <span className="text-sky-700 font-bold">☑</span>
+                              <span>Traçado Cefalométrico Padronizado</span>
+                            </div>
+                          )}
+                          {rxPanoramicoOptions.telerradiografiaFrontal && (
+                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
+                              <span className="text-sky-700 font-bold">☑</span>
+                              <span>Telerradiografia Frontal (PA)</span>
+                            </div>
+                          )}
+                          {rxPanoramicoOptions.rxAtms && (
+                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
+                              <span className="text-sky-700 font-bold">☑</span>
+                              <span>Radiografia de ATMs (Boca Aberta / Fechada)</span>
+                            </div>
+                          )}
+                          {rxPanoramicoOptions.fotosDocumentacao && (
+                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
+                              <span className="text-sky-700 font-bold">☑</span>
+                              <span>Documentação Fotográfica (Extra e Intraoral)</span>
+                            </div>
+                          )}
+                          {rxPanoramicoOptions.escaneamentoModelos && (
+                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
+                              <span className="text-sky-700 font-bold">☑</span>
+                              <span>Escaneamento Intraoral 3D / Modelos Digitais STL</span>
+                            </div>
+                          )}
+                          {rxPanoramicoOptions.interproximaisBiteWings && (
+                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
+                              <span className="text-sky-700 font-bold">☑</span>
+                              <span>Radiografias Interproximais (Bite-Wings)</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Observações */}
+                      {rxPanoramicoObservacoes && (
+                        <div className="p-2.5 bg-sky-50/70 rounded-xl border border-sky-200 space-y-1">
+                          <span className="font-bold text-[10px] text-sky-950 uppercase block">Observações e Recomendações Técnicas:</span>
+                          <p className="text-xs text-stone-800 leading-relaxed">{rxPanoramicoObservacoes}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* MODEL 12: RADIOGRAFIAS PERIAPICAIS & INTERPROXIMAIS */}
+                  {activeTemplate.id === 'solicitacao_rx_periapical_interproximal' && (
+                    <div className="space-y-4 text-xs font-sans text-stone-800">
+                      <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between text-xs font-semibold">
+                        <div>
+                          <span className="text-stone-500 text-[10px] uppercase font-bold mr-1.5">Paciente:</span>
+                          <span className="text-stone-900 font-bold underline">{patientDisplayName}</span>
+                        </div>
+                        <div>
+                          <span className="text-stone-500 text-[10px] uppercase font-bold mr-1.5">Idade:</span>
+                          <span className="text-stone-800 font-semibold">{patientAge}</span>
+                        </div>
+                      </div>
+
+                      <div className="border border-stone-800 p-3 rounded-xl space-y-2 bg-stone-50/50">
+                        <div className="flex items-center justify-between border-b border-stone-300 pb-1.5">
+                          <span className="font-bold text-xs uppercase text-stone-900">Tipo de Exame Radiológico:</span>
+                          <span className="px-2 py-0.5 bg-stone-200 rounded font-bold text-[11px] text-stone-800 uppercase">
+                            {rxPeriapicalTipo === 'periapical_localizada' && 'Periapical Localizada'}
+                            {rxPeriapicalTipo === 'levantamento_completo_14_tomadas' && 'Levantamento Periapical Completo (14 tomadas)'}
+                            {rxPeriapicalTipo === 'interproximal_bite_wing' && 'Interproximais (Bite-Wings)'}
+                            {rxPeriapicalTipo === 'oclusal' && 'Radiografia Oclusal'}
+                          </span>
+                        </div>
+
+                        <p><strong>Dentes / Elementos Solicitados:</strong> {rxPeriapicalTeethInput}</p>
+                        <p><strong>Indicação Clínica:</strong> {rxPeriapicalIndication}</p>
+                      </div>
+
+                      {rxPeriapicalNotes && (
+                        <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-1">
+                          <span className="font-bold text-[10px] text-stone-600 uppercase block">Observações:</span>
+                          <p className="text-xs text-stone-800">{rxPeriapicalNotes}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* MODEL 13: RECEITUÁRIO SIMPLES */}
+                  {activeTemplate.id === 'receituario_simples' && (
+                    <div className="space-y-4 font-sans text-stone-900">
+                      <div className="flex items-center justify-between border-b border-stone-300 pb-2">
+                        <div>
+                          <span className="text-xs font-bold text-stone-500 uppercase">Paciente: </span>
+                          <span className="text-sm font-bold underline text-stone-900">{patientDisplayName}</span>
+                        </div>
+                        <span className="text-[10.5px] font-bold bg-stone-100 border border-stone-300 px-2 py-0.5 rounded text-stone-700">
+                          {receitaSimplesVias}
+                        </span>
+                      </div>
+
+                      <div className="space-y-2 bg-stone-50/70 p-4 rounded-xl border border-stone-300">
+                        <div className="flex items-center justify-between border-b border-stone-200 pb-1">
+                          <span className="text-xs font-bold uppercase tracking-wide text-stone-800">Prescrição Medicamentosa</span>
+                          <span className="text-xs font-semibold italic text-stone-600">({receitaSimplesUso})</span>
+                        </div>
+
+                        <div className="bg-white p-3.5 rounded-lg border border-stone-300 text-xs font-medium leading-relaxed whitespace-pre-line text-stone-900">
+                          • {specialPrescriptionText || 'Amoxicilina 500mg ------------------ 21 cápsulas\nTomar 1 cápsula via oral de 8 em 8 horas por 7 dias.\n\n• Ibuprofeno 600mg ------------------- 10 comprimidos\nTomar 1 comprimido via oral de 8 em 8 horas em caso de dor ou inchaço.'}
+                        </div>
+                      </div>
+
+                      {receitaSimplesOrientacoes && (
+                        <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200 text-xs text-stone-800">
+                          <strong className="text-amber-950 font-bold block mb-0.5">Orientações ao Paciente:</strong>
+                          <p className="leading-relaxed">{receitaSimplesOrientacoes}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* MODEL 14: NOTIFICAÇÃO DE RECEITA AZUL (B) / AMARELA (A) */}
+                  {(activeTemplate.id === 'receituario_notificacao_b_azul' || activeTemplate.id === 'receituario_notificacao_a_amarela') && (
+                    <div className="space-y-4 font-sans text-stone-900">
+                      {/* Moldura de Notificação Oficial */}
+                      <div className={`p-3 rounded-xl border-2 ${
+                        activeTemplate.id === 'receituario_notificacao_b_azul' 
+                          ? 'border-blue-600 bg-blue-50/40' 
+                          : 'border-amber-500 bg-amber-50/40'
+                      } flex items-center justify-between`}>
+                        <div>
+                          <span className="font-extrabold text-sm uppercase block tracking-wider">
+                            {activeTemplate.id === 'receituario_notificacao_b_azul' 
+                              ? 'NOTIFICAÇÃO DE RECEITA B (PSICOTRÓPICOS)' 
+                              : 'NOTIFICAÇÃO DE RECEITA A (ENTORPECENTES)'}
+                          </span>
+                          <span className="text-[10px] text-stone-600">Portaria SVS/MS nº 344/98 • Válida em todo o território nacional</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-mono font-bold block">
+                            Nº: {activeTemplate.id === 'receituario_notificacao_b_azul' ? notificacaoBNumero : notificacaoANumero}
+                          </span>
+                          <span className="text-[10px] font-bold text-stone-600">
+                            UF: {activeTemplate.id === 'receituario_notificacao_b_azul' ? notificacaoBUf : notificacaoAUf}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="border border-stone-800 p-2.5 rounded-lg bg-white space-y-1">
+                          <span className="font-bold uppercase text-[10.5px] border-b border-stone-200 pb-0.5 block">Identificação do Emitente</span>
+                          <p className="font-bold">{effectiveDentistName} • {effectiveDentistCro}</p>
+                          <p className="text-[10.5px] text-stone-600">{effectiveClinicAddress} - {formatCityOnly(effectiveClinicCity)}/{clinicInfo.uf || 'CE'}</p>
+                          <p className="text-[10.5px] text-stone-600">Tel: {effectiveClinicPhone}</p>
+                        </div>
+
+                        <div className="border border-stone-800 p-2.5 rounded-lg bg-white space-y-1">
+                          <span className="font-bold uppercase text-[10.5px] border-b border-stone-200 pb-0.5 block">Identificação do Paciente</span>
+                          <p className="font-bold text-stone-900 underline">{patientDisplayName}</p>
+                          <p className="text-[10.5px] text-stone-600">Endereço: ____________________________________</p>
+                          <p className="text-[10.5px] text-stone-600">Cidade: {formatCityOnly(clinicInfo.city || 'Fortaleza')} - {clinicInfo.uf || 'CE'}</p>
+                        </div>
+                      </div>
+
+                      {/* Medicamento Prescrito */}
+                      <div className="border-2 border-stone-800 p-3 rounded-lg bg-white space-y-1.5 text-xs">
+                        <span className="font-bold uppercase tracking-wider text-xs block border-b border-stone-300 pb-1">
+                          Medicamento(s) Prescrito(s) & Posologia
+                        </span>
+                        <div className="p-2.5 bg-stone-50 rounded border border-stone-200 font-medium leading-relaxed whitespace-pre-line text-stone-900">
+                          {specialPrescriptionText || (activeTemplate.id === 'receituario_notificacao_b_azul' 
+                            ? '• Diazepam 10mg ------------------ 02 comprimidos\nTomar 1 comprimido via oral 1 hora antes do procedimento cirúrgico odontológico.'
+                            : '• Fosfato de Codeína 30mg --------- 12 comprimidos\nTomar 1 comprimido de 6 em 6 horas se dor intensa refratária a analgésicos comuns.')}
+                        </div>
+                      </div>
+
+                      {/* Identificação do Comprador & Fornecedor */}
+                      <div className="grid grid-cols-2 gap-3 text-[10.5px]">
+                        <div className="border border-stone-800 p-2.5 rounded-lg bg-white space-y-1">
+                          <span className="font-bold uppercase text-[10px] border-b border-stone-200 pb-0.5 block">Identificação do Comprador</span>
+                          <p>Nome: ____________________________________</p>
+                          <p>Doc. Identidade: ____________________________</p>
+                          <p>Endereço / Tel: _____________________________</p>
+                        </div>
+                        <div className="border border-stone-800 p-2.5 rounded-lg bg-white space-y-1 text-center flex flex-col justify-between">
+                          <span className="font-bold uppercase text-[10px] border-b border-stone-200 pb-0.5 block">Identificação do Fornecedor (Farmácia)</span>
+                          <div className="border-t border-stone-400 pt-1 text-[9.5px]">
+                            Assinatura do Farmacêutico / Data: ____/____/________
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* MODEL 15: ATESTADO DE APTIDÃO ODONTOLÓGICA */}
+                  {activeTemplate.id === 'atestado_aptidao_odontologica' && (
+                    <div className="space-y-6 pt-4 text-justify">
+                      <p className="text-base leading-loose">
+                        Atesto, para os devidos fins a que se destina (<strong className="font-bold">{aptidaoFinalidade}</strong>), que examinei nesta data o(a) Sr(a). <strong className="font-bold underline">{patientDisplayName}</strong> e certifico que o(a) mesmo(a) encontra-se em condições clínicas bucais satisfatórias, com ausência de processos infecciosos agudos, lesões de tecidos moles ou focos dentários ativos, estando <strong className="font-bold underline uppercase">APTO(A)</strong> do ponto de vista odontológico.
+                      </p>
+                      {aptidaoObservacoes && (
+                        <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 text-xs text-stone-800 space-y-1">
+                          <strong className="text-stone-900 font-bold block">Parecer / Observações Clínicas:</strong>
+                          <p className="leading-relaxed">{aptidaoObservacoes}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* MODEL 16: DECLARAÇÃO DE TRATAMENTO EM ANDAMENTO */}
+                  {activeTemplate.id === 'declaracao_tratamento_andamento' && (
+                    <div className="space-y-6 pt-4 text-justify">
+                      <p className="text-base leading-loose">
+                        Declaro, para os devidos fins de direito, que o(a) Sr(a). <strong className="font-bold underline">{patientDisplayName}</strong> encontra-se em regular tratamento odontológico na especialidade de <strong className="font-bold">{tratamentoAndamentoEspecialidade}</strong> neste consultório, comparecendo com frequência <strong className="font-bold">{tratamentoAndamentoFrequencia}</strong> às consultas de acompanhamento clínico, com previsão estimada de duração de <strong className="font-bold">{tratamentoAndamentoPrevisao}</strong> para conclusão do plano de tratamento terapêutico.
+                      </p>
+                      {tratamentoAndamentoObservacoes && (
+                        <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 text-xs text-stone-800 space-y-1">
+                          <strong className="text-stone-900 font-bold block">Observações Complementares:</strong>
+                          <p className="leading-relaxed">{tratamentoAndamentoObservacoes}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* MODEL 17: DECLARAÇÃO DE VALORES / RECIBO */}
+                  {activeTemplate.id === 'declaracao_valores_recibo' && (
+                    <div className="space-y-5 pt-3 text-justify font-sans">
+                      <div className="p-4 bg-stone-50 border-2 border-stone-800 rounded-2xl flex items-center justify-between">
+                        <div>
+                          <span className="text-xs text-stone-600 font-bold uppercase block">Valor Total do Recibo:</span>
+                          <span className="text-2xl font-black text-stone-900">R$ {reciboValor}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs text-stone-600 font-bold uppercase block">Forma de Pagamento:</span>
+                          <span className="text-sm font-bold text-stone-800 bg-white px-3 py-1 rounded-lg border border-stone-300 inline-block">{reciboFormaPagamento}</span>
+                        </div>
+                      </div>
+
+                      <p className="text-base leading-loose">
+                        Recebi do(a) Sr(a). <strong className="font-bold underline">{patientDisplayName}</strong> a importância de <strong className="font-bold">R$ {reciboValor} ({reciboExtenso})</strong>, referente a <strong className="font-medium">{reciboReferente}</strong>, dando por este instrumento plena, geral e irrevogável quitação dos valores especificados.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* MODEL 18: TCLE CIRURGIA E IMPLANTES */}
+                  {activeTemplate.id === 'tcle_cirurgia_implantes' && (
+                    <div className="space-y-3.5 text-xs text-justify font-sans text-stone-800">
+                      <p className="font-bold text-center text-sm uppercase">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO - CIRURGIA & IMPLANTODONTIA</p>
+                      <p>
+                        Pelo presente instrumento, eu <strong className="underline font-bold text-stone-900">{patientDisplayName}</strong> declaro que fui devidamente informado(a) e esclarecido(a) pelo cirurgião-dentista sobre o procedimento de instalação de implantes odontológicos na <strong>{tcleImplanteRegiao}</strong> {tcleImplanteEnxerto ? 'e realização de enxerto ósseo/biomaterial associado' : ''}.
+                      </p>
+                      <ul className="list-disc pl-5 space-y-1 text-[11px] text-stone-700">
+                        <li>Fui informado(a) sobre a taxa de sucesso da osseointegração (superior a 95%) e sobre os fatores que podem levar à perda do implante (fumo, diabetes descompensada, má higiene bucal).</li>
+                        <li>Estou ciente da necessidade de repouso pós-operatório, higienização rigorosa e uso correto das medicações prescritas.</li>
+                        <li>Compreendo que a confecção da prótese sobre implante só poderá ser realizada após o período adequado de cicatrização e osseointegração.</li>
+                      </ul>
+                      <p className="text-[11px] italic text-stone-600">
+                        Declaro que tive a oportunidade de esclarecer todas as dúvidas e autorizo a realização do procedimento cirúrgico.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* MODEL 19: TCLE CLAREAMENTO DENTAL */}
+                  {activeTemplate.id === 'tcle_clareamento_dental' && (
+                    <div className="space-y-3.5 text-xs text-justify font-sans text-stone-800">
+                      <p className="font-bold text-center text-sm uppercase">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO - CLAREAMENTO DENTAL</p>
+                      <p>
+                        Eu, <strong className="underline font-bold text-stone-900">{patientDisplayName}</strong>, autorizo a realização do procedimento de clareamento dental na modalidade <strong>{tcleClareamentoTipo === 'caseiro' ? 'Caseiro Supervisionado' : tcleClareamentoTipo === 'consultorio' ? 'Em Consultório' : 'Combinado (Consultório + Caseiro)'}</strong>.
+                      </p>
+                      <ul className="list-disc pl-5 space-y-1 text-[11px] text-stone-700">
+                        <li>Estou ciente de que pode ocorrer sensibilidade dentária transitória durante ou após as aplicações, que cessa com o término do tratamento.</li>
+                        <li>Fui orientado(a) a evitar alimentos e bebidas fortemente pigmentadas (café, vinho tinto, refrigerantes escuros, molho de tomate) durante o período de clareamento.</li>
+                        <li>Compreendo que restaurações e próteses existentes não mudam de cor com o clareamento, podendo ser necessária a sua troca após a estabilização da cor final.</li>
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* MODEL 20: TCLE ORTODONTIA */}
+                  {activeTemplate.id === 'tcle_ortodontia' && (
+                    <div className="space-y-3.5 text-xs text-justify font-sans text-stone-800">
+                      <p className="font-bold text-center text-sm uppercase">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO - TRATAMENTO ORTODÔNTICO</p>
+                      <p>
+                        Eu, <strong className="underline font-bold text-stone-900">{patientDisplayName}</strong>, declaro que fui esclarecido(a) sobre o diagnóstico, plano terapêutico e instalação de aparelho <strong>{tcleOrtoTipo === 'fixo_metalico' ? 'Fixo Metálico' : tcleOrtoTipo === 'fixo_estetico' ? 'Fixo Estético' : tcleOrtoTipo === 'autoligado' ? 'Autoligado' : 'Alinhadores Invisíveis'}</strong>.
+                      </p>
+                      <ul className="list-disc pl-5 space-y-1 text-[11px] text-stone-700">
+                        <li>Comprometo-me a comparecer pontualmente às consultas mensais de ativação e manutenção do aparelho.</li>
+                        <li>Estou ciente de que a má higiene bucal pode causar descalcificações (manchas brancas), cáries e inflamações gengivais severas.</li>
+                        <li>Reconheço que o tempo de tratamento é uma estimativa e depende diretamente da colaboração do paciente e da resposta biológica individual.</li>
+                        <li>Ao término do tratamento ativo, é indispensável o uso rigoroso das placas ou barras de contenção para evitar recidiva ortodôntica.</li>
+                      </ul>
                     </div>
                   )}
 

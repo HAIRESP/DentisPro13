@@ -388,8 +388,8 @@ export const DashboardView: React.FC = () => {
           </span>
         </div>
 
-        {/* 2 Linhas × 4 Colunas Grid Compacto */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-2.5">
+        {/* 2 Linhas × 4 Colunas Grid Amplo (Cards com o dobro de altura e design expandido) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 items-stretch auto-rows-fr">
           {mainCards.map((card) => {
             const Icon = card.icon;
             return (
@@ -397,43 +397,50 @@ export const DashboardView: React.FC = () => {
                 key={card.id}
                 type="button"
                 onClick={() => setActiveTab(card.id)}
-                className={`group relative bg-white border border-slate-200 ${card.borderHover} p-2.5 sm:p-3 rounded-xl shadow-2xs hover:shadow-sm transition-all duration-150 text-left cursor-pointer flex flex-col justify-between overflow-hidden active:scale-[0.99] w-full min-h-[110px] sm:min-h-[118px]`}
+                className={`group relative bg-white border border-slate-200/90 ${card.borderHover} p-5 sm:p-6 rounded-2xl shadow-xs hover:shadow-xl transition-all duration-200 text-left cursor-pointer flex flex-col justify-between overflow-hidden active:scale-[0.99] w-full h-full min-h-[290px] sm:min-h-[310px]`}
               >
-                <div className="space-y-1 relative z-10 w-full">
-                  <div className="flex items-center justify-between gap-1.5">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${card.iconBg} flex items-center justify-center font-bold group-hover:scale-105 transition shrink-0 shadow-2xs`}>
-                        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                {/* Background Decorator Accent */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-slate-50 to-transparent rounded-bl-full pointer-events-none -z-0 group-hover:scale-110 transition-transform duration-300" />
+
+                <div className="space-y-3 relative z-10 w-full flex-1 flex flex-col justify-start">
+                  {/* Cabeçalho do Card Expandido com Ícone Grande */}
+                  <div className="flex items-start justify-between gap-3 shrink-0">
+                    <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                      <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl ${card.iconBg} flex items-center justify-center font-bold group-hover:scale-110 group-hover:shadow-md transition-all shrink-0 shadow-xs`}>
+                        <Icon className="w-6 h-6 sm:w-7 sm:h-7" />
                       </div>
-                      <div className="min-w-0">
-                        <h3 className="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-[#4a4a35] transition leading-tight truncate">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-[#4a4a35] transition leading-tight">
                           {card.title}
                         </h3>
-                        <p className="text-[9.5px] sm:text-[10px] font-semibold text-slate-500 truncate">
+                        <p className="text-xs sm:text-sm font-semibold text-slate-500 pt-0.5">
                           {card.subtitle}
                         </p>
                       </div>
                     </div>
 
                     {card.alertBadge !== undefined && (
-                      <span className="bg-amber-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow-2xs shrink-0 animate-pulse">
+                      <span className="bg-amber-500 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-xs shrink-0 animate-pulse">
                         {card.alertBadge}
                       </span>
                     )}
                   </div>
 
-                  <p className="text-[10.5px] text-slate-600 leading-tight line-clamp-2 pt-0.5">
+                  {/* Descrição Completa e Clara, sem truncamento excessivo */}
+                  <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed pt-2 flex-1">
                     {card.description}
                   </p>
                 </div>
 
-                <div className="pt-1.5 mt-1 border-t border-slate-100 flex items-center justify-between text-[10.5px] w-full">
-                  <span className={`px-1.5 py-0.5 rounded text-[9.5px] font-semibold border truncate max-w-[70%] ${card.badgeColor}`}>
+                {/* Rodapé Expandido com Botão de Ação Destacado */}
+                <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs w-full shrink-0">
+                  <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border truncate max-w-[70%] ${card.badgeColor}`}>
                     {card.stat}
                   </span>
-                  <span className="flex items-center gap-0.5 font-bold text-slate-700 group-hover:text-[#4a4a35] group-hover:translate-x-0.5 transition shrink-0">
-                    <ArrowRight className="w-3 h-3 text-[#d4a373]" />
-                  </span>
+                  <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 group-hover:text-[#4a4a35] transition shrink-0 bg-slate-50 group-hover:bg-[#d4a373]/15 px-2.5 py-1 rounded-lg border border-slate-200/60">
+                    <span className="hidden sm:inline">{card.actionText}</span>
+                    <ArrowRight className="w-4 h-4 text-[#d4a373] group-hover:translate-x-1 transition-transform" />
+                  </div>
                 </div>
               </button>
             );

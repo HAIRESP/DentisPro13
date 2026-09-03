@@ -25,6 +25,52 @@ const app = !getApps().length ? initializeApp(firebaseConfigData) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfigData.firestoreDatabaseId || undefined);
 
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): void {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.warn('Firestore Operation Notice: ', JSON.stringify(errInfo));
+}
+
 export type UserRole = 'admin' | 'dentist' | 'receptionist';
 
 export interface UserProfile {
@@ -98,6 +144,8 @@ export const DEMO_USERS: UserProfile[] = [
 
 // Save or sync user profile in Firestore
 export async function saveUserProfileToFirestore(profile: UserProfile): Promise<void> {
+  if (!profile || !profile.uid) return;
+  const path = `users/${profile.uid}`;
   try {
     const userRef = doc(db, 'users', profile.uid);
     await setDoc(userRef, {
@@ -105,12 +153,14 @@ export async function saveUserProfileToFirestore(profile: UserProfile): Promise<
       updatedAt: new Date().toISOString()
     }, { merge: true });
   } catch (err) {
-    console.warn('Unable to sync profile to Firestore:', err);
+    handleFirestoreError(err, OperationType.WRITE, path);
   }
 }
 
 // Get user profile from Firestore
 export async function getUserProfileFromFirestore(uid: string): Promise<UserProfile | null> {
+  if (!uid) return null;
+  const path = `users/${uid}`;
   try {
     const userRef = doc(db, 'users', uid);
     const snap = await getDoc(userRef);
@@ -118,13 +168,14 @@ export async function getUserProfileFromFirestore(uid: string): Promise<UserProf
       return snap.data() as UserProfile;
     }
   } catch (err) {
-    console.warn('Unable to fetch profile from Firestore:', err);
+    handleFirestoreError(err, OperationType.GET, path);
   }
   return null;
 }
 
 // Fetch all users for Admin User Management
 export async function fetchAllUsersFromFirestore(): Promise<UserProfile[]> {
+  const path = 'users';
   try {
     const colRef = collection(db, 'users');
     const snap = await getDocs(colRef);
@@ -132,15 +183,16 @@ export async function fetchAllUsersFromFirestore(): Promise<UserProfile[]> {
     snap.forEach((docSnap) => {
       users.push(docSnap.data() as UserProfile);
     });
-    return users;
+    return users.length > 0 ? users : DEMO_USERS;
   } catch (err) {
-    console.warn('Unable to fetch users list:', err);
+    handleFirestoreError(err, OperationType.LIST, path);
     return DEMO_USERS;
   }
 }
 
 // Save global clinic parameters in Firestore
 export async function saveClinicParametersToFirestore(params: any): Promise<void> {
+  const path = 'clinic_parameters/global';
   try {
     const paramRef = doc(db, 'clinic_parameters', 'global');
     await setDoc(paramRef, {
@@ -148,12 +200,13 @@ export async function saveClinicParametersToFirestore(params: any): Promise<void
       updatedAt: new Date().toISOString()
     }, { merge: true });
   } catch (err) {
-    console.warn('Unable to sync parameters to Firestore:', err);
+    handleFirestoreError(err, OperationType.WRITE, path);
   }
 }
 
 // Load global clinic parameters from Firestore
 export async function loadClinicParametersFromFirestore(): Promise<any | null> {
+  const path = 'clinic_parameters/global';
   try {
     const paramRef = doc(db, 'clinic_parameters', 'global');
     const snap = await getDoc(paramRef);
@@ -161,7 +214,7 @@ export async function loadClinicParametersFromFirestore(): Promise<any | null> {
       return snap.data();
     }
   } catch (err) {
-    console.warn('Unable to load parameters from Firestore:', err);
+    handleFirestoreError(err, OperationType.GET, path);
   }
   return null;
 }

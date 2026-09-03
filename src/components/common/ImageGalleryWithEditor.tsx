@@ -13,7 +13,9 @@ import {
   X, 
   Sparkles,
   Edit3,
-  ZoomIn
+  ZoomIn,
+  ArrowLeft,
+  Printer
 } from 'lucide-react';
 
 interface ImageGalleryWithEditorProps {
@@ -601,21 +603,40 @@ export const ImageGalleryWithEditor: React.FC<ImageGalleryWithEditorProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e5e5d1]">
-              <button
-                type="button"
-                onClick={() => setEditingIndex(null)}
-                className="px-4 py-2 bg-[#f0f0e8] hover:bg-[#e5e5d1] text-[#5a5a40] font-medium text-xs rounded-xl"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={saveEditedImage}
-                className="px-5 py-2 bg-[#5a5a40] hover:bg-[#4a4a35] text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5"
-              >
-                <Check className="w-4 h-4 text-[#d4a373]" /> Salvar Imagem Editada
-              </button>
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#e5e5d1] flex-wrap">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingIndex(null)}
+                  className="px-3.5 py-2 bg-[#f0f0e8] hover:bg-[#e5e5d1] text-[#5a5a40] font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4 text-[#5a5a40]" /> Voltar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-3.5 py-2 bg-[#f0f0e8] hover:bg-[#e5e5d1] text-[#5a5a40] font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Printer className="w-4 h-4 text-[#5a5a40]" /> Imprimir
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingIndex(null)}
+                  className="px-4 py-2 bg-[#f0f0e8] hover:bg-[#e5e5d1] text-[#5a5a40] font-medium text-xs rounded-xl"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={saveEditedImage}
+                  className="px-5 py-2 bg-[#5a5a40] hover:bg-[#4a4a35] text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4 text-[#d4a373]" /> Salvar Imagem Editada
+                </button>
+              </div>
             </div>
           </div>
         </div>

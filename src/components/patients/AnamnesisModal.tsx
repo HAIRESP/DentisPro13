@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
 import { Anamnesis, Patient } from '../../types';
+import { formatCPF } from '../../utils/formatters';
+import { formatPhoneWithDDI } from '../common/PhoneInputWithDDI';
+import { formatFullAddress } from '../common/AddressFields';
 import { 
   AlertTriangle, 
   Heart, 
@@ -21,8 +24,76 @@ import {
   Volume2,
   Moon,
   ActivitySquare,
-  Thermometer
+  Thermometer,
+  User,
+  Calendar,
+  Phone,
+  Mail,
+  MapPin,
+  Shield,
+  Plane,
+  Syringe,
+  Dna,
+  Compass,
+  Briefcase,
+  Users,
+  ArrowLeft,
+  Printer
 } from 'lucide-react';
+
+const COMMON_PROFESSIONS = [
+  'Administrador(a)',
+  'Advogado(a)',
+  'Agricultor(a) / Trabalhador Rural',
+  'Arquiteto(a) / Urbanista',
+  'Assistente Administrativo / Escritório',
+  'Atleta Profissional / Educador(a) Físico(a)',
+  'Autônomo(a) / Comerciante',
+  'Bancário(a) / Financeiro',
+  'Biólogo(a) / Biomédico(a)',
+  'Cabeleireiro(a) / Barbeiro / Esteticista',
+  'Caminhoneiro(a) / Motorista / Condutor',
+  'Carpinteiro(a) / Marceneiro(a)',
+  'Cientista / Pesquisador(a)',
+  'Cirurgião(ã)-Dentista / Odontologista',
+  'Contador(a) / Auditor(a)',
+  'Cozinheiro(a) / Chef / Gastronomia',
+  'Designer / Publicitário(a) / Marketing',
+  'Do Lar / Cuidador(a) Familiar',
+  'Eletricista / Técnico Eletrônico',
+  'Enfermeiro(a) / Técnico(a) de Enfermagem',
+  'Engenheiro(a) (Civil, Mecânico, etc.)',
+  'Estudante / Universitário(a)',
+  'Farmacêutico(a) / Químico(a)',
+  'Fisioterapeuta / Terapeuta Ocupacional',
+  'Fonoaudiólogo(a)',
+  'Fotógrafo(a) / Cinegrafista',
+  'Garçom / Garçonete / Atendente',
+  'Jornalista / Comunicador(a)',
+  'Juiz(a) / Promotor(a) / Defensor(a)',
+  'Manicure / Pedicure / Podólogo(a)',
+  'Marceneiro(a) / Artesão(ã)',
+  'Mecânico(a) / Funileiro(a)',
+  'Médico(a) / Especialista em Saúde',
+  'Metalúrgico(a) / Soldador(a)',
+  'Militar / Policial / Bombeiro / Segurança',
+  'Músico(a) / Artista / Produtor Cultural',
+  'Nutricionista',
+  'Operador(a) de Máquinas / Linha de Produção',
+  'Pedagogo(a) / Educador(a) Infantil',
+  'Pedreiro(a) / Construção Civil',
+  'Pintor(a)',
+  'Professor(a) / Docente',
+  'Psicólogo(a) / Terapeuta',
+  'Recepcionista / Secretário(a)',
+  'Representante Comercial / Vendas',
+  'Servidor(a) Público(a)',
+  'Técnico(a) em Informática / TI',
+  'Veterinário(a) / Zootecnista',
+  'Vigilante / Segurança Privada',
+  'Aposentado(a) / Pensionista',
+  'Outra Profissão / Ocupação'
+];
 
 interface AnamnesisModalProps {
   patient: Patient;
@@ -40,11 +111,61 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
   const { layoutTheme } = useApp();
   const t = getThemeStyles(layoutTheme);
 
-  if (!isOpen) return null;
-
   const initial = patient.anamnesis || ({} as Anamnesis);
 
-  // 1. Saúde Geral & Histórico Médico (Questionário Completo Integrado)
+  // Helper para cálculo de idade
+  const calculatePatientAge = (birthDateString?: string) => {
+    if (!birthDateString) return 'Idade não informada';
+    const birth = new Date(birthDateString + 'T00:00:00');
+    const now = new Date();
+    let age = now.getFullYear() - birth.getFullYear();
+    const m = now.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+      age--;
+    }
+    return isNaN(age) || age < 0 ? 'Idade não informada' : `${age} anos`;
+  };
+
+  // === 1. Identificação e Dados Demográficos (Vigilância & Suscetibilidade) ===
+  const [ageAndBiologicalSexNotes, setAgeAndBiologicalSexNotes] = useState(initial.ageAndBiologicalSexNotes || '');
+  const [ethnicity, setEthnicity] = useState<Anamnesis['ethnicity']>(initial.ethnicity || patient.ethnicity || 'branca');
+  const [ethnicityDetails, setEthnicityDetails] = useState(initial.ethnicityDetails || '');
+  const [profession, setProfession] = useState(initial.profession || patient.profession || '');
+  const [occupationalRisks, setOccupationalRisks] = useState(initial.occupationalRisks || '');
+  const [currentResidence, setCurrentResidence] = useState(
+    initial.currentResidence || (patient.address ? `${patient.address.city || ''} - ${patient.address.state || ''}` : '') || ''
+  );
+  const [previousResidence, setPreviousResidence] = useState(initial.previousResidence || patient.previousResidence || '');
+  const [endemicAreaExposure, setEndemicAreaExposure] = useState(initial.endemicAreaExposure || '');
+
+  // === 2. Histórico Clínico e Imunológico ===
+  const [hasVaccinationUpToDate, setHasVaccinationUpToDate] = useState(
+    initial.hasVaccinationUpToDate !== undefined ? initial.hasVaccinationUpToDate : true
+  );
+  const [vaccinationStatus, setVaccinationStatus] = useState(initial.vaccinationStatus || '');
+  const [vaccinationDetails, setVaccinationDetails] = useState(initial.vaccinationDetails || '');
+  const [comorbiditiesSummary, setComorbiditiesSummary] = useState(initial.comorbiditiesSummary || '');
+  const [previousInfectionsHistory, setPreviousInfectionsHistory] = useState(initial.previousInfectionsHistory || '');
+
+  // === 3. Exposição e Comportamento (Vigilância) ===
+  const [travelHistory, setTravelHistory] = useState(initial.travelHistory || '');
+  const [closeContactsInfectious, setCloseContactsInfectious] = useState(initial.closeContactsInfectious || false);
+  const [closeContactsDetails, setCloseContactsDetails] = useState(initial.closeContactsDetails || '');
+  const [lifestyleDiet, setLifestyleDiet] = useState(initial.lifestyleDiet || '');
+  const [physicalActivityLevel, setPhysicalActivityLevel] = useState<Anamnesis['physicalActivityLevel']>(
+    initial.physicalActivityLevel || 'moderado'
+  );
+  const [sexualHealthBehavior, setSexualHealthBehavior] = useState(initial.sexualHealthBehavior || '');
+  const [environmentalExposure, setEnvironmentalExposure] = useState(initial.environmentalExposure || false);
+  const [environmentalExposureDetails, setEnvironmentalExposureDetails] = useState(initial.environmentalExposureDetails || '');
+
+  // === 4. Dados Genéticos e Familiares ===
+  const [familyMedicalHistory, setFamilyMedicalHistory] = useState(initial.familyMedicalHistory || false);
+  const [familyHistoryDetails, setFamilyHistoryDetails] = useState(initial.familyHistoryDetails || '');
+  const [geneticMarkers, setGeneticMarkers] = useState(initial.geneticMarkers || false);
+  const [geneticMarkersDetails, setGeneticMarkersDetails] = useState(initial.geneticMarkersDetails || '');
+
+  // --- Saúde Geral & Histórico Médico (Questionário Diagnóstico Clínico) ---
   const [hasGoodHealth, setHasGoodHealth] = useState(initial.hasGoodHealth !== undefined ? initial.hasGoodHealth : true);
   const [isUndergoingMedicalTreatment, setIsUndergoingMedicalTreatment] = useState(initial.isUndergoingMedicalTreatment || false);
   const [medicalTreatmentDetails, setMedicalTreatmentDetails] = useState(initial.medicalTreatmentDetails || '');
@@ -96,11 +217,9 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
   const [continuousMedication, setContinuousMedication] = useState(initial.continuousMedication || '');
   const [usesHerbalOrSupplements, setUsesHerbalOrSupplements] = useState(initial.usesHerbalOrSupplements || false);
   const [herbalDetails, setHerbalDetails] = useState(initial.herbalDetails || '');
-  const [familyMedicalHistory, setFamilyMedicalHistory] = useState(initial.familyMedicalHistory || false);
-  const [familyHistoryDetails, setFamilyHistoryDetails] = useState(initial.familyHistoryDetails || '');
   const [generalHealthRating, setGeneralHealthRating] = useState<Anamnesis['generalHealthRating']>(initial.generalHealthRating || 'boa');
 
-  // 2. Hábitos, Estilo de Vida & Sono
+  // --- Hábitos, Estilo de Vida & Sono ---
   const [isSmoker, setIsSmoker] = useState(initial.isSmoker || false);
   const [smokingFrequency, setSmokingFrequency] = useState<Anamnesis['smokingFrequency']>(initial.smokingFrequency || 'diario_ate_10');
   const [smokingDetails, setSmokingDetails] = useState(initial.smokingDetails || '');
@@ -120,7 +239,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
   const [usesNightGuardOrCpap, setUsesNightGuardOrCpap] = useState(initial.usesNightGuardOrCpap || false);
   const [psychologicalState, setPsychologicalState] = useState(initial.psychologicalState || '');
 
-  // Helper para converter/interpretar número de horas de sono
+  // Helper para horas de sono
   const parseSleepHours = (val: string): number => {
     if (!val) return 8;
     const digits = val.replace(/\D/g, '');
@@ -133,7 +252,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
 
   const sleepHoursNum = parseSleepHours(sleepHoursPerNight);
 
-  // 3. DTM & Dor Facial
+  // --- DTM, Dor Facial & Articulação ---
   const [hasFaceOrAtmPainLastMonth, setHasFaceOrAtmPainLastMonth] = useState(initial.hasFaceOrAtmPainLastMonth || false);
   const [hasAtmLocking, setHasAtmLocking] = useState(initial.hasAtmLocking || false);
   const [atmLockingDetails, setAtmLockingDetails] = useState<Anamnesis['atmLockingDetails']>(initial.atmLockingDetails || 'aberta');
@@ -144,7 +263,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
   const [hasOcclusalDiscomfort, setHasOcclusalDiscomfort] = useState(initial.hasOcclusalDiscomfort || false);
   const [painEvaScore, setPainEvaScore] = useState<number>(initial.painEvaScore || 0);
 
-  // 4. Queixa Principal e Hábitos
+  // --- Queixa Principal & Exame Odontológico ---
   const [chiefComplaint, setChiefComplaint] = useState(initial.chiefComplaint || '');
   const [lastDentalVisit, setLastDentalVisit] = useState(initial.lastDentalVisit || '');
   const [oralHealthRating, setOralHealthRating] = useState<Anamnesis['oralHealthRating']>(initial.oralHealthRating || 'boa');
@@ -161,10 +280,183 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
   const [usesDentalFloss, setUsesDentalFloss] = useState(initial.usesDentalFloss !== undefined ? initial.usesDentalFloss : true);
   const [notes, setNotes] = useState(initial.notes || '');
 
+  // Sincronizar estado sempre que o modal for aberto ou o paciente mudar
+  useEffect(() => {
+    if (isOpen) {
+      const curr = patient.anamnesis || ({} as Anamnesis);
+      setAgeAndBiologicalSexNotes(curr.ageAndBiologicalSexNotes || '');
+      setEthnicity(curr.ethnicity || patient.ethnicity || 'branca');
+      setEthnicityDetails(curr.ethnicityDetails || '');
+      setProfession(curr.profession || patient.profession || '');
+      setOccupationalRisks(curr.occupationalRisks || '');
+      setCurrentResidence(
+        curr.currentResidence || (patient.address ? `${patient.address.city || ''} - ${patient.address.state || ''}` : '') || ''
+      );
+      setPreviousResidence(curr.previousResidence || patient.previousResidence || '');
+      setEndemicAreaExposure(curr.endemicAreaExposure || '');
+      setHasVaccinationUpToDate(curr.hasVaccinationUpToDate !== undefined ? curr.hasVaccinationUpToDate : true);
+      setVaccinationStatus(curr.vaccinationStatus || '');
+      setVaccinationDetails(curr.vaccinationDetails || '');
+      setComorbiditiesSummary(curr.comorbiditiesSummary || '');
+      setPreviousInfectionsHistory(curr.previousInfectionsHistory || '');
+      setTravelHistory(curr.travelHistory || '');
+      setCloseContactsInfectious(curr.closeContactsInfectious || false);
+      setCloseContactsDetails(curr.closeContactsDetails || '');
+      setLifestyleDiet(curr.lifestyleDiet || '');
+      setPhysicalActivityLevel(curr.physicalActivityLevel || 'moderado');
+      setSexualHealthBehavior(curr.sexualHealthBehavior || '');
+      setEnvironmentalExposure(curr.environmentalExposure || false);
+      setEnvironmentalExposureDetails(curr.environmentalExposureDetails || '');
+      setFamilyMedicalHistory(curr.familyMedicalHistory || false);
+      setFamilyHistoryDetails(curr.familyHistoryDetails || '');
+      setGeneticMarkers(curr.geneticMarkers || false);
+      setGeneticMarkersDetails(curr.geneticMarkersDetails || '');
+      setHasGoodHealth(curr.hasGoodHealth !== undefined ? curr.hasGoodHealth : true);
+      setIsUndergoingMedicalTreatment(curr.isUndergoingMedicalTreatment || false);
+      setMedicalTreatmentDetails(curr.medicalTreatmentDetails || '');
+      setHasRheumaticFever(curr.hasRheumaticFever || false);
+      setHasAsthma(curr.hasAsthma || false);
+      setHasArthritis(curr.hasArthritis || false);
+      setHasFaintingSpells(curr.hasFaintingSpells || false);
+      setHasSinusitis(curr.hasSinusitis || false);
+      setHasHepatitis(curr.hasHepatitis || false);
+      setHasOtherInfections(curr.hasOtherInfections || false);
+      setOtherInfectionsDetails(curr.otherInfectionsDetails || '');
+      setHasRadiationTherapyFaceJaw(curr.hasRadiationTherapyFaceJaw || false);
+      setHasFaceJawTrauma(curr.hasFaceJawTrauma || false);
+      setFaceJawTraumaDetails(curr.faceJawTraumaDetails || '');
+      setHasAdverseDentalReaction(curr.hasAdverseDentalReaction || false);
+      setAdverseDentalReactionDetails(curr.adverseDentalReactionDetails || '');
+      setHasOtherUnlistedDiseases(curr.hasOtherUnlistedDiseases || false);
+      setOtherUnlistedDiseasesDetails(curr.otherUnlistedDiseasesDetails || '');
+      setHasAllergies(curr.hasAllergies || false);
+      setAllergyDetails(curr.allergyDetails || '');
+      setBloodPressureStatus(curr.bloodPressureStatus || 'normal');
+      setHasHeartDisease(curr.hasHeartDisease || false);
+      setHasPacemaker(curr.hasPacemaker || false);
+      setHasShortnessOfBreath(curr.hasShortnessOfBreath || false);
+      setHasDiabetes(curr.hasDiabetes || false);
+      setDiabetesType(curr.diabetesType || 'controlada');
+      setHasHypertension(curr.hasHypertension || false);
+      setBleedingDisorder(curr.bleedingDisorder || false);
+      setBleedingType(curr.bleedingType || 'normal');
+      setHealingType(curr.healingType || 'normal');
+      setUsesAnticoagulants(curr.usesAnticoagulants || false);
+      setHasRespiratoryDisease(curr.hasRespiratoryDisease || false);
+      setHasRenalOrHepatic(curr.hasRenalOrHepatic || false);
+      setHasThyroidDisorder(curr.hasThyroidDisorder || false);
+      setHasSeizures(curr.hasSeizures || false);
+      setHasCancerHistory(curr.hasCancerHistory || false);
+      setUsesBisphosphonates(curr.usesBisphosphonates || false);
+      setHasHadSurgery(curr.hasHadSurgery || false);
+      setSurgeryDetails(curr.surgeryDetails || '');
+      setPastHealthProblems(curr.pastHealthProblems || '');
+      setIsPregnant(curr.isPregnant || false);
+      setPregnancyWeeks(curr.pregnancyWeeks || '');
+      setIsBreastfeeding(curr.isBreastfeeding || false);
+      setClimactericOrMenopause(curr.climactericOrMenopause || 'nenhum');
+      setHasAndropause(curr.hasAndropause || false);
+      setAndropauseStatus(curr.andropauseStatus || 'nenhum');
+      setAndropauseDetails(curr.andropauseDetails || '');
+      setContinuousMedication(curr.continuousMedication || '');
+      setUsesHerbalOrSupplements(curr.usesHerbalOrSupplements || false);
+      setHerbalDetails(curr.herbalDetails || '');
+      setGeneralHealthRating(curr.generalHealthRating || 'boa');
+      setIsSmoker(curr.isSmoker || false);
+      setSmokingFrequency(curr.smokingFrequency || 'diario_ate_10');
+      setSmokingDetails(curr.smokingDetails || '');
+      setUsesRecreationalDrugs(curr.usesRecreationalDrugs || false);
+      setDrugUsageFrequency(curr.drugUsageFrequency || 'ocasional_social');
+      setDrugDetails(curr.drugDetails || '');
+      setDrugUsageNotes(curr.drugUsageNotes || '');
+      setHabitsNotes(curr.habitsNotes || '');
+      setConsumesAlcohol(curr.consumesAlcohol || false);
+      setHasBruxism(curr.hasBruxism || false);
+      setNailBitingOrHabits(curr.nailBitingOrHabits || '');
+      setBreathingType(curr.breathingType || 'nasal');
+      setSleepingPosture(curr.sleepingPosture || 'decubito_dorsal');
+      setSleepQuality(curr.sleepQuality || 'reparador');
+      setHasSnoringOrApnea(curr.hasSnoringOrApnea || false);
+      setSleepHoursPerNight(curr.sleepHoursPerNight || '8');
+      setUsesNightGuardOrCpap(curr.usesNightGuardOrCpap || false);
+      setPsychologicalState(curr.psychologicalState || '');
+      setHasFaceOrAtmPainLastMonth(curr.hasFaceOrAtmPainLastMonth || false);
+      setHasAtmLocking(curr.hasAtmLocking || false);
+      setAtmLockingDetails(curr.atmLockingDetails || 'aberta');
+      setHasAtmPainOrClicking(curr.hasAtmPainOrClicking || false);
+      setHasTinnitusOrEarRinging(curr.hasTinnitusOrEarRinging || false);
+      setEntEvaluated(curr.entEvaluated || false);
+      setHasJawFatigueWakingUp(curr.hasJawFatigueWakingUp || false);
+      setHasOcclusalDiscomfort(curr.hasOcclusalDiscomfort || false);
+      setPainEvaScore(curr.painEvaScore || 0);
+      setChiefComplaint(curr.chiefComplaint || '');
+      setLastDentalVisit(curr.lastDentalVisit || '');
+      setOralHealthRating(curr.oralHealthRating || 'boa');
+      setHasAnesthesiaReaction(curr.hasAnesthesiaReaction || false);
+      setAnesthesiaReactionDetails(curr.anesthesiaReactionDetails || '');
+      setHasGingivalBleeding(curr.hasGingivalBleeding || false);
+      setHasToothSensitivity(curr.hasToothSensitivity || false);
+      setHasLooseTeeth(curr.hasLooseTeeth || false);
+      setDryMouthOrBadTaste(curr.dryMouthOrBadTaste || false);
+      setHasFaceOrLipSores(curr.hasFaceOrLipSores || false);
+      setUsesDentalProsthesis(curr.usesDentalProsthesis || false);
+      setOrthodonticTreatment(curr.orthodonticTreatment || false);
+      setBrushingFrequency(curr.brushingFrequency || '3x ao dia');
+      setUsesDentalFloss(curr.usesDentalFloss !== undefined ? curr.usesDentalFloss : true);
+      setNotes(curr.notes || '');
+    }
+  }, [isOpen, patient]);
+
+  // Quick vaccine toggle helper
+  const addVaccineToStatus = (vacName: string) => {
+    const list = vaccinationDetails ? vaccinationDetails.split(',').map(s => s.trim()) : [];
+    if (list.includes(vacName)) {
+      const filtered = list.filter(item => item !== vacName);
+      setVaccinationDetails(filtered.join(', '));
+    } else {
+      list.push(vacName);
+      setVaccinationDetails(list.join(', '));
+    }
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
 
     const updatedAnamnesis: Anamnesis = {
+      // 1. Identificação e Dados Demográficos
+      ageAndBiologicalSexNotes,
+      ethnicity,
+      ethnicityDetails,
+      profession,
+      occupationalRisks,
+      currentResidence,
+      previousResidence,
+      endemicAreaExposure,
+
+      // 2. Histórico Clínico e Imunológico
+      hasVaccinationUpToDate,
+      vaccinationStatus,
+      vaccinationDetails,
+      comorbiditiesSummary,
+      previousInfectionsHistory,
+
+      // 3. Exposição e Comportamento
+      travelHistory,
+      closeContactsInfectious,
+      closeContactsDetails: closeContactsInfectious ? closeContactsDetails : '',
+      lifestyleDiet,
+      physicalActivityLevel,
+      sexualHealthBehavior,
+      environmentalExposure,
+      environmentalExposureDetails: environmentalExposure ? environmentalExposureDetails : '',
+
+      // 4. Dados Genéticos e Familiares
+      familyMedicalHistory,
+      familyHistoryDetails: familyMedicalHistory ? familyHistoryDetails : '',
+      geneticMarkers,
+      geneticMarkersDetails: geneticMarkers ? geneticMarkersDetails : '',
+
+      // Saúde Geral & Histórico Médico
       hasGoodHealth,
       isUndergoingMedicalTreatment,
       medicalTreatmentDetails: isUndergoingMedicalTreatment ? medicalTreatmentDetails : '',
@@ -215,9 +507,9 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
       continuousMedication,
       usesHerbalOrSupplements,
       herbalDetails: usesHerbalOrSupplements ? herbalDetails : '',
-      familyMedicalHistory,
-      familyHistoryDetails: familyMedicalHistory ? familyHistoryDetails : '',
       generalHealthRating,
+
+      // Hábitos, Estilo de Vida & Sono
       isSmoker,
       smokingFrequency: isSmoker ? smokingFrequency : undefined,
       smokingDetails: isSmoker ? smokingDetails : '',
@@ -236,6 +528,8 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
       sleepHoursPerNight,
       usesNightGuardOrCpap,
       psychologicalState,
+
+      // DTM & Dor Facial
       hasFaceOrAtmPainLastMonth,
       hasAtmLocking,
       atmLockingDetails: hasAtmLocking ? atmLockingDetails : undefined,
@@ -245,6 +539,8 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
       hasJawFatigueWakingUp,
       hasOcclusalDiscomfort,
       painEvaScore,
+
+      // Queixa Principal & Exame
       chiefComplaint,
       lastDentalVisit,
       oralHealthRating,
@@ -266,35 +562,92 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
     onClose();
   };
 
+  const patientAgeFormatted = calculatePatientAge(patient.birthDate);
+  const formattedBirthDate = patient.birthDate 
+    ? new Date(patient.birthDate + 'T00:00:00').toLocaleDateString('pt-BR') 
+    : 'Não informada';
+
+  if (!isOpen) return null;
+
   return (
-    <div className={`fixed inset-0 z-50 ${t.overlayBg} flex items-center justify-center p-4 overflow-y-auto`}>
-      <div className={`${t.modalBg} border ${t.modalBorder} rounded-[32px] max-w-4xl w-full p-6 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto my-6`}>
+    <div className={`fixed inset-0 z-50 ${t.overlayBg} flex items-center justify-center p-3 sm:p-4 overflow-y-auto`}>
+      <div className={`${t.modalBg} border ${t.modalBorder} rounded-[32px] max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto my-4`}>
         
-        {/* Header */}
-        <div className={`flex items-center justify-between border-b ${t.modalBorder} pb-4`}>
+        {/* Modal Top Header */}
+        <div className={`flex items-center justify-between border-b ${t.modalBorder} pb-3`}>
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-2xl ${t.btnPrimaryBg} ${t.btnPrimaryText} flex items-center justify-center shadow-xs`}>
               <Stethoscope className="w-5 h-5" />
             </div>
             <div>
-              <h2 className={`text-lg font-bold ${t.modalText}`}>Prontuário médico completo</h2>
-              <p className={`text-xs ${t.modalMutedText}`}>Questionário detalhado do estado de saúde de <strong>{patient.name}</strong></p>
+              <h2 className={`text-lg font-bold ${t.modalText}`}>Prontuário Médico e Histórico Clínico Completo</h2>
+              <p className={`text-xs ${t.modalMutedText}`}>Mapeamento demográfico, imunológico, epidemiológico e odontológico</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
             type="button"
-            className="p-2 text-gray-400 hover:text-gray-700 rounded-full transition"
+            className="p-2 text-gray-400 hover:text-gray-700 rounded-full transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* IDENTIFICAÇÃO CADASTRAL DO PACIENTE (Header Card Solicitado) */}
+        <div className="bg-white p-4 rounded-2xl border border-[#e5e5d1] shadow-2xs space-y-3">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#5a5a40] flex items-center gap-1.5">
+              <User className="w-4 h-4 text-[#5a5a40]" /> Identificação Cadastral do Paciente
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f0f0e8] text-[#5a5a40] border border-[#e5e5d1] uppercase">
+              {patient.status || 'Ativo'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div className="bg-[#fbfbf9] p-2.5 rounded-xl border border-[#e5e5d1]/70">
+              <span className="text-[10px] font-semibold text-gray-500 block">Nome Completo:</span>
+              <strong className="text-gray-900 text-sm">{patient.name}</strong>
+            </div>
+
+            <div className="bg-[#fbfbf9] p-2.5 rounded-xl border border-[#e5e5d1]/70">
+              <span className="text-[10px] font-semibold text-gray-500 block">Idade / Data de Nascimento:</span>
+              <strong className="text-gray-900">{patientAgeFormatted}</strong>
+              <span className="text-[11px] text-gray-500 block font-medium">({formattedBirthDate})</span>
+            </div>
+
+            <div className="bg-[#fbfbf9] p-2.5 rounded-xl border border-[#e5e5d1]/70">
+              <span className="text-[10px] font-semibold text-gray-500 block">Identificação de Gênero / CPF:</span>
+              <strong className="text-gray-900 capitalize">{patient.gender || 'Não informado'}</strong>
+              <span className="text-[11px] text-gray-500 block font-mono font-medium">{formatCPF(patient.cpf)}</span>
+            </div>
+
+            <div className="bg-[#fbfbf9] p-2.5 rounded-xl border border-[#e5e5d1]/70">
+              <span className="text-[10px] font-semibold text-gray-500 block">Plano / Carteirinha:</span>
+              <strong className="text-[#5a5a40]">{patient.healthInsurance || 'Particular'}</strong>
+              <span className="text-[11px] text-gray-500 block">
+                {(!patient.healthInsurance || patient.healthInsurance === 'Particular') ? 'Particular (Sem carteirinha)' : `Nº: ${patient.insuranceNumber || 'Não informada'}`}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
+            <div className="flex items-center gap-2 text-gray-700 bg-[#fbfbf9] p-2 rounded-xl border border-[#e5e5d1]/70">
+              <Phone className="w-3.5 h-3.5 text-[#5a5a40] shrink-0" />
+              <span><strong>Telefone/WhatsApp:</strong> {formatPhoneWithDDI(patient.phone)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-700 bg-[#fbfbf9] p-2 rounded-xl border border-[#e5e5d1]/70">
+              <MapPin className="w-3.5 h-3.5 text-[#5a5a40] shrink-0" />
+              <span className="truncate"><strong>Endereço:</strong> {formatFullAddress(patient.address) || 'Não informado'}</span>
+            </div>
+          </div>
+        </div>
+
         {/* Live Safety Badge Banner */}
-        <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-2`}>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1">
-            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" /> Resumo de Alertas Médicos Críticos
+        <div className={`${t.cardBg} p-3.5 rounded-2xl border ${t.cardBorder} space-y-2`}>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1">
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" /> Resumo de Alertas Médicos & Vigilância
           </span>
           <div className="flex flex-wrap gap-2 text-xs">
             {hasAllergies && (
@@ -337,6 +690,21 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                 🟡 Cardiopatia / Doença Cardíaca
               </span>
             )}
+            {closeContactsInfectious && (
+              <span className="px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-xl flex items-center gap-1">
+                ⚠️ Contato Próximo Infectocontagioso
+              </span>
+            )}
+            {environmentalExposure && (
+              <span className="px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-xl flex items-center gap-1">
+                ⚠️ Exposição Ambiental / Vetores
+              </span>
+            )}
+            {geneticMarkers && (
+              <span className="px-3 py-1 bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold rounded-xl flex items-center gap-1">
+                🧬 Marcador Genético Registrado
+              </span>
+            )}
             {isSmoker && (
               <span className="px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-xl flex items-center gap-1">
                 🚬 Fumante ({smokingFrequency === 'vape_eletronico' ? 'Vape/Eletrônico' : smokingFrequency === 'diario_mais_20' ? 'Diário > 20 cig' : 'Tabagista'})
@@ -344,22 +712,12 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
             )}
             {usesRecreationalDrugs && (
               <span className="px-3 py-1 bg-rose-100 text-rose-900 border border-rose-300 font-bold rounded-xl flex items-center gap-1">
-                ⚠️ Uso de Substâncias / Drogas (Atenção Anestésica)
+                ⚠️ Uso de Substâncias / Drogas
               </span>
             )}
-            {hasAndropause && (
-              <span className="px-3 py-1 bg-blue-100 text-blue-900 border border-blue-300 font-bold rounded-xl flex items-center gap-1">
-                🔷 Andropausa / TRH
-              </span>
-            )}
-            {hasBruxism && (
-              <span className="px-3 py-1 bg-blue-100 text-blue-900 border border-blue-300 font-bold rounded-xl flex items-center gap-1">
-                🔵 Bruxismo / DTM
-              </span>
-            )}
-            {!hasAllergies && !usesBisphosphonates && !usesAnticoagulants && !isPregnant && !hasDiabetes && !hasHypertension && !hasHeartDisease && !isSmoker && !usesRecreationalDrugs && (
+            {!hasAllergies && !usesBisphosphonates && !usesAnticoagulants && !isPregnant && !hasDiabetes && !hasHypertension && !hasHeartDisease && !isSmoker && !usesRecreationalDrugs && !closeContactsInfectious && !environmentalExposure && (
               <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium rounded-xl">
-                ✅ Nenhum alerta sistêmico crítico relatado
+                ✅ Nenhum alerta crítico ativo relatado
               </span>
             )}
           </div>
@@ -368,10 +726,397 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSave} className="space-y-6">
 
-          {/* Section 1: Saúde Geral e Sistêmica (Questionário Clínico Integrado) */}
-          <div className="bg-[#fbfbf9] p-5 rounded-2xl border border-[#e5e5d1] space-y-4">
+          {/* PILAR 1: Identificação e Dados Demográficos (Vigilância & Suscetibilidade) */}
+          <div className="bg-[#fbfbf9] p-4 sm:p-5 rounded-2xl border border-[#e5e5d1] space-y-4">
             <h3 className="text-sm font-bold text-[#5a5a40] flex items-center gap-2 border-b border-[#e5e5d1] pb-2">
-              <Heart className="w-4 h-4 text-rose-500" /> 1. Saúde Geral & Histórico Médico (Questionário Diagnóstico)
+              <Compass className="w-4 h-4 text-[#5a5a40]" /> 1. Identificação e Dados Demográficos (Vigilância & Suscetibilidade)
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Identificação de Gênero Notes */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <label className="block text-xs font-bold text-gray-800">
+                  Identificação de Gênero:
+                </label>
+                <p className="text-[11px] text-gray-500">
+                  Paciente com <strong>{patientAgeFormatted}</strong> • Identificação: <strong>{patient.gender || 'Não informado'}</strong>.
+                </p>
+                <input
+                  type="text"
+                  value={ageAndBiologicalSexNotes}
+                  onChange={(e) => setAgeAndBiologicalSexNotes(e.target.value)}
+                  placeholder="Anotações e identificação de gênero / considerações clínicas do paciente..."
+                  className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                />
+              </div>
+
+              {/* Raça / Etnia */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <label className="block text-xs font-bold text-gray-800">
+                  Raça / Etnia (Predisposições Genéticas e Étnicas):
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <select
+                    value={ethnicity}
+                    onChange={(e) => setEthnicity(e.target.value as any)}
+                    className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                  >
+                    <option value="branca">Branca</option>
+                    <option value="preta">Preta</option>
+                    <option value="parda">Parda</option>
+                    <option value="amarela">Amarela / Asiática</option>
+                    <option value="indigena">Indígena</option>
+                    <option value="outra">Outra</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={ethnicityDetails}
+                    onChange={(e) => setEthnicityDetails(e.target.value)}
+                    placeholder="Ex: Traço falciforme, histórico étnico..."
+                    className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                  />
+                </div>
+                <p className="text-[10px] text-gray-400">Importante para predisposições genéticas específicas (ex: anemia falciforme, hipertensão precoce).</p>
+              </div>
+
+              {/* Profissão / Ocupação */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <label className="block text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-[#5a5a40]" /> Profissão / Ocupação & Riscos Ocupacionais:
+                </label>
+                <div className="space-y-2">
+                  <select
+                    value={COMMON_PROFESSIONS.includes(profession) ? profession : (profession ? 'Outra Profissão / Ocupação' : '')}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val !== 'Outra Profissão / Ocupação') {
+                        setProfession(val);
+                      }
+                    }}
+                    className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none font-medium text-gray-800 cursor-pointer"
+                  >
+                    <option value="">Selecione a profissão / ocupação...</option>
+                    {COMMON_PROFESSIONS.map((prof) => (
+                      <option key={prof} value={prof}>
+                        {prof}
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="text"
+                    value={profession}
+                    onChange={(e) => setProfession(e.target.value)}
+                    placeholder="Ou digite/especifique a profissão do paciente..."
+                    className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                  />
+                </div>
+                <input
+                  type="text"
+                  value={occupationalRisks}
+                  onChange={(e) => setOccupationalRisks(e.target.value)}
+                  placeholder="Riscos de exposição (agentes químicos, poeiras, radiação, ruído, estresse postural)..."
+                  className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                />
+              </div>
+
+              {/* Local de residência atual e anterior */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <label className="block text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#5a5a40]" /> Local de Residência (Atual e Anterior / Áreas Endêmicas):
+                </label>
+                <div className="space-y-1.5">
+                  <input
+                    type="text"
+                    value={currentResidence}
+                    onChange={(e) => setCurrentResidence(e.target.value)}
+                    placeholder="Residência atual (Cidade, Estado, Região)..."
+                    className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                  />
+                  <input
+                    type="text"
+                    value={previousResidence}
+                    onChange={(e) => setPreviousResidence(e.target.value)}
+                    placeholder="Residências anteriores nos últimos anos..."
+                    className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                  />
+                  <input
+                    type="text"
+                    value={endemicAreaExposure}
+                    onChange={(e) => setEndemicAreaExposure(e.target.value)}
+                    placeholder="Proximidade com áreas endêmicas (dengue, malária, febre amarela, chagas, poluição)..."
+                    className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* PILAR 2: Histórico Clínico e Imunológico */}
+          <div className="bg-[#fbfbf9] p-4 sm:p-5 rounded-2xl border border-[#e5e5d1] space-y-4">
+            <h3 className="text-sm font-bold text-[#5a5a40] flex items-center gap-2 border-b border-[#e5e5d1] pb-2">
+              <Syringe className="w-4 h-4 text-emerald-600" /> 2. Histórico Clínico e Imunológico
+            </h3>
+
+            {/* Status Vacinal */}
+            <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                  <Syringe className="w-3.5 h-3.5 text-emerald-600" /> Status Vacinal Completo ao Longo da Vida:
+                </label>
+                <label className="flex items-center gap-1.5 text-xs text-gray-700 cursor-pointer font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={hasVaccinationUpToDate}
+                    onChange={(e) => setHasVaccinationUpToDate(e.target.checked)}
+                    className="rounded text-[#5a5a40]"
+                  />
+                  <span>Vacinação em Dia</span>
+                </label>
+              </div>
+
+              {/* Quick Vaccine Badges */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {['COVID-19', 'Tétano (DTPa)', 'Hepatite B', 'Febre Amarela', 'Influenza (Gripe)', 'Tríplice Viral', 'HPV'].map((vac) => {
+                  const isSelected = vaccinationDetails.includes(vac);
+                  return (
+                    <button
+                      key={vac}
+                      type="button"
+                      onClick={() => addVaccineToStatus(vac)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer border ${
+                        isSelected 
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
+                          : 'bg-[#fbfbf9] text-gray-600 border-[#e5e5d1] hover:bg-gray-100'
+                      }`}
+                    >
+                      {isSelected ? `✓ ${vac}` : `+ ${vac}`}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <input
+                type="text"
+                value={vaccinationDetails}
+                onChange={(e) => setVaccinationDetails(e.target.value)}
+                placeholder="Registro de vacinas tomadas, doses, reforços ou pendências..."
+                className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Comorbidades */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <label className="block text-xs font-bold text-gray-800">
+                  Comorbidades (Doenças Crônicas Preexistentes):
+                </label>
+                <textarea
+                  rows={2}
+                  value={comorbiditiesSummary}
+                  onChange={(e) => setComorbiditiesSummary(e.target.value)}
+                  placeholder="Diabetes, hipertensão arterial, asma/DPOC, cardiopatias, insuficiência renal/hepática, imunodeficiências..."
+                  className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                />
+              </div>
+
+              {/* Infecções Anteriores */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <label className="block text-xs font-bold text-gray-800">
+                  Histórico de Infecções Anteriores & Sequelas:
+                </label>
+                <textarea
+                  rows={2}
+                  value={previousInfectionsHistory}
+                  onChange={(e) => setPreviousInfectionsHistory(e.target.value)}
+                  placeholder="Doenças que já teve (Covid-19, catapora/varicela, dengue, tuberculose, hepatites, chikungunya, sequelas)..."
+                  className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* PILAR 3: Exposição e Comportamento (Vigilância) */}
+          <div className="bg-[#fbfbf9] p-4 sm:p-5 rounded-2xl border border-[#e5e5d1] space-y-4">
+            <h3 className="text-sm font-bold text-[#5a5a40] flex items-center gap-2 border-b border-[#e5e5d1] pb-2">
+              <Plane className="w-4 h-4 text-blue-600" /> 3. Exposição e Comportamento (Vigilância Epidemiológica & Estilo de Vida)
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Histórico de Viagens */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <label className="block text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                  <Plane className="w-3.5 h-3.5 text-blue-600" /> Histórico de Viagens Recentes (Últimos Meses):
+                </label>
+                <input
+                  type="text"
+                  value={travelHistory}
+                  onChange={(e) => setTravelHistory(e.target.value)}
+                  placeholder="Cidades, estados ou países visitados (identificação de doenças importadas e zonas de risco)..."
+                  className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                />
+              </div>
+
+              {/* Contatos Próximos */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-amber-600" /> Contatos Próximos Infectocontagiosos:
+                  </label>
+                  <label className="flex items-center gap-1 text-xs cursor-pointer font-medium">
+                    <input
+                      type="checkbox"
+                      checked={closeContactsInfectious}
+                      onChange={(e) => setCloseContactsInfectious(e.target.checked)}
+                      className="rounded text-[#5a5a40]"
+                    />
+                    <span>Sim</span>
+                  </label>
+                </div>
+                {closeContactsInfectious ? (
+                  <input
+                    type="text"
+                    value={closeContactsDetails}
+                    onChange={(e) => setCloseContactsDetails(e.target.value)}
+                    placeholder="Convivência com pessoas que testaram positivo para doenças transmissíveis (Covid, Tuberculose, etc)..."
+                    className="w-full text-xs p-2 bg-amber-50/60 border border-amber-300 rounded-lg focus:outline-none"
+                  />
+                ) : (
+                  <p className="text-[10px] text-gray-400">Nenhum contato próximo com portadores de doenças infectocontagiosas relatado.</p>
+                )}
+              </div>
+
+              {/* Estilo de Vida: Dieta & Atividade Física */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <label className="block text-xs font-bold text-gray-800">
+                  Estilo de Vida (Dieta, Alimentação & Atividade Física):
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <select
+                    value={physicalActivityLevel}
+                    onChange={(e) => setPhysicalActivityLevel(e.target.value as any)}
+                    className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                  >
+                    <option value="sedentario">Sedentário</option>
+                    <option value="leve">Atividade Leve (1-2x/sem)</option>
+                    <option value="moderado">Atividade Moderada (3-4x/sem)</option>
+                    <option value="intenso">Atividade Intensa / Atleta</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={lifestyleDiet}
+                    onChange={(e) => setLifestyleDiet(e.target.value)}
+                    placeholder="Hábitos alimentares / dieta (ex: vegetariana, rica em açúcares)..."
+                    className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                  />
+                </div>
+                <input
+                  type="text"
+                  value={sexualHealthBehavior}
+                  onChange={(e) => setSexualHealthBehavior(e.target.value)}
+                  placeholder="Comportamento de saúde e prevenção (opcional)..."
+                  className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                />
+              </div>
+
+              {/* Exposição Ambiental */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-800">
+                    Exposição Ambiental (Água não tratada, Vetores, Esgoto aberto):
+                  </label>
+                  <label className="flex items-center gap-1 text-xs cursor-pointer font-medium">
+                    <input
+                      type="checkbox"
+                      checked={environmentalExposure}
+                      onChange={(e) => setEnvironmentalExposure(e.target.checked)}
+                      className="rounded text-[#5a5a40]"
+                    />
+                    <span>Sim</span>
+                  </label>
+                </div>
+                {environmentalExposure ? (
+                  <input
+                    type="text"
+                    value={environmentalExposureDetails}
+                    onChange={(e) => setEnvironmentalExposureDetails(e.target.value)}
+                    placeholder="Contato com água contaminada, vetores (mosquitos, barbeiros), animais silvestres, esgoto aberto..."
+                    className="w-full text-xs p-2 bg-amber-50/60 border border-amber-300 rounded-lg focus:outline-none"
+                  />
+                ) : (
+                  <p className="text-[10px] text-gray-400">Sem histórico de exposição ambiental de risco.</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* PILAR 4: Dados Genéticos e Familiares */}
+          <div className="bg-[#fbfbf9] p-4 sm:p-5 rounded-2xl border border-[#e5e5d1] space-y-4">
+            <h3 className="text-sm font-bold text-[#5a5a40] flex items-center gap-2 border-b border-[#e5e5d1] pb-2">
+              <Dna className="w-4 h-4 text-purple-600" /> 4. Dados Genéticos e Familiares
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Histórico Familiar (1º Grau) */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-800">
+                    Histórico Familiar (1º Grau - Pais/Irmãos):
+                  </label>
+                  <label className="flex items-center gap-1 text-xs cursor-pointer font-medium">
+                    <input
+                      type="checkbox"
+                      checked={familyMedicalHistory}
+                      onChange={(e) => setFamilyMedicalHistory(e.target.checked)}
+                      className="rounded text-[#5a5a40]"
+                    />
+                    <span>Sim</span>
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  value={familyHistoryDetails}
+                  onChange={(e) => setFamilyHistoryDetails(e.target.value)}
+                  placeholder="Presença de doenças hereditárias ou crônicas (infarto precoce, diabetes, câncer, trombose)..."
+                  className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                />
+              </div>
+
+              {/* Marcadores Genéticos */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                    <Dna className="w-3.5 h-3.5 text-purple-600" /> Marcadores Genéticos & Predisposições:
+                  </label>
+                  <label className="flex items-center gap-1 text-xs cursor-pointer font-medium">
+                    <input
+                      type="checkbox"
+                      checked={geneticMarkers}
+                      onChange={(e) => setGeneticMarkers(e.target.checked)}
+                      className="rounded text-purple-600"
+                    />
+                    <span>Sim</span>
+                  </label>
+                </div>
+                {geneticMarkers ? (
+                  <input
+                    type="text"
+                    value={geneticMarkersDetails}
+                    onChange={(e) => setGeneticMarkersDetails(e.target.value)}
+                    placeholder="Mutações conhecidas, painel genético, predisposições (BRCA, trombofilia, coagulopatias)..."
+                    className="w-full text-xs p-2 bg-purple-50/60 border border-purple-300 rounded-lg focus:outline-none"
+                  />
+                ) : (
+                  <p className="text-[10px] text-gray-400">Nenhum marcador genético ou teste molecular específico informado.</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* SEÇÃO 5: Questionário Clínico Diagnóstico & Saúde Geral */}
+          <div className="bg-[#fbfbf9] p-4 sm:p-5 rounded-2xl border border-[#e5e5d1] space-y-4">
+            <h3 className="text-sm font-bold text-[#5a5a40] flex items-center gap-2 border-b border-[#e5e5d1] pb-2">
+              <Heart className="w-4 h-4 text-rose-500" /> 5. Avaliação da Saúde Geral & Questionário Sistêmico Odontológico
             </h3>
 
             {/* Questions: Boa Saúde & Tratamento Médico Atual */}
@@ -389,13 +1134,13 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                     />
                     <span>Sim</span>
                   </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer font-medium text-rose-700">
+                  <label className="flex items-center gap-1.5 cursor-pointer font-medium">
                     <input
                       type="radio"
                       name="hasGoodHealth"
                       checked={hasGoodHealth === false}
                       onChange={() => setHasGoodHealth(false)}
-                      className="text-rose-600 focus:ring-0"
+                      className="text-[#5a5a40] focus:ring-0"
                     />
                     <span>Não</span>
                   </label>
@@ -403,15 +1148,15 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-gray-800">Está atualmente fazendo qualquer tratamento médico?</label>
+                <label className="block text-xs font-bold text-gray-800">Está atualmente fazendo algum tratamento médico?</label>
                 <div className="flex items-center gap-4 text-xs">
-                  <label className="flex items-center gap-1.5 cursor-pointer font-medium text-amber-700">
+                  <label className="flex items-center gap-1.5 cursor-pointer font-medium">
                     <input
                       type="radio"
                       name="isUndergoingMedicalTreatment"
                       checked={isUndergoingMedicalTreatment === true}
                       onChange={() => setIsUndergoingMedicalTreatment(true)}
-                      className="text-amber-600 focus:ring-0"
+                      className="text-[#5a5a40] focus:ring-0"
                     />
                     <span>Sim</span>
                   </label>
@@ -426,66 +1171,28 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                     <span>Não</span>
                   </label>
                 </div>
-                {isUndergoingMedicalTreatment && (
-                  <input
-                    type="text"
-                    value={medicalTreatmentDetails}
-                    onChange={(e) => setMedicalTreatmentDetails(e.target.value)}
-                    placeholder="Se afirmativo, qual tratamento médico?"
-                    className="w-full text-xs p-2 bg-amber-50/50 border border-amber-300 rounded-xl focus:outline-none"
-                  />
-                )}
               </div>
             </div>
 
-            {/* General Health Rating */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Como você avalia sua saúde geral?</label>
-                <select
-                  value={generalHealthRating}
-                  onChange={(e) => setGeneralHealthRating(e.target.value as any)}
-                  className="w-full text-xs p-2.5 bg-white border border-[#e5e5d1] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#5a5a40]"
-                >
-                  <option value="excelente">Excelente</option>
-                  <option value="muito_boa">Muito Boa</option>
-                  <option value="boa">Boa</option>
-                  <option value="razoavel">Razoável</option>
-                  <option value="precaria">Precária</option>
-                </select>
+            {isUndergoingMedicalTreatment && (
+              <div className="bg-blue-50 p-3 rounded-xl border border-blue-200">
+                <label className="block text-xs font-semibold text-blue-900 mb-1">Qual tratamento médico e médico responsável?</label>
+                <input
+                  type="text"
+                  value={medicalTreatmentDetails}
+                  onChange={(e) => setMedicalTreatmentDetails(e.target.value)}
+                  placeholder="Ex: Tratamento cardiológico com Dr. Silva; fisioterapia respiratória"
+                  className="w-full text-xs p-2 bg-white border border-blue-300 rounded-lg focus:outline-none"
+                />
               </div>
+            )}
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Pressão Arterial Habitual</label>
-                <select
-                  value={bloodPressureStatus}
-                  onChange={(e) => setBloodPressureStatus(e.target.value as any)}
-                  className="w-full text-xs p-2.5 bg-white border border-[#e5e5d1] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#5a5a40]"
-                >
-                  <option value="normal">Normal (Sistemática 120/80 mmHg)</option>
-                  <option value="alta">Alta (Hipertensão)</option>
-                  <option value="baixa">Baixa (Hipotensão)</option>
-                  <option value="controlada_medicamento">Controlada com Medicamento</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Condições Clínicas / História Pregressa */}
+            {/* Doenças Preexistentes (Checkboxes) */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[#5a5a40]">
-                História Pregressa & Condições de Saúde (Marque todas as aplicáveis):
+              <label className="block text-xs font-bold text-gray-800">
+                Você tem ou já teve alguma das seguintes condições?
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
-                  <input
-                    type="checkbox"
-                    checked={hasRheumaticFever}
-                    onChange={(e) => setHasRheumaticFever(e.target.checked)}
-                    className="rounded text-[#5a5a40] focus:ring-0"
-                  />
-                  <span>Febre reumática</span>
-                </label>
-
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
                 <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
                   <input
                     type="checkbox"
@@ -493,27 +1200,17 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                     onChange={(e) => setHasHeartDisease(e.target.checked)}
                     className="rounded text-[#5a5a40] focus:ring-0"
                   />
-                  <span>Doença do coração / Sopro</span>
+                  <span>Doença Cardíaca / Infarto</span>
                 </label>
 
                 <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
                   <input
                     type="checkbox"
-                    checked={hasHypertension}
-                    onChange={(e) => setHasHypertension(e.target.checked)}
+                    checked={hasRheumaticFever}
+                    onChange={(e) => setHasRheumaticFever(e.target.checked)}
                     className="rounded text-[#5a5a40] focus:ring-0"
                   />
-                  <span>Hipertensão arterial</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
-                  <input
-                    type="checkbox"
-                    checked={hasAllergies}
-                    onChange={(e) => setHasAllergies(e.target.checked)}
-                    className="rounded text-[#5a5a40] focus:ring-0"
-                  />
-                  <span className="font-semibold text-rose-700">Alergia (medicamentos/látex)</span>
+                  <span>Febre Reumática</span>
                 </label>
 
                 <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
@@ -539,31 +1236,11 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                 <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
                   <input
                     type="checkbox"
-                    checked={hasSeizures}
-                    onChange={(e) => setHasSeizures(e.target.checked)}
-                    className="rounded text-[#5a5a40] focus:ring-0"
-                  />
-                  <span>Epilepsia / Convulsões</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
-                  <input
-                    type="checkbox"
-                    checked={hasDiabetes}
-                    onChange={(e) => setHasDiabetes(e.target.checked)}
-                    className="rounded text-[#5a5a40] focus:ring-0"
-                  />
-                  <span className="font-semibold">Diabetes</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
-                  <input
-                    type="checkbox"
                     checked={hasFaintingSpells}
                     onChange={(e) => setHasFaintingSpells(e.target.checked)}
                     className="rounded text-[#5a5a40] focus:ring-0"
                   />
-                  <span>Desmaios frequentes / Síncopes</span>
+                  <span>Desmaios / Síncope</span>
                 </label>
 
                 <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
@@ -573,7 +1250,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                     onChange={(e) => setHasSinusitis(e.target.checked)}
                     className="rounded text-[#5a5a40] focus:ring-0"
                   />
-                  <span>Sinusite</span>
+                  <span>Sinusite Frequente</span>
                 </label>
 
                 <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
@@ -583,7 +1260,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                     onChange={(e) => setHasHepatitis(e.target.checked)}
                     className="rounded text-[#5a5a40] focus:ring-0"
                   />
-                  <span>Hepatite / Icterícia</span>
+                  <span>Hepatite (A, B, C)</span>
                 </label>
 
                 <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
@@ -593,7 +1270,47 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                     onChange={(e) => setHasOtherInfections(e.target.checked)}
                     className="rounded text-[#5a5a40] focus:ring-0"
                   />
-                  <span>Outras infecções</span>
+                  <span>Outras Infecções</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasHypertension}
+                    onChange={(e) => setHasHypertension(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span className="text-amber-800 font-semibold">Hipertensão Arterial</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasDiabetes}
+                    onChange={(e) => setHasDiabetes(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span className="text-amber-800 font-semibold">Diabetes</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={hasAllergies}
+                    onChange={(e) => setHasAllergies(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span className="text-rose-700 font-semibold">Alergias Medicamentosas</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
+                  <input
+                    type="checkbox"
+                    checked={bleedingDisorder}
+                    onChange={(e) => setBleedingDisorder(e.target.checked)}
+                    className="rounded text-[#5a5a40] focus:ring-0"
+                  />
+                  <span className="text-rose-700 font-semibold">Distúrbio Coagulação</span>
                 </label>
 
                 <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
@@ -623,7 +1340,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                     onChange={(e) => setHasCancerHistory(e.target.checked)}
                     className="rounded text-[#5a5a40] focus:ring-0"
                   />
-                  <span>Histórico de Câncer / Quimioterapia</span>
+                  <span>Câncer / Quimioterapia</span>
                 </label>
 
                 <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
@@ -633,17 +1350,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                     onChange={(e) => setHasHadSurgery(e.target.checked)}
                     className="rounded text-[#5a5a40] focus:ring-0"
                   />
-                  <span>Cirurgias ou internações anteriores</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer bg-white p-2.5 rounded-xl border border-[#e5e5d1] hover:border-gray-400 transition">
-                  <input
-                    type="checkbox"
-                    checked={familyMedicalHistory}
-                    onChange={(e) => setFamilyMedicalHistory(e.target.checked)}
-                    className="rounded text-[#5a5a40] focus:ring-0"
-                  />
-                  <span>Histórico familiar de doenças</span>
+                  <span>Cirurgias / Internações</span>
                 </label>
               </div>
             </div>
@@ -661,9 +1368,8 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
               </div>
             )}
 
-            {/* Traumatismos, Tratamento por Raios-X e Reação Odontológica */}
+            {/* Traumatismos, Raios-X e Reação Odontológica */}
             <div className="space-y-3 pt-2">
-              {/* Raios-X na face ou maxilares */}
               <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <label className="text-xs font-bold text-gray-800">
@@ -694,7 +1400,6 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                 </div>
               </div>
 
-              {/* Traumatismo na face ou maxilares */}
               <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <label className="text-xs font-bold text-gray-800">
@@ -734,7 +1439,6 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                 )}
               </div>
 
-              {/* Reação desfavorável ao tratamento dentário */}
               <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <label className="text-xs font-bold text-gray-800">
@@ -774,7 +1478,6 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                 )}
               </div>
 
-              {/* Qualquer enfermidade não-relacionada */}
               <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <label className="text-xs font-bold text-gray-800">
@@ -838,19 +1541,6 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                   onChange={(e) => setSurgeryDetails(e.target.value)}
                   placeholder="Ex: Apendicectomia em 2020, Cirurgia cardíaca em 2018"
                   className="w-full text-xs p-2 bg-white border border-blue-300 rounded-lg focus:outline-none"
-                />
-              </div>
-            )}
-
-            {familyMedicalHistory && (
-              <div className="bg-amber-50 p-3 rounded-xl border border-amber-200">
-                <label className="block text-xs font-semibold text-amber-900 mb-1">Histórico familiar (pais/irmãos com infarto, diabetes, câncer):</label>
-                <input
-                  type="text"
-                  value={familyHistoryDetails}
-                  onChange={(e) => setFamilyHistoryDetails(e.target.value)}
-                  placeholder="Ex: Pai hipertenso e cardiopata; Mãe diabética"
-                  className="w-full text-xs p-2 bg-white border border-amber-300 rounded-lg focus:outline-none"
                 />
               </div>
             )}
@@ -1026,10 +1716,10 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
             </div>
           </div>
 
-          {/* Section 2: DTM, Dor Facial e ATM */}
-          <div className={`${t.cardBg} p-5 rounded-2xl border ${t.cardBorder} space-y-4`}>
+          {/* SEÇÃO 6: Articulação Temporomandibular (ATM), DTM e Dor Facial */}
+          <div className={`${t.cardBg} p-4 sm:p-5 rounded-2xl border ${t.cardBorder} space-y-4`}>
             <h3 className={`text-sm font-bold ${t.headingText} flex items-center gap-2 border-b ${t.cardBorder} pb-2`}>
-              <Zap className="w-4 h-4 text-amber-600" /> 2. Articulação Temporomandibular (ATM), DTM e Dor Facial
+              <Zap className="w-4 h-4 text-amber-600" /> 6. Articulação Temporomandibular (ATM), DTM e Dor Facial
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1156,10 +1846,10 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
             </div>
           </div>
 
-          {/* Section 3: Hábitos, Respiração & Sono */}
-          <div className={`${t.cardBg} p-5 rounded-2xl border ${t.cardBorder} space-y-4`}>
+          {/* SEÇÃO 7: Hábitos, Respiração & Sono */}
+          <div className={`${t.cardBg} p-4 sm:p-5 rounded-2xl border ${t.cardBorder} space-y-4`}>
             <h3 className={`text-sm font-bold ${t.headingText} flex items-center gap-2 border-b ${t.cardBorder} pb-2`}>
-              <Moon className="w-4 h-4 text-indigo-600" /> 3. Hábito Parafuncional, Respiração e Padrão de Sono
+              <Moon className="w-4 h-4 text-indigo-600" /> 7. Hábito Parafuncional, Respiração e Padrão de Sono
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1241,7 +1931,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                         type="text"
                         value={drugDetails}
                         onChange={(e) => setDrugDetails(e.target.value)}
-                        placeholder="Ex: Cannabis / Maconha, Cocaína, Estimulantes, etc."
+                        placeholder="Ex: Cannabis / Maconha, Estimulantes, etc."
                         className="w-full text-xs p-2 bg-white border border-rose-300 rounded-lg"
                       />
                     </div>
@@ -1387,10 +2077,10 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
             </div>
           </div>
 
-          {/* Section 4: Queixa Principal & Exame */}
-          <div className={`${t.cardBg} p-5 rounded-2xl border ${t.cardBorder} space-y-4`}>
+          {/* SEÇÃO 8: Queixa Principal & Exame Clínico Odontológico */}
+          <div className={`${t.cardBg} p-4 sm:p-5 rounded-2xl border ${t.cardBorder} space-y-4`}>
             <h3 className={`text-sm font-bold ${t.headingText} flex items-center gap-2 border-b ${t.cardBorder} pb-2`}>
-              <Smile className="w-4 h-4 text-emerald-600" /> 4. Queixa Principal e Exame
+              <Smile className="w-4 h-4 text-emerald-600" /> 8. Queixa Principal e Exame Clínico Odontológico
             </h3>
 
             <div className="space-y-3">
@@ -1568,20 +2258,39 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
           </div>
 
           {/* Action Footer */}
-          <div className={`flex items-center justify-end gap-3 border-t ${t.modalBorder} pt-4`}>
-            <button
-              type="button"
-              onClick={onClose}
-              className={`px-5 py-2.5 border ${t.cardBorder} text-xs font-semibold ${t.btnSecondaryText} ${t.btnSecondaryBg} rounded-xl transition cursor-pointer`}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className={`px-6 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer`}
-            >
-              <Check className="w-4 h-4" /> Salvar Prontuário Médico
-            </button>
+          <div className={`flex items-center justify-between gap-3 border-t ${t.modalBorder} pt-4 flex-wrap`}>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className={`px-4 py-2.5 border ${t.cardBorder} text-xs font-semibold ${t.btnSecondaryText} ${t.btnSecondaryBg} rounded-xl transition cursor-pointer flex items-center gap-1.5`}
+              >
+                <ArrowLeft className="w-4 h-4" /> Voltar
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 border border-[#e5e5d1]"
+              >
+                <Printer className="w-4 h-4 text-[#5a5a40]" /> Imprimir
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className={`px-5 py-2.5 border ${t.cardBorder} text-xs font-semibold ${t.btnSecondaryText} ${t.btnSecondaryBg} rounded-xl transition cursor-pointer`}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className={`px-6 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer`}
+              >
+                <Check className="w-4 h-4" /> Salvar Prontuário Médico
+              </button>
+            </div>
           </div>
 
         </form>
