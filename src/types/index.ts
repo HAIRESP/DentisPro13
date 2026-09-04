@@ -119,7 +119,7 @@ export interface Anamnesis {
   isPregnant: boolean;
   pregnancyWeeks?: string; // Semanas ou trimestre da gestação
   isBreastfeeding?: boolean; // Amamentando
-  climactericOrMenopause?: 'nenhum' | 'climaterio' | 'menopausa';
+  climactericOrMenopause?: 'nenhum' | 'climaterio' | 'menopausa' | 'pos_menopausa';
   hasAndropause?: boolean; // Andropausa / Climatério masculino / DAEM
   andropauseStatus?: 'nenhum' | 'andropausa' | 'reposicao_hormonal_trh';
   andropauseDetails?: string; // Detalhes ou sintomas da andropausa / reposição hormonal
@@ -131,6 +131,7 @@ export interface Anamnesis {
   generalHealthRating?: 'excelente' | 'muito_boa' | 'boa' | 'razoavel' | 'precaria';
 
   // --- Hábitos, Estilo de Vida & Sono ---
+  waterIntakeFrequency?: 'baixa' | 'normal' | 'alta'; // Ingestão diária de água (baixa, normal, alta)
   isSmoker?: boolean; // Tabagismo
   smokingFrequency?: 'social' | 'diario_ate_10' | 'diario_10_20' | 'diario_mais_20' | 'vape_eletronico' | 'ex_fumante';
   smokingDetails?: string; // Quantidade de cigarros/dia ou tempo de fumo
@@ -142,8 +143,9 @@ export interface Anamnesis {
   consumesAlcohol?: boolean; // Consumo frequente de bebidas alcoólicas
   hasBruxism?: boolean; // Bruxismo ou apertamento dental
   nailBitingOrHabits?: string; // Onicofagia, roer objetos, morder lábios/bochecha/caneta
-  breathingType?: 'nasal' | 'bucal' | 'mista' | 'apical' | 'diafragmatica'; // Tipo de respiração
-  sleepingPosture?: 'decubito_dorsal' | 'decubito_lateral' | 'decubito_ventral'; // Postura ao dormir
+  breathingType?: 'nasal' | 'bucal' | 'mista'; // Via respiratória principal (nasal, bucal, mista)
+  respiratoryPattern?: 'diafragmatica' | 'toracica_apical' | 'mista_nao_avaliado'; // Padrão muscular / mecânica respiratória
+  sleepingPosture?: 'decubito_dorsal' | 'decubito_lateral' | 'decubito_ventral' | 'mudanca_decubito_nao_sabe'; // Postura ao dormir
   sleepQuality?: 'reparador' | 'nao_reparador' | 'insonia' | 'sono_leve'; // Padrão de sono
   hasSnoringOrApnea?: boolean; // Ronco ou apnéia do sono
   sleepHoursPerNight?: string; // Média de horas de sono

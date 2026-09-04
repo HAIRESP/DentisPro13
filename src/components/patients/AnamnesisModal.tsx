@@ -38,13 +38,27 @@ import {
   Briefcase,
   Users,
   ArrowLeft,
-  Printer
+  Printer,
+  Plus
 } from 'lucide-react';
+
+const COMMON_RECREATIONAL_SUBSTANCES = [
+  'Cannabis / Maconha',
+  'Cocaína / Derivados',
+  'MDMA / Êxtase',
+  'Opioides',
+  'Estimulantes / Anfetaminas',
+  'Benzodiazepínicos sem prescrição',
+  'Solventes / Inalantes',
+  'Cetamina / Dissociativos',
+  'Álcool em padrão abusivo'
+];
 
 const COMMON_PROFESSIONS = [
   'Administrador(a)',
   'Advogado(a)',
   'Agricultor(a) / Trabalhador Rural',
+  'Aposentado(a) / Pensionista',
   'Arquiteto(a) / Urbanista',
   'Assistente Administrativo / Escritório',
   'Atleta Profissional / Educador(a) Físico(a)',
@@ -91,8 +105,20 @@ const COMMON_PROFESSIONS = [
   'Técnico(a) em Informática / TI',
   'Veterinário(a) / Zootecnista',
   'Vigilante / Segurança Privada',
-  'Aposentado(a) / Pensionista',
   'Outra Profissão / Ocupação'
+];
+
+const COMMON_OCCUPATIONAL_RISKS = [
+  'Agentes Biológicos / Material Infectocontagioso',
+  'Agentes Químicos / Solventes / Ácidos / Metais',
+  'Carga Térmica / Frio ou Calor Extremo',
+  'Ergonômico / Movimentos Repetitivos / Postura Estática Prolongada',
+  'Estresse Ocupacional / Carga Mental Elevada',
+  'Poeiras Minerais / Partículas em Suspensão / Fumos',
+  'Radiação Ionizante / Não-ionizante (RX, UV, Laser)',
+  'Ruído Excessivo / Vibrações Mecânicas',
+  'Trabalho Noturno / Turnos Alternados',
+  'Nenhum Risco Ocupacional Específico'
 ];
 
 interface AnamnesisModalProps {
@@ -108,7 +134,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
   onClose,
   onSave
 }) => {
-  const { layoutTheme } = useApp();
+  const { layoutTheme, addSavedClinicDocument, clinicInfo, activeProfessional } = useApp();
   const t = getThemeStyles(layoutTheme);
 
   const initial = patient.anamnesis || ({} as Anamnesis);
@@ -124,6 +150,26 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
       age--;
     }
     return isNaN(age) || age < 0 ? 'Idade não informada' : `${age} anos`;
+  };
+
+  // Helper para gerenciar adição/remoção de substâncias recreativas
+  const [newSubstanceInput, setNewSubstanceInput] = useState('');
+
+  const handleAddSubstance = (substanceName?: string) => {
+    const toAdd = (substanceName || newSubstanceInput).trim();
+    if (!toAdd) return;
+    const currentList = drugDetails ? drugDetails.split(',').map(s => s.trim()).filter(Boolean) : [];
+    if (!currentList.includes(toAdd)) {
+      const updated = [...currentList, toAdd].join(', ');
+      setDrugDetails(updated);
+    }
+    setNewSubstanceInput('');
+  };
+
+  const handleRemoveSubstance = (substanceToRemove: string) => {
+    const currentList = drugDetails ? drugDetails.split(',').map(s => s.trim()).filter(Boolean) : [];
+    const updated = currentList.filter(s => s !== substanceToRemove).join(', ');
+    setDrugDetails(updated);
   };
 
   // === 1. Identificação e Dados Demográficos (Vigilância & Suscetibilidade) ===
@@ -221,6 +267,9 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
   const [generalHealthRating, setGeneralHealthRating] = useState<Anamnesis['generalHealthRating']>(initial.generalHealthRating || 'boa');
 
   // --- Hábitos, Estilo de Vida & Sono ---
+  const [waterIntakeFrequency, setWaterIntakeFrequency] = useState<Anamnesis['waterIntakeFrequency']>(
+    initial.waterIntakeFrequency || 'normal'
+  );
   const [isSmoker, setIsSmoker] = useState(initial.isSmoker || false);
   const [smokingFrequency, setSmokingFrequency] = useState<Anamnesis['smokingFrequency']>(initial.smokingFrequency || 'diario_ate_10');
   const [smokingDetails, setSmokingDetails] = useState(initial.smokingDetails || '');
@@ -233,6 +282,9 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
   const [hasBruxism, setHasBruxism] = useState(initial.hasBruxism || false);
   const [nailBitingOrHabits, setNailBitingOrHabits] = useState(initial.nailBitingOrHabits || '');
   const [breathingType, setBreathingType] = useState<Anamnesis['breathingType']>(initial.breathingType || 'nasal');
+  const [respiratoryPattern, setRespiratoryPattern] = useState<Anamnesis['respiratoryPattern']>(
+    initial.respiratoryPattern || 'mista_nao_avaliado'
+  );
   const [sleepingPosture, setSleepingPosture] = useState<Anamnesis['sleepingPosture']>(initial.sleepingPosture || 'decubito_dorsal');
   const [sleepQuality, setSleepQuality] = useState<Anamnesis['sleepQuality']>(initial.sleepQuality || 'reparador');
   const [hasSnoringOrApnea, setHasSnoringOrApnea] = useState(initial.hasSnoringOrApnea || false);
@@ -364,6 +416,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
       setUsesHerbalOrSupplements(curr.usesHerbalOrSupplements || false);
       setHerbalDetails(curr.herbalDetails || '');
       setGeneralHealthRating(curr.generalHealthRating || 'boa');
+      setWaterIntakeFrequency(curr.waterIntakeFrequency || 'normal');
       setIsSmoker(curr.isSmoker || false);
       setSmokingFrequency(curr.smokingFrequency || 'diario_ate_10');
       setSmokingDetails(curr.smokingDetails || '');
@@ -376,6 +429,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
       setHasBruxism(curr.hasBruxism || false);
       setNailBitingOrHabits(curr.nailBitingOrHabits || '');
       setBreathingType(curr.breathingType || 'nasal');
+      setRespiratoryPattern(curr.respiratoryPattern || 'mista_nao_avaliado');
       setSleepingPosture(curr.sleepingPosture || 'decubito_dorsal');
       setSleepQuality(curr.sleepQuality || 'reparador');
       setHasSnoringOrApnea(curr.hasSnoringOrApnea || false);
@@ -513,6 +567,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
       generalHealthRating,
 
       // Hábitos, Estilo de Vida & Sono
+      waterIntakeFrequency,
       isSmoker,
       smokingFrequency: isSmoker ? smokingFrequency : undefined,
       smokingDetails: isSmoker ? smokingDetails : '',
@@ -525,6 +580,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
       hasBruxism,
       nailBitingOrHabits,
       breathingType,
+      respiratoryPattern,
       sleepingPosture,
       sleepQuality,
       hasSnoringOrApnea,
@@ -560,6 +616,27 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
       usesDentalFloss,
       notes
     };
+
+    // Salvar documento no histórico de documentos e prontuário do paciente
+    try {
+      addSavedClinicDocument({
+        patientId: patient.id,
+        patientName: patient.name,
+        patientCpf: patient.cpf,
+        patientPhone: patient.phone,
+        title: 'Prontuário Médico e Histórico Clínico Completo',
+        subtitle: 'Anamnese Geral, Doenças Sistêmicas, Alertas e Hábitos',
+        category: 'prontuario',
+        templateId: 'prontuario_medico_anamnese',
+        date: new Date().toISOString().split('T')[0],
+        professionalName: activeProfessional?.name || clinicInfo.dentistName || 'Dr. Hugo Andres',
+        professionalCro: activeProfessional?.cro || clinicInfo.cro || 'CRO/CE 5925',
+        summary: `Mapeamento e atualização do prontuário médico e histórico clínico de ${patient.name}.`,
+        content: JSON.stringify(updatedAnamnesis)
+      });
+    } catch (e) {
+      console.error('Erro ao registrar documento salvo da anamnese:', e);
+    }
 
     onSave(updatedAnamnesis);
     onClose();
@@ -797,39 +874,62 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                   <Briefcase className="w-3.5 h-3.5 text-[#5a5a40]" /> Profissão / Ocupação & Riscos Ocupacionais:
                 </label>
                 <div className="space-y-2">
-                  <select
-                    value={COMMON_PROFESSIONS.includes(profession) ? profession : (profession ? 'Outra Profissão / Ocupação' : '')}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val !== 'Outra Profissão / Ocupação') {
-                        setProfession(val);
-                      }
-                    }}
-                    className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none font-medium text-gray-800 cursor-pointer"
-                  >
-                    <option value="">Selecione a profissão / ocupação...</option>
-                    {COMMON_PROFESSIONS.map((prof) => (
-                      <option key={prof} value={prof}>
-                        {prof}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-semibold text-gray-600 block">Profissão / Ocupação (Ordem Alfabética):</span>
+                    <select
+                      value={COMMON_PROFESSIONS.includes(profession) ? profession : (profession ? 'Outra Profissão / Ocupação' : '')}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val !== 'Outra Profissão / Ocupação') {
+                          setProfession(val);
+                        }
+                      }}
+                      className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none font-medium text-gray-800 cursor-pointer"
+                    >
+                      <option value="">Selecione a profissão / ocupação...</option>
+                      {COMMON_PROFESSIONS.map((prof) => (
+                        <option key={prof} value={prof}>
+                          {prof}
+                        </option>
+                      ))}
+                    </select>
 
-                  <input
-                    type="text"
-                    value={profession}
-                    onChange={(e) => setProfession(e.target.value)}
-                    placeholder="Ou digite/especifique a profissão do paciente..."
-                    className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
-                  />
+                    <input
+                      type="text"
+                      value={profession}
+                      onChange={(e) => setProfession(e.target.value)}
+                      placeholder="Ou digite/especifique a profissão do paciente..."
+                      className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1 pt-1 border-t border-gray-100">
+                    <span className="text-[11px] font-semibold text-gray-600 block">Riscos Ocupacionais (Ordem Alfabética):</span>
+                    <select
+                      value={COMMON_OCCUPATIONAL_RISKS.includes(occupationalRisks) ? occupationalRisks : ''}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setOccupationalRisks(e.target.value);
+                        }
+                      }}
+                      className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none text-gray-700 cursor-pointer"
+                    >
+                      <option value="">Selecione risco ocupacional pré-definido...</option>
+                      {COMMON_OCCUPATIONAL_RISKS.map((risk) => (
+                        <option key={risk} value={risk}>
+                          {risk}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={occupationalRisks}
+                      onChange={(e) => setOccupationalRisks(e.target.value)}
+                      placeholder="Especifique outros riscos de exposição (agentes químicos, poeiras, radiação, ruído, ergonomia)..."
+                      className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+                    />
+                  </div>
                 </div>
-                <input
-                  type="text"
-                  value={occupationalRisks}
-                  onChange={(e) => setOccupationalRisks(e.target.value)}
-                  placeholder="Riscos de exposição (agentes químicos, poeiras, radiação, ruído, estresse postural)..."
-                  className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
-                />
               </div>
 
               {/* Local de residência atual e anterior */}
@@ -917,34 +1017,18 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Comorbidades */}
-              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
-                <label className="block text-xs font-bold text-gray-800">
-                  Comorbidades (Doenças Crônicas Preexistentes):
-                </label>
-                <textarea
-                  rows={2}
-                  value={comorbiditiesSummary}
-                  onChange={(e) => setComorbiditiesSummary(e.target.value)}
-                  placeholder="Diabetes, hipertensão arterial, asma/DPOC, cardiopatias, insuficiência renal/hepática, imunodeficiências..."
-                  className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
-                />
-              </div>
-
-              {/* Infecções Anteriores */}
-              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
-                <label className="block text-xs font-bold text-gray-800">
-                  Histórico de Infecções Anteriores & Sequelas:
-                </label>
-                <textarea
-                  rows={2}
-                  value={previousInfectionsHistory}
-                  onChange={(e) => setPreviousInfectionsHistory(e.target.value)}
-                  placeholder="Doenças que já teve (Covid-19, catapora/varicela, dengue, tuberculose, hepatites, chikungunya, sequelas)..."
-                  className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
-                />
-              </div>
+            {/* Infecções Anteriores */}
+            <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+              <label className="block text-xs font-bold text-gray-800">
+                Histórico de Infecções Anteriores & Sequelas:
+              </label>
+              <textarea
+                rows={2}
+                value={previousInfectionsHistory}
+                onChange={(e) => setPreviousInfectionsHistory(e.target.value)}
+                placeholder="Doenças que já teve (Covid-19, catapora/varicela, dengue, tuberculose, hepatites, chikungunya, sequelas)..."
+                className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg focus:outline-none"
+              />
             </div>
           </div>
 
@@ -998,11 +1082,42 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                 )}
               </div>
 
-              {/* Estilo de Vida: Dieta & Atividade Física */}
-              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2">
+              {/* Estilo de Vida: Dieta, Hidratação & Atividade Física */}
+              <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-2.5">
                 <label className="block text-xs font-bold text-gray-800">
-                  Estilo de Vida (Dieta, Alimentação & Atividade Física):
+                  Estilo de Vida (Dieta, Hidratação & Atividade Física):
                 </label>
+                
+                {/* Consumo de Água / Hidratação */}
+                <div className="bg-sky-50/70 p-2.5 rounded-lg border border-sky-200 space-y-1.5">
+                  <label className="block text-[11px] font-bold text-sky-900">
+                    💧 Bebe Água (Frequência de Ingestão Diária):
+                  </label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { val: 'baixa', label: 'Baixa', desc: '< 1L/dia' },
+                      { val: 'normal', label: 'Normal', desc: '1,5 - 2,5L/dia' },
+                      { val: 'alta', label: 'Alta', desc: '> 2,5L/dia' }
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        type="button"
+                        onClick={() => setWaterIntakeFrequency(opt.val as any)}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-semibold text-center border transition-all ${
+                          waterIntakeFrequency === opt.val
+                            ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                            : 'bg-white text-gray-700 border-sky-200 hover:bg-sky-100/60'
+                        }`}
+                      >
+                        <div>{opt.label}</div>
+                        <div className={`text-[10px] font-normal ${waterIntakeFrequency === opt.val ? 'text-sky-100' : 'text-gray-500'}`}>
+                          {opt.desc}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <select
                     value={physicalActivityLevel}
@@ -1367,6 +1482,54 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
               </div>
             </div>
 
+            {hasHadSurgery && (
+              <div className="bg-blue-50/90 p-3.5 rounded-xl border-2 border-blue-300 space-y-2.5 animate-fadeIn shadow-xs">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                    🏥 Quais cirurgias ou internações?
+                  </label>
+                  <span className="text-[10px] text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-md font-medium">
+                    Histórico Cirúrgico e Hospitalar
+                  </span>
+                </div>
+                
+                {/* Sugestões rápidas de cirurgias */}
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'Apendicectomia',
+                    'Cirurgia Cardíaca / Stent',
+                    'Colecistectomia (Vesícula)',
+                    'Cesariana / Parto Cirúrgico',
+                    'Cirurgia Ortopédica / Prótese',
+                    'Internação em UTI',
+                    'Cirurgia Bucomaxilofacial',
+                    'Amigdalectomia / Adenoide'
+                  ].map((surg) => (
+                    <button
+                      key={surg}
+                      type="button"
+                      onClick={() => {
+                        if (!surgeryDetails.includes(surg)) {
+                          setSurgeryDetails(surgeryDetails ? `${surgeryDetails}, ${surg}` : surg);
+                        }
+                      }}
+                      className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-white text-blue-800 border border-blue-200 hover:bg-blue-100 transition cursor-pointer"
+                    >
+                      + {surg}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  rows={2}
+                  value={surgeryDetails}
+                  onChange={(e) => setSurgeryDetails(e.target.value)}
+                  placeholder="Descreva o procedimento cirúrgico, motivo da internação, ano/data aproximada e se houve intercorrências..."
+                  className="w-full text-xs p-2.5 bg-white border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+            )}
+
             {hasOtherInfections && (
               <div className="bg-amber-50 p-3 rounded-xl border border-amber-200">
                 <label className="block text-xs font-semibold text-amber-900 mb-1">Especifique as outras infecções:</label>
@@ -1544,19 +1707,6 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
               </div>
             )}
 
-            {hasHadSurgery && (
-              <div className="bg-blue-50 p-3 rounded-xl border border-blue-200">
-                <label className="block text-xs font-semibold text-blue-900 mb-1">Quais cirurgias ou internações?</label>
-                <input
-                  type="text"
-                  value={surgeryDetails}
-                  onChange={(e) => setSurgeryDetails(e.target.value)}
-                  placeholder="Ex: Apendicectomia em 2020, Cirurgia cardíaca em 2018"
-                  className="w-full text-xs p-2 bg-white border border-blue-300 rounded-lg focus:outline-none"
-                />
-              </div>
-            )}
-
             {/* Cicatrização e Sangramento */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div>
@@ -1612,14 +1762,16 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                   </label>
 
                   <div>
+                    <label className="block text-[10px] font-semibold text-purple-900 mb-0.5">Status Hormonal / Climatério:</label>
                     <select
                       value={climactericOrMenopause}
                       onChange={(e) => setClimactericOrMenopause(e.target.value as any)}
-                      className="w-full text-xs p-1.5 bg-white border border-purple-200 rounded-lg"
+                      className="w-full text-xs p-1.5 bg-white border border-purple-200 rounded-lg text-purple-900 font-medium"
                     >
                       <option value="nenhum">Sem menopausa</option>
-                      <option value="climaterio">No Climatério</option>
-                      <option value="menopausa">Em Menopausa</option>
+                      <option value="climaterio">Em climatério</option>
+                      <option value="menopausa">Em menopausa</option>
+                      <option value="pos_menopausa">Pós-menopausa</option>
                     </select>
                   </div>
                 </div>
@@ -1874,7 +2026,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                     onChange={(e) => setIsSmoker(e.target.checked)}
                     className="rounded text-[#5a5a40]"
                   />
-                  <span>É fumante / tabagista?</span>
+                  <span>É ex-fumante / ex-tabagista?</span>
                 </label>
 
                 {isSmoker && (
@@ -1901,7 +2053,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                         type="text"
                         value={smokingDetails}
                         onChange={(e) => setSmokingDetails(e.target.value)}
-                        placeholder="Ex: Fuma há 8 anos; parou há 6 meses..."
+                        placeholder="Ex: Fumou por 8 anos; parou há 6 meses..."
                         className="w-full text-xs p-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-lg"
                       />
                     </div>
@@ -1922,13 +2074,111 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                 </label>
 
                 {usesRecreationalDrugs && (
-                  <div className="space-y-2 pt-1 border-t border-rose-100 bg-rose-50/50 p-2.5 rounded-lg border border-rose-200">
+                  <div className="space-y-3 pt-1 border-t border-rose-100 bg-rose-50/50 p-3 rounded-xl border border-rose-200">
+                    {/* 1. SUBSTÂNCIA(S) UTILIZADA(S) (PRIMEIRO) COM BOTÃO DE ADICIONAR */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[11px] font-bold text-rose-900">
+                          Substância(s) utilizada(s):
+                        </label>
+                        <span className="text-[10px] text-rose-700 font-medium">
+                          Adicione ou selecione as substâncias
+                        </span>
+                      </div>
+
+                      {/* Input + Botão Adicionar */}
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={newSubstanceInput}
+                          onChange={(e) => setNewSubstanceInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddSubstance();
+                            }
+                          }}
+                          placeholder="Digite o nome da substância..."
+                          className="flex-1 text-xs p-2 bg-white border border-rose-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleAddSubstance()}
+                          className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-lg transition flex items-center gap-1 shadow-xs shrink-0 cursor-pointer"
+                          title="Adicionar substância ao prontuário"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Adicionar</span>
+                        </button>
+                      </div>
+
+                      {/* Sugestões Rápidas de Substâncias */}
+                      <div className="space-y-1">
+                        <span className="text-[9.5px] font-semibold text-rose-800/80 block">
+                          Sugestões frequentes (clique para adicionar):
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {COMMON_RECREATIONAL_SUBSTANCES.map((sub, sIdx) => {
+                            const isIncluded = drugDetails
+                              .toLowerCase()
+                              .includes(sub.toLowerCase().split(' / ')[0]);
+                            return (
+                              <button
+                                key={sIdx}
+                                type="button"
+                                onClick={() => handleAddSubstance(sub)}
+                                className={`text-[10px] px-2 py-0.5 rounded-md font-medium transition cursor-pointer ${
+                                  isIncluded
+                                    ? 'bg-rose-200 text-rose-950 font-bold border border-rose-300'
+                                    : 'bg-white hover:bg-rose-100 text-rose-900 border border-rose-200'
+                                }`}
+                              >
+                                + {sub}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Lista Ativa de Substâncias Selecionadas */}
+                      {drugDetails && (
+                        <div className="pt-1.5 border-t border-rose-200/60">
+                          <span className="text-[10px] font-bold text-rose-900 block mb-1">
+                            Substâncias registradas no prontuário:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {drugDetails
+                              .split(',')
+                              .map(s => s.trim())
+                              .filter(Boolean)
+                              .map((subItem, subIdx) => (
+                                <span
+                                  key={subIdx}
+                                  className="inline-flex items-center gap-1 text-[11px] font-bold bg-rose-600 text-white px-2.5 py-0.5 rounded-full shadow-2xs"
+                                >
+                                  {subItem}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveSubstance(subItem)}
+                                    className="hover:bg-rose-700 rounded-full p-0.5 transition cursor-pointer"
+                                    title="Remover substância"
+                                  >
+                                    <X className="w-3 h-3 text-rose-100" />
+                                  </button>
+                                </span>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2. FREQUÊNCIA DO USO (SEGUNDO - TROCADO DE LUGAR) */}
                     <div>
                       <label className="block text-[11px] font-bold text-rose-900 mb-1">Frequência do Uso:</label>
                       <select
                         value={drugUsageFrequency}
                         onChange={(e) => setDrugUsageFrequency(e.target.value as any)}
-                        className="w-full text-xs p-2 bg-white border border-rose-300 rounded-lg focus:outline-none"
+                        className="w-full text-xs p-2 bg-white border border-rose-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500"
                       >
                         <option value="ocasional_social">Ocasional / Social</option>
                         <option value="semanal">Uso Semanal</option>
@@ -1937,17 +2187,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                       </select>
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] font-bold text-rose-900 mb-1">Substância(s) utilizada(s):</label>
-                      <input
-                        type="text"
-                        value={drugDetails}
-                        onChange={(e) => setDrugDetails(e.target.value)}
-                        placeholder="Ex: Cannabis / Maconha, Estimulantes, etc."
-                        className="w-full text-xs p-2 bg-white border border-rose-300 rounded-lg"
-                      />
-                    </div>
-
+                    {/* 3. OBSERVAÇÕES MÉDICAS / RISCO ANESTÉSICO */}
                     <div>
                       <label className="block text-[11px] font-bold text-rose-900 mb-1">Observações Médicas / Risco Anestésico:</label>
                       <input
@@ -1955,7 +2195,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                         value={drugUsageNotes}
                         onChange={(e) => setDrugUsageNotes(e.target.value)}
                         placeholder="Ex: Atenção especial para interações com anestésicos com vasoconstritor"
-                        className="w-full text-xs p-2 bg-white border border-rose-300 rounded-lg"
+                        className="w-full text-xs p-2 bg-white border border-rose-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500"
                       />
                     </div>
                   </div>
@@ -1995,48 +2235,71 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
               </div>
             </div>
 
-            {/* Respiração & Postura ao dormir */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Tipo de Respiração</label>
-                <select
-                  value={breathingType}
-                  onChange={(e) => setBreathingType(e.target.value as any)}
-                  className="w-full text-xs p-2.5 bg-white border border-[#e5e5d1] rounded-xl focus:outline-none"
-                >
-                  <option value="nasal">Nasal (Predominante pelas narinas)</option>
-                  <option value="bucal">Bucal (Pela boca)</option>
-                  <option value="mista">Mista</option>
-                  <option value="apical">Apical</option>
-                  <option value="diafragmatica">Diafragmática</option>
-                </select>
-              </div>
+            {/* Respiração (Dividida) & Sono */}
+            <div className="bg-white p-3.5 rounded-xl border border-[#e5e5d1] space-y-3">
+              <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                🫁 Função Respiratória & Dinâmica do Sono
+              </span>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* 1. Via / Modo Respiratório */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Via Respiratória Predominante</label>
+                  <select
+                    value={breathingType}
+                    onChange={(e) => setBreathingType(e.target.value as any)}
+                    className="w-full text-xs p-2.5 bg-[#fbfbf9] border border-[#e5e5d1] rounded-xl focus:outline-none"
+                  >
+                    <option value="nasal">Nasal (Pelas narinas)</option>
+                    <option value="bucal">Bucal (Pela boca)</option>
+                    <option value="mista">Mista (Naso-bucal)</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Padrão de Sono</label>
-                <select
-                  value={sleepQuality}
-                  onChange={(e) => setSleepQuality(e.target.value as any)}
-                  className="w-full text-xs p-2.5 bg-white border border-[#e5e5d1] rounded-xl focus:outline-none"
-                >
-                  <option value="reparador">Reparador (Acorda descansado)</option>
-                  <option value="nao_reparador">Não Reparador (Acorda cansado)</option>
-                  <option value="insonia">Insônia / Dificuldade para dormir</option>
-                  <option value="sono_leve">Sono Leve / Fracionado</option>
-                </select>
-              </div>
+                {/* 2. Padrão / Mecânica Respiratória */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Mecânica / Padrão Muscular</label>
+                  <select
+                    value={respiratoryPattern}
+                    onChange={(e) => setRespiratoryPattern(e.target.value as any)}
+                    className="w-full text-xs p-2.5 bg-[#fbfbf9] border border-[#e5e5d1] rounded-xl focus:outline-none"
+                  >
+                    <option value="diafragmatica">Diafragmática (Abdominal)</option>
+                    <option value="toracica">Torácica / Costal Superior</option>
+                    <option value="apical">Apical / Clavicular</option>
+                    <option value="mista_nao_avaliado">Mista / Não avaliado</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Postura ao Dormir</label>
-                <select
-                  value={sleepingPosture}
-                  onChange={(e) => setSleepingPosture(e.target.value as any)}
-                  className="w-full text-xs p-2.5 bg-white border border-[#e5e5d1] rounded-xl focus:outline-none"
-                >
-                  <option value="decubito_dorsal">Barriga para cima (Dorsal)</option>
-                  <option value="decubito_lateral">De Lado (Lateral)</option>
-                  <option value="decubito_ventral">Barriga para baixo (Ventral)</option>
-                </select>
+                {/* 3. Padrão de Sono */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Qualidade do Sono</label>
+                  <select
+                    value={sleepQuality}
+                    onChange={(e) => setSleepQuality(e.target.value as any)}
+                    className="w-full text-xs p-2.5 bg-[#fbfbf9] border border-[#e5e5d1] rounded-xl focus:outline-none"
+                  >
+                    <option value="reparador">Reparador (Acorda descansado)</option>
+                    <option value="nao_reparador">Não Reparador (Acorda cansado)</option>
+                    <option value="insonia">Insônia / Dificuldade para dormir</option>
+                    <option value="sono_leve">Sono Leve / Fracionado</option>
+                  </select>
+                </div>
+
+                {/* 4. Postura ao Dormir */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Postura ao Dormir</label>
+                  <select
+                    value={sleepingPosture}
+                    onChange={(e) => setSleepingPosture(e.target.value as any)}
+                    className="w-full text-xs p-2.5 bg-[#fbfbf9] border border-[#e5e5d1] rounded-xl focus:outline-none"
+                  >
+                    <option value="decubito_dorsal">Barriga para cima (Decúbito Dorsal)</option>
+                    <option value="decubito_lateral">De Lado (Decúbito Lateral)</option>
+                    <option value="decubito_ventral">Barriga para baixo (Decúbito Ventral)</option>
+                    <option value="mudanca_decubito">Não sabe / Mudança de decúbito</option>
+                  </select>
+                </div>
               </div>
             </div>
 

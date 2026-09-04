@@ -30,7 +30,8 @@ import {
   PlusCircle,
   Activity,
   ShieldCheck,
-  RotateCcw
+  RotateCcw,
+  ArrowLeft
 } from 'lucide-react';
 
 interface PatientAttendanceReport {
@@ -542,14 +543,25 @@ Emitido eletronicamente via DentisPro em ${new Date().toLocaleDateString('pt-BR'
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  {/* Voltar aos Pacientes */}
+                  <button
+                    type="button"
+                    onClick={handleOpenPatientFile}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs border border-slate-200 active:scale-95"
+                    title="Voltar / Abrir prontuário do paciente"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5 text-[#4a4a35]" />
+                    <span>Voltar ao Prontuário</span>
+                  </button>
+
                   {/* Botão de Impressão nativa estrita (Regra 2 do AGENTS.md: rotulagem sucinta "Imprimir") */}
                   <button
                     type="button"
                     onClick={handlePrint}
-                    className="px-3 py-1.5 bg-[#4a4a35] hover:bg-[#3b3b2a] text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95"
+                    className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-500 text-stone-900 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95 border border-amber-500/30"
                     title="Imprimir laudo em folha timbrada A4"
                   >
-                    <Printer className="w-3.5 h-3.5 text-[#d4a373]" />
+                    <Printer className="w-3.5 h-3.5 text-stone-900" />
                     <span>Imprimir</span>
                   </button>
 
@@ -582,17 +594,6 @@ Emitido eletronicamente via DentisPro em ${new Date().toLocaleDateString('pt-BR'
                         <span>Copiar</span>
                       </>
                     )}
-                  </button>
-
-                  {/* Ver Prontuário */}
-                  <button
-                    type="button"
-                    onClick={handleOpenPatientFile}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                    title="Abrir ficha completa do paciente"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Ficha</span>
                   </button>
                 </div>
               </div>
@@ -798,6 +799,38 @@ Emitido eletronicamente via DentisPro em ${new Date().toLocaleDateString('pt-BR'
 
                 </div>
 
+              </div>
+
+              {/* Bottom Actions Bar (Hidden in Print) */}
+              <div className="bg-slate-50 border-t border-slate-200 p-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
+                <button
+                  type="button"
+                  onClick={handleOpenPatientFile}
+                  className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-xl flex items-center gap-2 shadow-2xs border border-slate-300 transition cursor-pointer active:scale-95"
+                >
+                  <ArrowLeft className="w-4 h-4 text-[#4a4a35]" />
+                  <span>Voltar ao Prontuário</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSendWhatsApp}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-2xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>WhatsApp</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handlePrint}
+                    className="px-5 py-2 bg-amber-400 hover:bg-amber-500 text-stone-900 font-bold text-xs rounded-xl shadow-2xs transition flex items-center gap-1.5 cursor-pointer border border-amber-500/30 active:scale-95"
+                  >
+                    <Printer className="w-4 h-4 text-stone-900" />
+                    <span>Imprimir</span>
+                  </button>
+                </div>
               </div>
 
             </div>

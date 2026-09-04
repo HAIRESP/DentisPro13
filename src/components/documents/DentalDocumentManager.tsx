@@ -55,6 +55,15 @@ import {
 } from 'lucide-react';
 import { DENTAL_MEDICATIONS_CATALOG } from '../../data/medicationsCatalog';
 import { MedicationItem } from '../../types';
+import { 
+  LAB_EXAMS_CATALOG, 
+  LAB_EXAMS_PRESETS, 
+  DEFAULT_LAB_EXAMS_INSTRUCTIONS, 
+  DEFAULT_LAB_EXAMS_CLINICAL_INDICATION,
+  LabExamItem,
+  LabExamCategoryGroup,
+  LabExamPreset
+} from '../../data/labExamsCatalog';
 
 import { getThemeStyles } from '../../utils/themeUtils';
 
@@ -771,25 +780,52 @@ export const DentalDocumentManager: React.FC = () => {
 
     const sigAlign = clinicInfo.signatureAlignment || 'right';
     const sigArrangement = clinicInfo.signatureArrangement || 'overlay';
-    const showSigImg = (clinicInfo.showSignatureImage ?? true) && clinicInfo.signatureImageUrl;
-    const showStampImg = (clinicInfo.showStampImage ?? true) && clinicInfo.stampImageUrl;
+    const effectiveSigUrl = activeProfessional?.signatureImageUrl || clinicInfo.signatureImageUrl;
+    const effectiveStampUrl = activeProfessional?.stampImageUrl || clinicInfo.stampImageUrl;
+    const allowSig = (clinicInfo.showSignatureImage ?? true);
+    const allowStamp = (clinicInfo.showStampImage ?? true);
+
+    const sigElementHtml = allowSig ? (
+      effectiveSigUrl ? `
+        <img src="${effectiveSigUrl}" style="height: 60px; max-width: 210px; object-fit: contain; filter: contrast(125%);" alt="Assinatura Manual" />
+      ` : `
+        <div style="height: 55px; width: 220px; display: inline-flex; align-items: center; justify-content: flex-start; transform: rotate(-2.5deg);">
+          <svg style="width: 100%; height: 100%; color: #1e1b4b;" viewBox="0 0 240 60" fill="none" stroke="#1e1b4b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M 10 35 C 30 10, 45 50, 60 25 C 70 10, 80 40, 95 30 C 110 20, 115 45, 130 25 C 145 10, 160 50, 180 20 C 195 10, 210 35, 230 30" />
+            <path d="M 30 45 C 70 48, 120 40, 200 42" stroke-width="1.8" />
+          </svg>
+        </div>
+      `
+    ) : '';
+
+    const stampElementHtml = allowStamp ? (
+      effectiveStampUrl ? `
+        <img src="${effectiveStampUrl}" style="height: 60px; max-width: 150px; object-fit: contain; border: 1px solid rgba(90,90,64,0.4); border-radius: 6px; padding: 2px; background: #fff;" alt="Carimbo" />
+      ` : `
+        <div style="border: 2px dashed #5a5a40; color: #5a5a40; border-radius: 8px; padding: 4px 8px; background: #fffdf5; text-align: left; text-transform: uppercase; display: inline-flex; flex-direction: column; justify-content: center; min-width: 150px; transform: rotate(-10deg);">
+          <span style="font-weight: bold; font-size: 9.5px; display: block; line-height: 1.1; color: #2c3e2e;">${dentistName}</span>
+          <span style="font-size: 8.5px; font-family: monospace; display: block; line-height: 1.1; color: #555;">${dentistCro}</span>
+          <span style="font-size: 7.5px; color: #666; display: block;">Cirurgião-Dentista</span>
+        </div>
+      `
+    ) : '';
 
     const signatureBlockHtml = `
       <div style="margin-top: 15px; display: flex; flex-direction: column; align-items: ${sigAlign === 'right' ? 'flex-end' : sigAlign === 'center' ? 'center' : 'flex-start'}; text-align: ${sigAlign};">
         ${sigArrangement === 'side_by_side' ? `
           <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 5px;">
-            ${showStampImg ? `<img src="${clinicInfo.stampImageUrl}" style="height: 60px; max-width: 150px; object-fit: contain;" alt="Carimbo" />` : ''}
-            ${showSigImg ? `<img src="${clinicInfo.signatureImageUrl}" style="height: 60px; max-width: 200px; object-fit: contain;" alt="Assinatura" />` : ''}
+            ${stampElementHtml}
+            ${sigElementHtml}
           </div>
         ` : sigArrangement === 'stacked' ? `
           <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 5px;">
-            ${showSigImg ? `<img src="${clinicInfo.signatureImageUrl}" style="height: 60px; max-width: 200px; object-fit: contain;" alt="Assinatura" />` : ''}
-            ${showStampImg ? `<img src="${clinicInfo.stampImageUrl}" style="height: 60px; max-width: 150px; object-fit: contain;" alt="Carimbo" />` : ''}
+            ${sigElementHtml}
+            ${stampElementHtml}
           </div>
         ` : `
-          <div style="position: relative; width: 280px; min-height: 75px; margin-bottom: 5px;">
-            ${showStampImg ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 0' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%);' : 'left: 0'}; bottom: 0; z-index: 1;"><img src="${clinicInfo.stampImageUrl}" style="height: 65px; max-width: 150px; object-fit: contain;" alt="Carimbo" /></div>` : ''}
-            ${showSigImg ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 20px' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%);' : 'left: 20px'}; top: 0; z-index: 2;"><img src="${clinicInfo.signatureImageUrl}" style="height: 65px; max-width: 210px; object-fit: contain;" alt="Assinatura" /></div>` : ''}
+          <div style="position: relative; width: 300px; min-height: 80px; margin-bottom: 5px;">
+            ${allowStamp ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 0' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%);' : 'left: 0'}; bottom: 0; z-index: 1;">${stampElementHtml}</div>` : ''}
+            ${allowSig ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 20px' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%);' : 'left: 20px'}; top: 0; z-index: 2;">${sigElementHtml}</div>` : ''}
           </div>
         `}
         ${(clinicInfo.showSignatureLine ?? true) ? `
@@ -983,9 +1019,9 @@ export const DentalDocumentManager: React.FC = () => {
           </div>
         </div>
         <div style="margin: 4px 0; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
-          ${showSigImg ? `<div style="display: flex; align-items: center; justify-content: center; transform: rotate(-1deg);"><img src="${clinicInfo.signatureImageUrl}" style="height: 32px; max-width: 130px; object-fit: contain;" alt="Assinatura" /></div>` : ''}
-          ${showStampImg ? `<div style="display: flex; align-items: center; justify-content: center; transform: rotate(-2deg);"><img src="${clinicInfo.stampImageUrl}" style="height: 30px; max-width: 110px; object-fit: contain; border: 1px solid #999; padding: 1px; background: #fff;" alt="Carimbo" /></div>` : ''}
-          ${!showStampImg && !showSigImg ? `<span style="font-size: 9px; color: #888;">(Assinatura / Carimbo do Emitente)</span>` : ''}
+          ${allowSig && effectiveSigUrl ? `<div style="display: flex; align-items: center; justify-content: center; transform: rotate(-1deg);"><img src="${effectiveSigUrl}" style="height: 32px; max-width: 130px; object-fit: contain;" alt="Assinatura" /></div>` : ''}
+          ${allowStamp && effectiveStampUrl ? `<div style="display: flex; align-items: center; justify-content: center; transform: rotate(-2deg);"><img src="${effectiveStampUrl}" style="height: 30px; max-width: 110px; object-fit: contain; border: 1px solid #999; padding: 1px; background: #fff;" alt="Carimbo" /></div>` : ''}
+          ${(!allowStamp || !effectiveStampUrl) && (!allowSig || !effectiveSigUrl) ? `<span style="font-size: 9px; color: #888;">(Assinatura / Carimbo do Emitente)</span>` : ''}
         </div>
       </div>
       <div style="border-top: 1px solid #444; padding-top: 2px; text-align: center;">
@@ -1300,11 +1336,16 @@ export const DentalDocumentManager: React.FC = () => {
 </html>`;
     }
 
-    // 5. SOLICITAÇÃO DE EXAMES DE SANGUE
+    // 5. SOLICITAÇÃO DE EXAMES DE SANGUE E LABORATORIAIS
     if (isSangue) {
-      const examsObj = tData.bloodExams || bloodExams;
-      const selectedBloodExams = Object.entries(examsObj).filter(([_, v]) => v).map(([k]) => k);
+      const groupedExams: { category: string; items: LabExamItem[] }[] = 
+        tData.groupedLabExams || 
+        (tData.selectedLabExamsList ? tData.selectedLabExamsList : getSelectedLabExamsList());
+      
       const patAge = tData.patientAge || patientAge;
+      const clinicalIndication = tData.labExamClinicalIndication || labExamClinicalIndication || DEFAULT_LAB_EXAMS_CLINICAL_INDICATION;
+      const prepInstructions = tData.labExamInstructions || labExamInstructions || DEFAULT_LAB_EXAMS_INSTRUCTIONS;
+      const totalItems = groupedExams.reduce((acc, grp) => acc + grp.items.length, 0);
 
       return `
 <!DOCTYPE html>
@@ -1312,14 +1353,77 @@ export const DentalDocumentManager: React.FC = () => {
 <head>
   <meta charset="UTF-8">
   <title>${pdfDocTitle}</title>
-  <style>${baseCss}</style>
+  <style>
+    ${baseCss}
+    .lab-category-header {
+      font-size: 9.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #1e3a8a;
+      background: #eff6ff;
+      padding: 3.5px 8px;
+      border-radius: 4px;
+      margin: 8px 0 4px 0;
+      border-left: 3px solid #2563eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .lab-exam-box {
+      margin-bottom: 5px;
+      padding: 4px 8px;
+      background: #fafafa;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+    }
+    .lab-exam-name {
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.3;
+    }
+    .lab-exam-sub {
+      font-size: 9px;
+      color: #475569;
+      margin-left: 17px;
+      margin-top: 1px;
+      font-weight: 500;
+      line-height: 1.25;
+    }
+    .lab-subitems-container {
+      margin-left: 17px;
+      margin-top: 3px;
+      padding-left: 8px;
+      border-left: 2px solid #cbd5e1;
+      font-size: 8.5px;
+      color: #334155;
+      line-height: 1.35;
+    }
+    .lab-subitem-line {
+      margin-bottom: 1.5px;
+    }
+    .lab-prep-box {
+      background: #f8fafc;
+      border: 1px dashed #94a3b8;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 9px;
+      color: #334155;
+      line-height: 1.4;
+      white-space: pre-line;
+    }
+  </style>
 </head>
 <body>
   ${standardHeaderHtml}
 
   <div class="title-box">
-    <div class="title">SOLICITAÇÃO DE EXAMES LABORATORIAIS PRÉ-OPERATÓRIOS</div>
-    <div class="title-sub">AVALIAÇÃO HEMATOLÓGICA E BIOQUÍMICA PRÉ-CIRÚRGICA</div>
+    <div class="title">SOLICITAÇÃO DE EXAMES LABORATORIAIS E DE SANGUE</div>
+    <div class="title-sub">AVALIAÇÃO HEMATOLÓGICA, BIOQUÍMICA, COAGULOGRAMA E EXAMES COMPLEMENTARES</div>
   </div>
 
   <div class="patient-card">
@@ -1328,20 +1432,53 @@ export const DentalDocumentManager: React.FC = () => {
   </div>
 
   <div class="section-card">
-    <div class="section-title">1. FINALIDADE CLÍNICA</div>
-    <div style="font-size: 11px; font-weight: 600; color: #222;">
-      Avaliação pré-operatória e rastreamento de risco cirúrgico odontológico para procedimento ambulatorial.
+    <div class="section-title">1. INDICAÇÃO CLÍNICA & FINALIDADE</div>
+    <div style="font-size: 10.5px; font-weight: 600; color: #1e293b; line-height: 1.35;">
+      ${clinicalIndication}
     </div>
   </div>
 
   <div class="section-card">
-    <div class="section-title">2. EXAMES LABORATORIAIS SOLICITADOS</div>
-    <div class="grid-2">
-      ${(selectedBloodExams.length ? selectedBloodExams : ['Hemograma completo com contagem de plaquetas', 'Tempo de Protrombina (TP / INR)', 'Tempo de Tromboplastina Parcial Ativada (TTPa)', 'Glicemia de Jejum']).map((ex: string) => `
-        <div class="check-item"><span style="color: #0369a1; font-weight: bold;">☑</span><span>${ex}</span></div>
-      `).join('')}
+    <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+      <span>2. EXAMES LABORATORIAIS SOLICITADOS</span>
+      <span style="font-size: 9px; font-weight: normal; color: #475569;">(${totalItems} exame(s) discriminado(s))</span>
+    </div>
+    
+    <div style="margin-top: 4px;">
+      ${groupedExams.length > 0 ? groupedExams.map(grp => `
+        <div class="lab-category-header">
+          <span>${grp.category}</span>
+          <span style="font-size: 8px; font-weight: bold; color: #2563eb;">${grp.items.length} item(ns)</span>
+        </div>
+        <div style="display: grid; grid-template-columns: ${grp.items.length > 3 ? 'repeat(2, 1fr)' : '1fr'}; gap: 5px; margin-bottom: 4px;">
+          ${grp.items.map(item => `
+            <div class="lab-exam-box">
+              <div class="lab-exam-name">
+                <span style="color: #0284c7; font-weight: 800; font-size: 11px;">☑</span>
+                <span>${item.name}</span>
+              </div>
+              ${item.subtitle ? `<div class="lab-exam-sub">• ${item.subtitle}</div>` : ''}
+              ${item.subItems && item.subItems.length > 0 ? `
+                <div class="lab-subitems-container">
+                  ${item.subItems.map((sub: string) => `<div class="lab-subitem-line">• ${sub}</div>`).join('')}
+                </div>
+              ` : ''}
+              ${item.preparation ? `<div style="font-size: 8px; color: #64748b; font-style: italic; margin-left: 17px; margin-top: 2px;">Preparo: ${item.preparation}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      `).join('') : `
+        <div style="font-size: 10px; color: #666; font-style: italic; padding: 6px;">Nenhum exame selecionado.</div>
+      `}
     </div>
   </div>
+
+  ${prepInstructions ? `
+    <div class="section-card">
+      <div class="section-title">3. INSTRUÇÕES DE PREPARO E ORIENTAÇÕES AO PACIENTE / LABORATÓRIO</div>
+      <div class="lab-prep-box">${prepInstructions}</div>
+    </div>
+  ` : ''}
 
   <div class="date-row">
     ${cityOnly}, ${docDateStr}
@@ -2075,24 +2212,178 @@ export const DentalDocumentManager: React.FC = () => {
     }
   };
   
-  // Parameters for Solicitação de Exames
-  const [bloodExams, setBloodExams] = useState({
-    hemograma: true,
-    coagulograma: true,
-    vitaminaD: true,
-    ca153: false,
-    creatinina: true,
-    fosfataseAlcalina: true,
-    calcioIonico: true,
-    glicemiaJejum: true,
-    sumarioUrina: true,
-    t4: false,
-    tsh: false,
-    hiv: true,
-    hbsag: true,
-    antiHcv: true,
-    vrdl: true
-  });
+  // Parameters for Solicitação de Exames Laboratoriais e de Sangue
+  const initialSelectedLabExams = (): Record<string, boolean> => {
+    const map: Record<string, boolean> = {};
+    LAB_EXAMS_CATALOG.forEach(group => {
+      group.items.forEach(item => {
+        map[item.id] = !!item.defaultChecked;
+      });
+    });
+    return map;
+  };
+
+  const [selectedLabExams, setSelectedLabExams] = useState<Record<string, boolean>>(initialSelectedLabExams);
+  const [customLabExams, setCustomLabExams] = useState<LabExamItem[]>([]);
+  const [newCustomExamName, setNewCustomExamName] = useState('');
+  const [newCustomExamCategory, setNewCustomExamCategory] = useState('Exames Adicionais / Personalizados');
+  const [newCustomExamSubtitle, setNewCustomExamSubtitle] = useState('');
+  const [newCustomExamSubItems, setNewCustomExamSubItems] = useState('');
+  const [newCustomExamPreparation, setNewCustomExamPreparation] = useState('');
+  const [showCustomExamForm, setShowCustomExamForm] = useState(false);
+  const [labExamSearchTerm, setLabExamSearchTerm] = useState('');
+  const [labExamFilterCategory, setLabExamFilterCategory] = useState('todas');
+  const [labExamClinicalIndication, setLabExamClinicalIndication] = useState(DEFAULT_LAB_EXAMS_CLINICAL_INDICATION);
+  const [labExamInstructions, setLabExamInstructions] = useState(DEFAULT_LAB_EXAMS_INSTRUCTIONS);
+
+  // Backward compatibility object for legacy bloodExams mapping
+  const bloodExams = {
+    hemograma: !!selectedLabExams['hemograma_completo'],
+    coagulograma: !!selectedLabExams['coagulograma_completo'] || !!selectedLabExams['tp_inr'],
+    vitaminaD: !!selectedLabExams['vitamina_d'],
+    ca153: !!selectedLabExams['ca153'],
+    creatinina: !!selectedLabExams['creatinina_tfge'],
+    fosfataseAlcalina: !!selectedLabExams['fosfatase_alcalina_total_ossea'],
+    calcioIonico: !!selectedLabExams['calcio_ionico_total'],
+    glicemiaJejum: !!selectedLabExams['glicemia_jejum'],
+    sumarioUrina: !!selectedLabExams['sumario_urina_completo'],
+    t4: !!selectedLabExams['t4_livre'],
+    tsh: !!selectedLabExams['tsh_ultrassensivel'],
+    hiv: !!selectedLabExams['hiv_1_2'],
+    hbsag: !!selectedLabExams['hepatite_b_hbsag'],
+    antiHcv: !!selectedLabExams['hepatite_c_antihcv'],
+    vrdl: !!selectedLabExams['vdrl_sifilis']
+  };
+
+  const handleToggleLabExam = (id: string) => {
+    setSelectedLabExams(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const handleApplyLabPreset = (presetId: string) => {
+    const preset = LAB_EXAMS_PRESETS.find(p => p.id === presetId);
+    if (!preset) return;
+    const newMap: Record<string, boolean> = {};
+    LAB_EXAMS_CATALOG.forEach(grp => {
+      grp.items.forEach(it => {
+        newMap[it.id] = preset.examIds.includes(it.id);
+      });
+    });
+    customLabExams.forEach(it => {
+      newMap[it.id] = false;
+    });
+    setSelectedLabExams(newMap);
+  };
+
+  const handleSelectAllLabExams = () => {
+    const newMap: Record<string, boolean> = {};
+    LAB_EXAMS_CATALOG.forEach(grp => {
+      grp.items.forEach(it => {
+        newMap[it.id] = true;
+      });
+    });
+    customLabExams.forEach(it => {
+      newMap[it.id] = true;
+    });
+    setSelectedLabExams(newMap);
+  };
+
+  const handleClearAllLabExams = () => {
+    const newMap: Record<string, boolean> = {};
+    LAB_EXAMS_CATALOG.forEach(grp => {
+      grp.items.forEach(it => {
+        newMap[it.id] = false;
+      });
+    });
+    customLabExams.forEach(it => {
+      newMap[it.id] = false;
+    });
+    setSelectedLabExams(newMap);
+  };
+
+  const handleToggleCategoryExams = (groupId: string, selectAll: boolean) => {
+    const group = LAB_EXAMS_CATALOG.find(g => g.id === groupId);
+    if (!group) return;
+    setSelectedLabExams(prev => {
+      const copy = { ...prev };
+      group.items.forEach(it => {
+        copy[it.id] = selectAll;
+      });
+      return copy;
+    });
+  };
+
+  const handleAddCustomLabExam = () => {
+    if (!newCustomExamName.trim()) return;
+    const customId = `custom_exam_${Date.now()}`;
+    const parsedSubItems = newCustomExamSubItems
+      .split(/[\n,;]+/)
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    const newItem: LabExamItem = {
+      id: customId,
+      name: newCustomExamName.trim(),
+      category: newCustomExamCategory.trim() || 'Exames Adicionais / Personalizados',
+      subtitle: newCustomExamSubtitle.trim() || undefined,
+      subItems: parsedSubItems.length > 0 ? parsedSubItems : undefined,
+      preparation: newCustomExamPreparation.trim() || undefined,
+      isCustom: true,
+      defaultChecked: true
+    };
+
+    setCustomLabExams(prev => [...prev, newItem]);
+    setSelectedLabExams(prev => ({ ...prev, [customId]: true }));
+    setNewCustomExamName('');
+    setNewCustomExamSubtitle('');
+    setNewCustomExamSubItems('');
+    setNewCustomExamPreparation('');
+    setShowCustomExamForm(false);
+  };
+
+  const handleRemoveCustomLabExam = (id: string) => {
+    setCustomLabExams(prev => prev.filter(item => item.id !== id));
+    setSelectedLabExams(prev => {
+      const copy = { ...prev };
+      delete copy[id];
+      return copy;
+    });
+  };
+
+  // Helper to get structured list of selected exams grouped by category
+  const getSelectedLabExamsList = (): { category: string; items: LabExamItem[] }[] => {
+    const allItems: LabExamItem[] = [];
+    LAB_EXAMS_CATALOG.forEach(grp => {
+      grp.items.forEach(it => {
+        if (selectedLabExams[it.id]) {
+          allItems.push(it);
+        }
+      });
+    });
+    customLabExams.forEach(it => {
+      if (selectedLabExams[it.id]) {
+        allItems.push(it);
+      }
+    });
+
+    const grouped: Record<string, LabExamItem[]> = {};
+    allItems.forEach(item => {
+      const cat = item.category || 'Outros Exames Laboratoriais';
+      if (!grouped[cat]) {
+        grouped[cat] = [];
+      }
+      grouped[cat].push(item);
+    });
+
+    return Object.entries(grouped).map(([category, items]) => ({
+      category,
+      items
+    }));
+  };
+
+  const totalSelectedLabExamsCount = Object.values(selectedLabExams).filter(Boolean).length;
 
   // Parameters for Solicitação de Tomografia Computadorizada (Cone Beam / TCFC)
   const [tomographyRegions, setTomographyRegions] = useState({
@@ -3106,8 +3397,10 @@ export const DentalDocumentManager: React.FC = () => {
       } else if (activeTemplate.id === 'declaracao_comparecimento') {
         docSummary = `Declaro que ${patientDisplayName} compareceu a este consultório no dia ${formattedFormattedDate}, período ${docTime} (${periodoStr}).`;
       } else if (activeTemplate.id === 'solicitacao_sangue') {
-        const selectedExams = Object.entries(bloodExams).filter(([_, v]) => v).map(([k]) => k).join(', ');
-        docSummary = `Exames de Sangue Solicitados: ${selectedExams || 'Hemograma completo, Coagulograma, Glicemia em jejum'}.`;
+        const groupedList = getSelectedLabExamsList();
+        const totalExams = groupedList.reduce((acc, g) => acc + g.items.length, 0);
+        const topNames = groupedList.flatMap(g => g.items).slice(0, 4).map(i => i.name).join(', ');
+        docSummary = `Exames Laboratoriais Solicitados (${totalExams} exames): ${topNames}${totalExams > 4 ? ' e outros...' : '.'}`;
       } else if (activeTemplate.id === 'solicitacao_tomografia') {
         docSummary = buildFormattedTomographySummary();
       } else {
@@ -3134,6 +3427,11 @@ export const DentalDocumentManager: React.FC = () => {
         rxPeriapicalTeethInput,
         rxPeriapicalIndication,
         rxPeriapicalNotes,
+        selectedLabExams,
+        customLabExams,
+        groupedLabExams: getSelectedLabExamsList(),
+        labExamClinicalIndication,
+        labExamInstructions,
         bloodExams,
         prescriptionText: specialPrescriptionText,
         receitaSimplesVias,
@@ -3273,9 +3571,20 @@ export const DentalDocumentManager: React.FC = () => {
     } else if (activeTemplate.id === 'declaracao_comparecimento') {
       bodyText = `*DECLARAÇÃO DE COMPARECIMENTO*\n\nDeclaro, para os devidos fins de direito, que o(a) Sr(a). ${patientDisplayName} esteve presente neste consultório odontológico no dia ${dateStr}, durante o período de ${docTime} (${periodoStr}), submetendo-se a tratamento e acompanhamento clínico odontológico.`;
     } else if (activeTemplate.id === 'solicitacao_sangue') {
-      const selectedExams = Object.entries(bloodExams).filter(([_, v]) => v).map(([k]) => k);
-      const examsList = selectedExams.map((e, idx) => `• ${e}`).join('\n');
-      bodyText = `*SOLICITAÇÃO DE EXAMES DE SANGUE PRÉ-OPERATÓRIOS*\n\nSolicito para o(a) paciente ${patientDisplayName} a realização dos seguintes exames pré-operatórios:\n\n${examsList || '• Hemograma Completo\n• Coagulograma\n• Glicemia em Jejum'}`;
+      const groupedList = getSelectedLabExamsList();
+      const examsFormatted = groupedList.map(grp => {
+        const itemsStr = grp.items.map(item => {
+          let str = `  ✓ *${item.name}*`;
+          if (item.subtitle) str += ` (${item.subtitle})`;
+          if (item.subItems && item.subItems.length > 0) {
+            str += `\n    └ ${item.subItems.join(' • ')}`;
+          }
+          return str;
+        }).join('\n');
+        return `📁 *${grp.category.toUpperCase()}*\n${itemsStr}`;
+      }).join('\n\n');
+
+      bodyText = `*SOLICITAÇÃO DE EXAMES LABORATORIAIS E DE SANGUE*\n\n*Indicação Clínica:* ${labExamClinicalIndication}\n\n*EXAMES SOLICITADOS:*\n${examsFormatted || '• Hemograma Completo\n• Coagulograma\n• Glicemia em Jejum'}\n\n*Instruções ao Paciente / Laboratório:*\n${labExamInstructions}`;
     } else if (activeTemplate.id === 'relatorio_paio_pos_procedimento') {
       bodyText = `*PROTOCOLO DE ANESTESIA INTRA-ORAL & RELATÓRIO PÓS-PROCEDIMENTO (PAIO)*\n\n• *Procedimento:* ${paioProcedure}\n• *Região:* ${paioToothRegion}\n• *Anestesia Tópica:* ${Object.entries(topicalAnesthetics).filter(([_, v]) => v).map(([k]) => k).join(', ') || 'Nenhuma'}\n• *Locais de Aplicação:* ${paioAnesthesiaSites.join(' • ') || 'Não discriminado'}\n• *Tubetes Consumidos:* ${Object.entries(injectableTubetes).filter(([_, q]) => Number(q) > 0).map(([k, q]) => `${k}: ${q} tubete(s)`).join(', ') || '0'}\n\n*Orientações Pós-Operatórias:*\n${paioPostOpInstructions}`;
     } else {
@@ -5172,28 +5481,425 @@ export const DentalDocumentManager: React.FC = () => {
                 </div>
               )}
 
-              {/* 4. PARÂMETROS ESPECÍFICOS: SOLICITAÇÃO DE EXAMES DE SANGUE */}
+              {/* 4. PARÂMETROS ESPECÍFICOS: SOLICITAÇÃO DE EXAMES DE SANGUE E LABORATORIAIS */}
               {activeTemplate.id === 'solicitacao_sangue' && (
-                <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-3`}>
-                  <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center gap-1.5 border-b ${t.cardBorder} pb-2`}>
-                    <Activity className={`w-4 h-4 ${t.accentText}`} />
-                    3. Exames de Sangue e Laboratoriais Solicitados
-                  </span>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                    {Object.entries(bloodExams).map(([key, val]) => (
-                      <label key={key} className={`flex items-center gap-2 p-2 ${t.btnSecondaryBg} rounded-xl border ${t.cardBorder} cursor-pointer`}>
-                        <input
-                          type="checkbox"
-                          checked={val}
-                          onChange={(e) => setBloodExams(prev => ({ ...prev, [key]: e.target.checked }))}
-                          className="w-4 h-4 rounded"
-                        />
-                        <span className={`text-xs font-semibold ${t.headingText} capitalize`}>
-                          {key === 'ca153' ? 'CA 15-3' : key === 'hiv' ? 'HIV / HBSAg / Anti HCV' : key.replace(/([A-Z])/g, ' $1')}
+                <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-4`}>
+                  <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b ${t.cardBorder} pb-3`}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold">
+                        <Activity className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider block`}>
+                          3. Exames Laboratoriais, Sangue e Urina Solicitados
                         </span>
+                        <span className={`text-[11px] opacity-75 ${t.modalMutedText}`}>
+                          Catálogo completo com subtítulos, exames de urina, bioquímicos e ferramenta de exames avulsos
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] bg-blue-600/10 text-blue-800 font-bold px-3 py-1 rounded-full border border-blue-300/40">
+                        {totalSelectedLabExamsCount} exame(s) selecionado(s)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 4.1. PRESETS / PACOTES CLÍNICOS RÁPIDOS */}
+                  <div className={`p-3 rounded-xl ${t.btnSecondaryBg} border ${t.cardBorder} space-y-2`}>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[11px] font-bold ${t.headingText} uppercase tracking-wider flex items-center gap-1.5`}>
+                        <Sparkles className={`w-3.5 h-3.5 ${t.accentText}`} />
+                        Pacotes Rápidos & Presets Cirúrgicos:
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleSelectAllLabExams}
+                          className={`text-[11px] font-bold ${t.accentText} hover:underline cursor-pointer`}
+                        >
+                          Selecionar Todos
+                        </button>
+                        <span className="text-xs opacity-40">•</span>
+                        <button
+                          type="button"
+                          onClick={handleClearAllLabExams}
+                          className="text-[11px] font-bold text-red-700 hover:underline cursor-pointer"
+                        >
+                          Limpar Todos
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {LAB_EXAMS_PRESETS.map(preset => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => handleApplyLabPreset(preset.id)}
+                          className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition cursor-pointer ${t.cardBg} ${t.cardBorder} ${t.headingText} hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center gap-1`}
+                          title={preset.description}
+                        >
+                          <span>{preset.name}</span>
+                          <span className="text-[9px] opacity-60 font-mono">({preset.examIds.length})</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 4.2. BARRA DE BUSCA E FILTROS */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-1">
+                    <div className="sm:col-span-6 relative">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 opacity-50" />
+                      <input
+                        type="text"
+                        value={labExamSearchTerm}
+                        onChange={(e) => setLabExamSearchTerm(e.target.value)}
+                        placeholder="Buscar exame por nome, subtítulo ou parâmetro..."
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl pl-8.5 pr-3 py-2 text-xs font-medium focus:outline-none`}
+                      />
+                      {labExamSearchTerm && (
+                        <button
+                          type="button"
+                          onClick={() => setLabExamSearchTerm('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold opacity-60 hover:opacity-100"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    <div className="sm:col-span-6 flex items-center gap-2">
+                      <select
+                        value={labExamFilterCategory}
+                        onChange={(e) => setLabExamFilterCategory(e.target.value)}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold focus:outline-none`}
+                      >
+                        <option value="todas">Todas as Categorias ({LAB_EXAMS_CATALOG.length})</option>
+                        {LAB_EXAMS_CATALOG.map(grp => (
+                          <option key={grp.id} value={grp.id}>{grp.title}</option>
+                        ))}
+                        {customLabExams.length > 0 && (
+                          <option value="personalizados">Exames Personalizados / Avulsos ({customLabExams.length})</option>
+                        )}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* 4.3. FERRAMENTA DE ADIÇÃO DE EXAME AVULSO / PERSONALIZADO (COM SUBTÍTULOS E SUBITENS) */}
+                  <div className={`p-3.5 rounded-xl border ${showCustomExamForm ? 'border-blue-400 bg-blue-50/50 dark:bg-blue-950/20' : `${t.cardBorder} ${t.btnSecondaryBg}`} space-y-3 transition`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Plus className="w-4 h-4 text-blue-600" />
+                        <span className={`text-xs font-bold ${t.headingText}`}>
+                          Ferramenta de Adição de Exames Avulsos / Personalizados
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomExamForm(!showCustomExamForm)}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg border transition cursor-pointer ${
+                          showCustomExamForm 
+                            ? 'bg-stone-200 text-stone-800 border-stone-300' 
+                            : `${t.btnPrimaryBg} ${t.btnPrimaryText} border-transparent shadow-sm`
+                        }`}
+                      >
+                        {showCustomExamForm ? 'Fechar Formulário' : '+ Adicionar Novo Exame'}
+                      </button>
+                    </div>
+
+                    {showCustomExamForm && (
+                      <div className="pt-2 border-t border-blue-200/50 dark:border-blue-800/50 space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className={`block text-[11px] font-bold ${t.headingText} mb-1`}>
+                              Nome do Exame *
+                            </label>
+                            <input
+                              type="text"
+                              value={newCustomExamName}
+                              onChange={(e) => setNewCustomExamName(e.target.value)}
+                              placeholder="Ex: Cálcio Urinário de 24h, Calprotectina, Troponina I..."
+                              className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none`}
+                            />
+                          </div>
+                          <div>
+                            <label className={`block text-[11px] font-bold ${t.headingText} mb-1`}>
+                              Categoria / Grupo
+                            </label>
+                            <input
+                              type="text"
+                              value={newCustomExamCategory}
+                              onChange={(e) => setNewCustomExamCategory(e.target.value)}
+                              placeholder="Ex: Bioquímica Especial, Marcadores, Urina..."
+                              className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-medium focus:outline-none`}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className={`block text-[11px] font-bold ${t.headingText} mb-1`}>
+                            Subtítulo / Descrição Complementar (Opcional)
+                          </label>
+                          <input
+                            type="text"
+                            value={newCustomExamSubtitle}
+                            onChange={(e) => setNewCustomExamSubtitle(e.target.value)}
+                            placeholder="Ex: Avaliação de excreção renal e cálculo de clearance de cálcio"
+                            className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-medium focus:outline-none`}
+                          />
+                        </div>
+
+                        <div>
+                          <label className={`block text-[11px] font-bold ${t.headingText} mb-1`}>
+                            Subtítulos / Parâmetros do Exame (como no Exame de Urina - separe por vírgula ou quebra de linha)
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={newCustomExamSubItems}
+                            onChange={(e) => setNewCustomExamSubItems(e.target.value)}
+                            placeholder="Ex: Dosagem volumétrica total, Cálcio iônico na urina, Creatinúria de 24h, Relação Cálcio/Creatinina..."
+                            className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl p-2 text-xs font-medium focus:outline-none`}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                          <div className="sm:col-span-2">
+                            <label className={`block text-[11px] font-bold ${t.headingText} mb-1`}>
+                              Instruções de Preparo / Jejum do Exame (Opcional)
+                            </label>
+                            <input
+                              type="text"
+                              value={newCustomExamPreparation}
+                              onChange={(e) => setNewCustomExamPreparation(e.target.value)}
+                              placeholder="Ex: Coletar todo o volume urinário de 24h em frasco estéril fornecido pelo laboratório"
+                              className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-medium focus:outline-none`}
+                            />
+                          </div>
+                          <div>
+                            <button
+                              type="button"
+                              onClick={handleAddCustomLabExam}
+                              disabled={!newCustomExamName.trim()}
+                              className={`w-full py-2 px-3 text-xs font-bold rounded-xl border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                                newCustomExamName.trim()
+                                  ? `${t.btnPrimaryBg} ${t.btnPrimaryText} border-transparent shadow-sm hover:opacity-90`
+                                  : 'bg-stone-300 text-stone-500 border-stone-300 cursor-not-allowed'
+                              }`}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Cadastrar Exame</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Lista de Exames Personalizados Cadastrados */}
+                    {customLabExams.length > 0 && (
+                      <div className={`mt-2 pt-2 border-t ${t.cardBorder} space-y-2`}>
+                        <span className={`text-[11px] font-bold ${t.headingText} uppercase tracking-wider block`}>
+                          Exames Avulsos Cadastrados nesta Sessão ({customLabExams.length}):
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {customLabExams.map(custExam => (
+                            <div
+                              key={custExam.id}
+                              className={`p-2 rounded-xl border flex items-start justify-between gap-2 ${
+                                selectedLabExams[custExam.id] ? 'bg-blue-50/80 border-blue-300 dark:bg-blue-950/30' : `${t.cardBg} ${t.cardBorder}`
+                              }`}
+                            >
+                              <label className="flex items-start gap-2 cursor-pointer flex-1">
+                                <input
+                                  type="checkbox"
+                                  checked={!!selectedLabExams[custExam.id]}
+                                  onChange={() => handleToggleLabExam(custExam.id)}
+                                  className="w-4 h-4 rounded mt-0.5"
+                                />
+                                <div className="space-y-0.5">
+                                  <div className={`text-xs font-bold ${t.headingText}`}>
+                                    {custExam.name}
+                                  </div>
+                                  {custExam.subtitle && (
+                                    <div className={`text-[10px] opacity-75 ${t.modalMutedText}`}>
+                                      {custExam.subtitle}
+                                    </div>
+                                  )}
+                                  {custExam.subItems && custExam.subItems.length > 0 && (
+                                    <div className="text-[9.5px] text-blue-700 dark:text-blue-300 pl-1.5 border-l border-blue-300">
+                                      {custExam.subItems.join(' • ')}
+                                    </div>
+                                  )}
+                                  {custExam.preparation && (
+                                    <div className="text-[9px] text-stone-500 italic">
+                                      Preparo: {custExam.preparation}
+                                    </div>
+                                  )}
+                                </div>
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveCustomLabExam(custExam.id)}
+                                className="text-red-500 hover:text-red-700 p-1 rounded-lg hover:bg-red-50 cursor-pointer"
+                                title="Remover este exame avulso"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 4.4. CATÁLOGO CATEGORIZADO DE EXAMES LABORATORIAIS */}
+                  <div className="space-y-4">
+                    {LAB_EXAMS_CATALOG
+                      .filter(group => {
+                        if (labExamFilterCategory === 'personalizados') return false;
+                        if (labExamFilterCategory !== 'todas' && group.id !== labExamFilterCategory) return false;
+                        if (!labExamSearchTerm.trim()) return true;
+                        
+                        const term = labExamSearchTerm.toLowerCase().trim();
+                        const groupMatches = group.title.toLowerCase().includes(term) || (group.description && group.description.toLowerCase().includes(term));
+                        const itemMatches = group.items.some(it => 
+                          it.name.toLowerCase().includes(term) || 
+                          (it.subtitle && it.subtitle.toLowerCase().includes(term)) ||
+                          (it.subItems && it.subItems.some(sub => sub.toLowerCase().includes(term)))
+                        );
+                        return groupMatches || itemMatches;
+                      })
+                      .map(group => {
+                        const filteredItems = group.items.filter(it => {
+                          if (!labExamSearchTerm.trim()) return true;
+                          const term = labExamSearchTerm.toLowerCase().trim();
+                          return it.name.toLowerCase().includes(term) ||
+                            (it.subtitle && it.subtitle.toLowerCase().includes(term)) ||
+                            (it.subItems && it.subItems.some(sub => sub.toLowerCase().includes(term)));
+                        });
+
+                        if (filteredItems.length === 0) return null;
+
+                        const selectedInGroupCount = filteredItems.filter(it => selectedLabExams[it.id]).length;
+                        const allSelectedInGroup = selectedInGroupCount === filteredItems.length;
+
+                        return (
+                          <div key={group.id} className={`p-3.5 rounded-2xl border ${t.cardBorder} ${t.btnSecondaryBg} space-y-2.5`}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-stone-200 dark:border-stone-700/60 pb-2">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider`}>
+                                    {group.title}
+                                  </span>
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                                    {selectedInGroupCount} de {filteredItems.length}
+                                  </span>
+                                </div>
+                                {group.description && (
+                                  <div className={`text-[11px] opacity-75 ${t.modalMutedText}`}>
+                                    {group.description}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 self-end sm:self-auto">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleCategoryExams(group.id, !allSelectedInGroup)}
+                                  className={`text-[11px] font-bold ${allSelectedInGroup ? 'text-stone-500' : 'text-blue-600'} hover:underline cursor-pointer`}
+                                >
+                                  {allSelectedInGroup ? 'Desmarcar Grupo' : 'Marcar Grupo Todo'}
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                              {filteredItems.map(item => {
+                                const isChecked = !!selectedLabExams[item.id];
+                                return (
+                                  <label
+                                    key={item.id}
+                                    className={`p-2.5 rounded-xl border transition cursor-pointer flex flex-col justify-between gap-1.5 ${
+                                      isChecked
+                                        ? 'bg-blue-50/90 border-blue-400 dark:bg-blue-950/40 dark:border-blue-600 shadow-sm'
+                                        : `${t.cardBg} ${t.cardBorder} hover:border-blue-300`
+                                    }`}
+                                  >
+                                    <div className="flex items-start gap-2.5">
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => handleToggleLabExam(item.id)}
+                                        className="w-4 h-4 rounded mt-0.5 text-blue-600 cursor-pointer"
+                                      />
+                                      <div className="space-y-1 flex-1">
+                                        <div className="flex items-center justify-between gap-1">
+                                          <span className={`text-xs font-bold ${isChecked ? 'text-blue-900 dark:text-blue-200' : t.headingText}`}>
+                                            {item.name}
+                                          </span>
+                                          {item.preparation && (
+                                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 font-medium whitespace-nowrap">
+                                              {item.preparation}
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        {item.subtitle && (
+                                          <p className={`text-[10.5px] leading-tight ${isChecked ? 'text-blue-700 dark:text-blue-300' : 'text-stone-600 dark:text-stone-400'}`}>
+                                            {item.subtitle}
+                                          </p>
+                                        )}
+
+                                        {/* Detalhamento de Subitens / Parâmetros do Exame (ex: EAS Urina, Hemograma, Coagulograma, etc.) */}
+                                        {item.subItems && item.subItems.length > 0 && (
+                                          <div className="mt-1.5 pt-1.5 border-t border-stone-200 dark:border-stone-700/60">
+                                            <span className="text-[9px] font-bold uppercase tracking-wider text-stone-500 block mb-0.5">
+                                              Parâmetros & Subtítulos Inclusos:
+                                            </span>
+                                            <div className="space-y-0.5 pl-1 border-l-2 border-blue-400/60">
+                                              {item.subItems.map((sub, sIdx) => (
+                                                <div key={sIdx} className="text-[9.5px] text-stone-700 dark:text-stone-300 leading-tight">
+                                                  • {sub}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+
+                  {/* 4.5. INDICAÇÃO CLÍNICA E INSTRUÇÕES COMPLEMENTARES AO PACIENTE / LABORATÓRIO */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <div className="space-y-1.5">
+                      <label className={`block text-xs font-bold ${t.headingText}`}>
+                        1. Indicação Clínica & Finalidade do Exame:
                       </label>
-                    ))}
+                      <textarea
+                        rows={3}
+                        value={labExamClinicalIndication}
+                        onChange={(e) => setLabExamClinicalIndication(e.target.value)}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl p-2.5 text-xs font-medium focus:outline-none`}
+                        placeholder="Descreva a finalidade clínica cirúrgica..."
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className={`block text-xs font-bold ${t.headingText}`}>
+                        2. Instruções de Preparo, Jejum e Coleta ao Paciente / Laboratório:
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={labExamInstructions}
+                        onChange={(e) => setLabExamInstructions(e.target.value)}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl p-2.5 text-xs font-medium focus:outline-none`}
+                        placeholder="Orientações de jejum e coleta..."
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -6876,17 +7582,41 @@ export const DentalDocumentManager: React.FC = () => {
       {/* RENDERED A4 DOCUMENT PREVIEW MODAL - FULL SCREEN */}
       {isRenderModalOpen && activeTemplate && (
         <div className="fixed inset-0 z-50 bg-stone-900/85 backdrop-blur-xs flex flex-col overflow-hidden p-0 print:p-0 print:static print:bg-white print:block">
-          <div className="bg-white w-full h-full shadow-2xl overflow-hidden animate-fadeIn flex flex-col print:h-auto print:max-h-none print:shadow-none print:border-none print:w-full print:rounded-none">
+          {/* FLOATING QUICK RETURN BUTTON (STICKY VISIBLE AT ALL SCROLL POSITIONS) */}
+          <div className="fixed bottom-6 right-6 z-50 print:hidden flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsRenderModalOpen(false)}
+              className="px-4 py-2.5 bg-stone-900/95 hover:bg-stone-950 text-white font-bold text-xs rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95 cursor-pointer border border-white/20 ring-2 ring-stone-900/20"
+              title="Voltar para a edição ou lista de documentos"
+            >
+              <ArrowLeft className="w-4 h-4 text-amber-400" />
+              <span>Voltar</span>
+            </button>
+          </div>
+
+          <div className="bg-white w-full h-full shadow-2xl overflow-hidden animate-fadeIn flex flex-col print:h-auto print:max-h-none print:shadow-none print:border-none print:w-full print:rounded-none relative">
             {/* Control Bar Top */}
             <div className="bg-[#2c3e2e] text-white p-3 md:p-4 flex flex-wrap items-center justify-between gap-3 shrink-0 print:hidden shadow-md">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <span className="font-bold text-xs md:text-sm">
-                  Documento Pronto: {activeTemplate.title}
-                </span>
-                <span className="text-[11px] bg-white/10 px-2 py-0.5 rounded-full text-emerald-200">
-                  {patientDisplayName}
-                </span>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsRenderModalOpen(false)}
+                  className="px-3.5 py-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer active:scale-95 border border-white/20"
+                  title="Voltar para a edição ou lista de documentos"
+                >
+                  <ArrowLeft className="w-4 h-4 text-amber-400" />
+                  <span>Voltar</span>
+                </button>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <span className="font-bold text-xs md:text-sm">
+                    Documento Pronto: {activeTemplate.title}
+                  </span>
+                  <span className="text-[11px] bg-white/10 px-2 py-0.5 rounded-full text-emerald-200 hidden sm:inline-block">
+                    {patientDisplayName}
+                  </span>
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
@@ -6915,6 +7645,7 @@ export const DentalDocumentManager: React.FC = () => {
                   type="button"
                   onClick={() => setIsRenderModalOpen(false)}
                   className="p-2 text-white/70 hover:text-white rounded-xl hover:bg-white/10 transition cursor-pointer"
+                  title="Fechar visualização"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -6922,7 +7653,7 @@ export const DentalDocumentManager: React.FC = () => {
             </div>
 
             {/* Document Printable Sheet A4 Format */}
-            <div className="p-3 md:p-6 bg-stone-100 overflow-y-auto flex-1 flex justify-center print:p-0 print:bg-white">
+            <div className="p-3 md:p-6 bg-stone-100 overflow-y-auto flex-1 flex flex-col items-center print:p-0 print:bg-white">
               <div id="printable-document-sheet" className="w-full max-w-[760px] bg-white border border-stone-300 shadow-xl rounded-xl p-5 md:p-7 space-y-3 font-sans text-[#2c2c2c] min-h-[800px] flex flex-col justify-between relative print:shadow-none print:border-none print:w-full overflow-hidden print:overflow-visible print:p-0 box-border">
                 
                 {/* Background Watermark (Marca d'Água) */}
@@ -7205,27 +7936,98 @@ export const DentalDocumentManager: React.FC = () => {
                     </div>
                   )}
 
-                  {/* MODEL 4: SOLICITAÇÃO DE EXAMES DE SANGUE */}
+                  {/* MODEL 4: SOLICITAÇÃO DE EXAMES LABORATORIAIS E DE SANGUE */}
                   {activeTemplate.id === 'solicitacao_sangue' && (
-                    <div className="space-y-4">
-                      <div className="border-b border-stone-200 pb-2">
-                        <p className="font-bold">Para o(a) Sr(a).: {patientDisplayName}</p>
-                        <p className="text-xs text-stone-600">Idade: {patientAge} • Dados clínicos: Pré-operatório Odontológico</p>
+                    <div className="space-y-3.5 text-xs text-stone-900">
+                      <div className="border-b border-stone-200 pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                        <div>
+                          <p className="font-bold text-sm text-stone-900">
+                            Paciente: <span className="underline">{patientDisplayName}</span>
+                          </p>
+                          <p className="text-[11px] text-stone-600">
+                            Idade: <span className="font-semibold">{patientAge}</span> • Prontuário / Convênio: <span className="font-semibold">{rxPanoramicoConvenioNome || 'Particular'}</span>
+                          </p>
+                        </div>
+                        <div className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200 self-start sm:self-auto">
+                          {totalSelectedLabExamsCount} Exame(s) Solicitado(s)
+                        </div>
                       </div>
 
-                      <p className="font-bold uppercase text-xs">Solicito a realização dos seguintes exames:</p>
-
-                      <div className="grid grid-cols-2 gap-2 text-xs font-semibold pl-4">
-                        {bloodExams.hemograma && <p>1. Hemograma Completo;</p>}
-                        {bloodExams.coagulograma && <p>2. Coagulograma;</p>}
-                        {bloodExams.vitaminaD && <p>3. Vitamina D;</p>}
-                        {bloodExams.creatinina && <p>4. Creatinina;</p>}
-                        {bloodExams.glicemiaJejum && <p>5. Glicemia em Jejum;</p>}
-                        {bloodExams.calcioIonico && <p>6. Cálcio Iônico;</p>}
-                        {bloodExams.fosfataseAlcalina && <p>7. Fosfatase Alcalina;</p>}
-                        {bloodExams.sumarioUrina && <p>8. Sumário de Urina;</p>}
-                        {bloodExams.hiv && <p>9. HIV / HBSAg / Anti-HCV / VDRL.</p>}
+                      {/* 1. Indicação Clínica */}
+                      <div className="p-2.5 bg-stone-50 rounded-lg border border-stone-200 space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-stone-600 block">
+                          1. Indicação Clínica & Finalidade:
+                        </span>
+                        <p className="text-[11px] font-medium text-stone-800 leading-snug">
+                          {labExamClinicalIndication}
+                        </p>
                       </div>
+
+                      {/* 2. Exames Solicitados Agrupados */}
+                      <div className="space-y-2.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-stone-700 block border-b border-stone-200 pb-1">
+                          2. Exames Laboratoriais Solicitados:
+                        </span>
+
+                        {getSelectedLabExamsList().length > 0 ? (
+                          <div className="space-y-2.5">
+                            {getSelectedLabExamsList().map(grp => (
+                              <div key={grp.category} className="space-y-1.5">
+                                <div className="flex items-center justify-between bg-blue-50/80 px-2 py-0.5 rounded border-l-2 border-blue-600 text-[10px] font-bold text-blue-900 uppercase">
+                                  <span>{grp.category}</span>
+                                  <span className="text-[9px] text-blue-700">({grp.items.length})</span>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pl-1">
+                                  {grp.items.map(item => (
+                                    <div key={item.id} className="p-1.5 bg-stone-50/90 rounded border border-stone-200 space-y-0.5">
+                                      <div className="flex items-start gap-1.5 font-bold text-[11px] text-stone-900">
+                                        <span className="text-blue-600">☑</span>
+                                        <span>{item.name}</span>
+                                      </div>
+                                      {item.subtitle && (
+                                        <div className="text-[9.5px] text-stone-600 pl-3 leading-tight">
+                                          • {item.subtitle}
+                                        </div>
+                                      )}
+                                      {item.subItems && item.subItems.length > 0 && (
+                                        <div className="pl-3.5 border-l border-stone-300 mt-1 space-y-0.5">
+                                          {item.subItems.map((sub, sIdx) => (
+                                            <div key={sIdx} className="text-[9px] text-stone-600 leading-tight">
+                                              • {sub}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                      {item.preparation && (
+                                        <div className="text-[8.5px] text-amber-700 font-medium pl-3 italic">
+                                          Preparo: {item.preparation}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-stone-500 italic text-center py-4">
+                            Nenhum exame selecionado no momento.
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 3. Instruções ao Paciente */}
+                      {labExamInstructions && (
+                        <div className="p-2.5 bg-stone-50 rounded-lg border border-dashed border-stone-300 space-y-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-stone-600 block">
+                            3. Instruções de Preparo ao Paciente / Laboratório:
+                          </span>
+                          <p className="text-[10px] text-stone-700 leading-relaxed whitespace-pre-line">
+                            {labExamInstructions}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -7904,6 +8706,39 @@ export const DentalDocumentManager: React.FC = () => {
                   </div>
                 )}
 
+              </div>
+
+              {/* Bottom Actions Bar (Hidden in Print) */}
+              <div className="w-full max-w-[760px] mt-4 mb-8 bg-white/95 backdrop-blur-xs border border-stone-200 rounded-2xl p-4 shadow-lg flex flex-wrap items-center justify-between gap-3 print:hidden">
+                <button
+                  type="button"
+                  onClick={() => setIsRenderModalOpen(false)}
+                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs rounded-xl flex items-center gap-2 shadow-xs transition cursor-pointer border border-stone-300 active:scale-95"
+                >
+                  <ArrowLeft className="w-4 h-4 text-[#5a5a40]" />
+                  <span>Voltar para Edição / Lista</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={getWhatsAppTargetUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2.5 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>Enviar no WhatsApp</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={handlePrintActiveDocument}
+                    className="px-5 py-2.5 bg-amber-400 hover:bg-amber-500 text-stone-900 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer border border-amber-500/30 active:scale-95"
+                  >
+                    <Printer className="w-4 h-4 text-stone-900" />
+                    <span>Imprimir</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

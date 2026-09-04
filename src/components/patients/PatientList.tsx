@@ -818,16 +818,13 @@ export const PatientList: React.FC = () => {
                           )}
 
                           {/* 2. Histórico Clínico & Imunológico */}
-                          {(selectedPatient.anamnesis?.vaccinationDetails || selectedPatient.anamnesis?.comorbiditiesSummary || selectedPatient.anamnesis?.previousInfectionsHistory) && (
+                          {(selectedPatient.anamnesis?.vaccinationDetails || selectedPatient.anamnesis?.previousInfectionsHistory) && (
                             <div className="p-3 rounded-xl bg-white border border-[#e5e5d1] space-y-1 text-gray-700">
                               <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
-                                💉 Imunização & Comorbidades
+                                💉 Imunização & Infecções Prévias
                               </span>
                               {selectedPatient.anamnesis.vaccinationDetails && (
                                 <p className="text-[11px]">Vacinas: <strong>{selectedPatient.anamnesis.vaccinationDetails}</strong></p>
-                              )}
-                              {selectedPatient.anamnesis.comorbiditiesSummary && (
-                                <p className="text-[11px]">Comorbidades: <strong>{selectedPatient.anamnesis.comorbiditiesSummary}</strong></p>
                               )}
                               {selectedPatient.anamnesis.previousInfectionsHistory && (
                                 <p className="text-[11px]">Infecções Prévias: <strong>{selectedPatient.anamnesis.previousInfectionsHistory}</strong></p>
@@ -836,13 +833,16 @@ export const PatientList: React.FC = () => {
                           )}
 
                           {/* 3. Exposição & Comportamento */}
-                          {(selectedPatient.anamnesis?.travelHistory || selectedPatient.anamnesis?.closeContactsInfectious || selectedPatient.anamnesis?.lifestyleDiet || selectedPatient.anamnesis?.environmentalExposure) && (
+                          {(selectedPatient.anamnesis?.travelHistory || selectedPatient.anamnesis?.closeContactsInfectious || selectedPatient.anamnesis?.lifestyleDiet || selectedPatient.anamnesis?.environmentalExposure || selectedPatient.anamnesis?.waterIntakeFrequency) && (
                             <div className="p-3 rounded-xl bg-white border border-[#e5e5d1] space-y-1 text-gray-700">
                               <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">
-                                ✈️ Exposição & Vigilância
+                                ✈️ Exposição, Hidratação & Vigilância
                               </span>
                               {selectedPatient.anamnesis.travelHistory && (
                                 <p className="text-[11px]">Viagens Recentes: <strong>{selectedPatient.anamnesis.travelHistory}</strong></p>
+                              )}
+                              {selectedPatient.anamnesis.waterIntakeFrequency && (
+                                <p className="text-[11px]">Ingestão de Água: <strong>{selectedPatient.anamnesis.waterIntakeFrequency === 'alta' ? 'Alta (>2.5L)' : selectedPatient.anamnesis.waterIntakeFrequency === 'baixa' ? 'Baixa (<1L)' : 'Normal (1.5-2.5L)'}</strong></p>
                               )}
                               {selectedPatient.anamnesis.closeContactsInfectious && (
                                 <p className="text-[11px] text-rose-700 font-semibold">Contato Infectocontagioso: {selectedPatient.anamnesis.closeContactsDetails || 'Sim'}</p>
