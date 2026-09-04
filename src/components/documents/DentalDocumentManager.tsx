@@ -485,21 +485,30 @@ export interface PeriapicalRegionItem {
   shortDesc: string;
 }
 
-export const PERIAPICAL_REGIONS_12: PeriapicalRegionItem[] = [
-  // Arco Superior (Maxila - da direita do paciente para a esquerda)
+export const PERIAPICAL_REGIONS_14: PeriapicalRegionItem[] = [
+  // Arco Superior (Maxila - 7 Regiões: da direita do paciente para a esquerda)
   { code: 'RMSD', name: 'Região de Molares Superiores Direitos', teeth: '18, 17, 16', arch: 'superior', shortDesc: 'Molares Sup. Dir. (18, 17, 16)' },
   { code: 'RPSD', name: 'Região de Pré-Molares Superiores Direitos', teeth: '15, 14', arch: 'superior', shortDesc: 'Pré-Molares Sup. Dir. (15, 14)' },
-  { code: 'RCSD', name: 'Região de Canino Superior Direito', teeth: '13', arch: 'superior', shortDesc: 'Canino Sup. Dir. (13)' },
-  { code: 'RIS', name: 'Região de Incisivos Superiores', teeth: '12, 11, 21, 22', arch: 'superior', shortDesc: 'Incisivos Superiores (12, 11, 21, 22)' },
-  { code: 'RCSE', name: 'Região de Canino Superior Esquerdo', teeth: '23', arch: 'superior', shortDesc: 'Canino Sup. Esq. (23)' },
+  { code: 'RCSD', name: 'Região de Canino e Lateral Superior Direito', teeth: '13, 12', arch: 'superior', shortDesc: 'Canino e Lat. Sup. Dir. (13, 12)' },
+  { code: 'RIS', name: 'Região de Incisivos Centrais Superiores', teeth: '11, 21', arch: 'superior', shortDesc: 'Incisivos Centrais Sup. (11, 21)' },
+  { code: 'RCSE', name: 'Região de Canino e Lateral Superior Esquerdo', teeth: '22, 23', arch: 'superior', shortDesc: 'Canino e Lat. Sup. Esq. (22, 23)' },
   { code: 'RPSE', name: 'Região de Pré-Molares Superiores Esquerdos', teeth: '24, 25', arch: 'superior', shortDesc: 'Pré-Molares Sup. Esq. (24, 25)' },
   { code: 'RMSE', name: 'Região de Molares Superiores Esquerdos', teeth: '26, 27, 28', arch: 'superior', shortDesc: 'Molares Sup. Esq. (26, 27, 28)' },
-  // Arco Inferior (Mandíbula - da esquerda do paciente para a direita)
-  { code: 'RMIE', name: 'Região de Molares Inferiores Esquerdos', teeth: '38, 37, 36', arch: 'inferior', shortDesc: 'Molares Inf. Esq. (38, 37, 36)' },
-  { code: 'RPIE', name: 'Região de Pré-Molares Inferiores Esquerdos', teeth: '35, 34', arch: 'inferior', shortDesc: 'Pré-Molares Inf. Esq. (35, 34)' },
-  { code: 'RII', name: 'Região de Incisivos Inferiores', teeth: '32, 31, 41, 42', arch: 'inferior', shortDesc: 'Incisivos Inferiores (32, 31, 41, 42)' },
-  { code: 'RPID', name: 'Região de Pré-Molares Inferiores Direitos', teeth: '44, 45', arch: 'inferior', shortDesc: 'Pré-Molares Inf. Dir. (44, 45)' },
-  { code: 'RMID', name: 'Região de Molares Inferiores Direitos', teeth: '46, 47, 48', arch: 'inferior', shortDesc: 'Molares Inf. Dir. (46, 47, 48)' },
+  // Arco Inferior (Mandíbula - 7 Regiões: da direita do paciente para a esquerda)
+  { code: 'RMID', name: 'Região de Molares Inferiores Direitos', teeth: '48, 47, 46', arch: 'inferior', shortDesc: 'Molares Inf. Dir. (48, 47, 46)' },
+  { code: 'RPID', name: 'Região de Pré-Molares Inferiores Direitos', teeth: '45, 44', arch: 'inferior', shortDesc: 'Pré-Molares Inf. Dir. (45, 44)' },
+  { code: 'RCID', name: 'Região de Canino e Lateral Inferior Direito', teeth: '43, 42', arch: 'inferior', shortDesc: 'Canino e Lat. Inf. Dir. (43, 42)' },
+  { code: 'RII', name: 'Região de Incisivos Centrais Inferiores', teeth: '41, 31', arch: 'inferior', shortDesc: 'Incisivos Centrais Inf. (41, 31)' },
+  { code: 'RCIE', name: 'Região de Canino e Lateral Inferior Esquerdo', teeth: '32, 33', arch: 'inferior', shortDesc: 'Canino e Lat. Inf. Esq. (32, 33)' },
+  { code: 'RPIE', name: 'Região de Pré-Molares Inferiores Esquerdos', teeth: '34, 35', arch: 'inferior', shortDesc: 'Pré-Molares Inf. Esq. (34, 35)' },
+  { code: 'RMIE', name: 'Região de Molares Inferiores Esquerdos', teeth: '36, 37, 38', arch: 'inferior', shortDesc: 'Molares Inf. Esq. (36, 37, 38)' },
+];
+
+export const BITE_WING_REGIONS = [
+  { code: 'RMD', name: 'Região Molar Direita (Interproximal Bite-Wing)', teeth: '18, 17, 16 / 48, 47, 46', shortDesc: 'Molares Direitos (RMD)' },
+  { code: 'RPD', name: 'Região Pré-Molar Direita (Interproximal Bite-Wing)', teeth: '15, 14 / 45, 44', shortDesc: 'Pré-Molares Direitos (RPD)' },
+  { code: 'RPE', name: 'Região Pré-Molar Esquerda (Interproximal Bite-Wing)', teeth: '24, 25 / 34, 35', shortDesc: 'Pré-Molares Esquerdos (RPE)' },
+  { code: 'RME', name: 'Região Molar Esquerda (Interproximal Bite-Wing)', teeth: '26, 27, 28 / 36, 37, 38', shortDesc: 'Molares Esquerdos (RME)' },
 ];
 
 export const formatDocDateYYYYMMDD = (dateInput?: string | Date): string => {
@@ -1942,6 +1951,20 @@ export const DentalDocumentManager: React.FC = () => {
 
     const htmlContent = buildDocumentPrintHtml(doc, false);
 
+    const isInsideIframe = typeof window !== 'undefined' && window.self !== window.top;
+    if (isInsideIframe) {
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+      const printWin = window.open(blobUrl, '_blank');
+      if (printWin) {
+        setTimeout(() => {
+          document.title = prevTitle;
+          URL.revokeObjectURL(blobUrl);
+        }, 5000);
+        return;
+      }
+    }
+
     // Remove any previous print iframe to ensure a clean state
     const oldFrame = document.getElementById('dentispro-print-sandbox-iframe');
     if (oldFrame) {
@@ -2850,7 +2873,7 @@ export const DentalDocumentManager: React.FC = () => {
   const [rxPeriapicalSelectedRegion, setRxPeriapicalSelectedRegion] = useState<string>('');
   const [rxPeriapicalSelectedRegions, setRxPeriapicalSelectedRegions] = useState<string[]>([]);
 
-  // Toggle single periapical region code (RMSD, RPSD, RCSD, RIS, RCSE, RPSE, RMSE, RMIE, RPIE, RII, RPID, RMID)
+  // Toggle single periapical region code (RMSD, RPSD, RCSD, RIS, RCSE, RPSE, RMSE, RMID, RPID, RCID, RII, RCIE, RPIE, RMIE)
   const togglePeriapicalRegion = (regionCode: string) => {
     setRxPeriapicalSelectedRegions(prev => {
       const exists = prev.includes(regionCode);
@@ -2858,38 +2881,39 @@ export const DentalDocumentManager: React.FC = () => {
       if (next.length === 0) {
         setRxPeriapicalTeethInput('');
       } else {
-        const sorted = PERIAPICAL_REGIONS_12.filter(r => next.includes(r.code)).map(r => r.code);
+        const sorted = PERIAPICAL_REGIONS_14.filter(r => next.includes(r.code)).map(r => r.code);
         setRxPeriapicalTeethInput(`Regiões Periapicais: ${sorted.join(', ')}`);
       }
       return next;
     });
   };
 
-  // Helper to select all 12 periapical regions
-  const handleSelectAll12PeriapicalRegions = () => {
-    const allCodes = PERIAPICAL_REGIONS_12.map(r => r.code);
+  // Helper to select all 14 periapical regions
+  const handleSelectAll14PeriapicalRegions = () => {
+    const allCodes = PERIAPICAL_REGIONS_14.map(r => r.code);
     setRxPeriapicalSelectedRegions(allCodes);
-    setRxPeriapicalTeethInput(`Status Completo (12 Regiões): ${allCodes.join(', ')}`);
+    setRxPeriapicalTeethInput(`Status Completo (14 Regiões): ${allCodes.join(', ')}`);
   };
 
-  // Helper to select superior arch regions
+  // Helper to select superior arch regions (7 Regiões)
   const handleSelectSuperiorPeriapicalRegions = () => {
-    const supCodes = PERIAPICAL_REGIONS_12.filter(r => r.arch === 'superior').map(r => r.code);
+    const supCodes = PERIAPICAL_REGIONS_14.filter(r => r.arch === 'superior').map(r => r.code);
     setRxPeriapicalSelectedRegions(supCodes);
     setRxPeriapicalTeethInput(`Arco Superior (${supCodes.length} Regiões): ${supCodes.join(', ')}`);
   };
 
-  // Helper to select inferior arch regions
+  // Helper to select inferior arch regions (7 Regiões: RMID, RPID, RCID, RII, RCIE, RPIE, RMIE)
   const handleSelectInferiorPeriapicalRegions = () => {
-    const infCodes = PERIAPICAL_REGIONS_12.filter(r => r.arch === 'inferior').map(r => r.code);
+    const infCodes = PERIAPICAL_REGIONS_14.filter(r => r.arch === 'inferior').map(r => r.code);
     setRxPeriapicalSelectedRegions(infCodes);
     setRxPeriapicalTeethInput(`Arco Inferior (${infCodes.length} Regiões): ${infCodes.join(', ')}`);
   };
 
-  // Helper to select Bite-Wings Bilaterais
+  // Helper to select Bite-Wings Bilaterais (Molares: RMD e RME • Pré-Molares: RPD e RPE)
   const handleSelectBiteWingsPeriapical = () => {
     setRxPeriapicalTipo('interproximal_bite_wing');
-    setRxPeriapicalTeethInput('Interproximais Bite-Wings Bilaterais (Molares e Pré-Molares Superiores e Inferiores)');
+    setRxPeriapicalSelectedRegions(['RMD', 'RME', 'RPD', 'RPE']);
+    setRxPeriapicalTeethInput('Bite-Wings Bilaterais: Molares (RMD, RME) e Pré-Molares (RPD, RPE)');
   };
 
   // Helper to clear periapical selection
@@ -3264,85 +3288,125 @@ export const DentalDocumentManager: React.FC = () => {
     return `${header}${bodyText}${footer}`;
   };
 
+  // Solução B: Impressão Nativa com suporte inteligente a Ambientes Iframe / Sandbox
   const handlePrintActiveDocument = () => {
-    if (!activeTemplate) {
-      window.print();
-      return;
+    const prevTitle = document.title;
+    if (activeTemplate) {
+      const pdfDocumentTitle = getDocumentPdfTitle(activeTemplate.title, formattedFormattedDate);
+      document.title = pdfDocumentTitle;
     }
-    handlePrintSystemWindow({
-      id: activeTemplate.id,
-      title: activeTemplate.title,
-      patientName: patientDisplayName,
-      professionalName: activeProfessional?.name || clinicInfo.dentistName,
-      formattedDateStr: formattedFormattedDate,
-      templateId: activeTemplate.id,
-      templateData: {
-        patientAge,
-        docDate,
-        docTime,
-        periodoStr,
-        rxPanoramicoOptions,
-        rxPanoramicoTextoCustomizado,
-        rxPanoramicoTeethInput,
-        rxPanoramicoFinalidade,
-        rxPanoramicoObservacoes,
-        rxPanoramicoIncluirConvenio,
-        rxPanoramicoConvenioNome,
-        rxPanoramicoConvenioNumero,
-        rxPanoramicoIndicarClinicas,
-        rxPanoramicoClinicas,
-        rxPanoramicoOutraClinica,
-        rxPeriapicalTipo,
-        rxPeriapicalTeethInput,
-        rxPeriapicalIndication,
-        rxPeriapicalNotes,
-        bloodExams,
-        prescriptionText: specialPrescriptionText,
-        receitaSimplesVias,
-        receitaSimplesUso,
-        receitaSimplesOrientacoes,
-        notificacaoBNumero,
-        notificacaoBUf,
-        notificacaoANumero,
-        notificacaoAUf,
-        afastamentoDias,
-        atendimentoType,
-        procedureDetail,
-        aptidaoFinalidade,
-        aptidaoObservacoes,
-        relatorioDocStage,
-        relatorioProcedimentoDesc,
-        relatorioComplementar,
-        tratamentoAndamentoEspecialidade,
-        tratamentoAndamentoFrequencia,
-        tratamentoAndamentoPrevisao,
-        tratamentoAndamentoObservacoes,
-        reciboValor,
-        reciboExtenso,
-        reciboReferente,
-        reciboFormaPagamento,
-        tomographyRegions: getSelectedTomographyRegions(),
-        tomographyIndications: getSelectedTomographyIndications(),
-        tomographyDelivery: getSelectedTomographyDelivery(),
-        tomographyFov,
-        tomographyNotes,
-        isPaioActive,
-        topicalAnesthetics,
-        paioAnesthesiaSites,
-        injectableTubetes,
-        paioTechnique,
-        paioBloodPressure,
-        paioHeartRate,
-        paioProcedure,
-        paioToothRegion,
-        paioComplications,
-        paioPostOpInstructions,
-        tcleImplanteRegiao,
-        tcleImplanteEnxerto,
-        tcleClareamentoTipo,
-        tcleOrtoTipo
+
+    const isInsideIframe = typeof window !== 'undefined' && window.self !== window.top;
+
+    if (isInsideIframe && activeTemplate) {
+      // Quando o aplicativo está no preview/iframe do Google AI Studio ou Cloud Run,
+      // o Chrome bloqueia window.print() síncrono dentro do sandbox.
+      // Abrir um Blob HTML limpo com auto-print em nova aba desbloqueia a janela de impressão nativa!
+      const htmlContent = buildDocumentPrintHtml({
+        id: activeTemplate.id,
+        title: activeTemplate.title,
+        patientName: patientDisplayName,
+        professionalName: activeProfessional?.name || clinicInfo.dentistName,
+        formattedDateStr: formattedFormattedDate,
+        templateId: activeTemplate.id,
+        templateData: {
+          patientAge,
+          docDate,
+          docTime,
+          periodoStr,
+          rxPanoramicoOptions,
+          rxPanoramicoTextoCustomizado,
+          rxPanoramicoTeethInput,
+          rxPanoramicoFinalidade,
+          rxPanoramicoObservacoes,
+          rxPanoramicoIncluirConvenio,
+          rxPanoramicoConvenioNome,
+          rxPanoramicoConvenioNumero,
+          rxPanoramicoIndicarClinicas,
+          rxPanoramicoClinicas,
+          rxPanoramicoOutraClinica,
+          rxPeriapicalTipo,
+          rxPeriapicalTeethInput,
+          rxPeriapicalIndication,
+          rxPeriapicalNotes,
+          bloodExams,
+          prescriptionText: specialPrescriptionText,
+          receitaSimplesVias,
+          receitaSimplesUso,
+          receitaSimplesOrientacoes,
+          notificacaoBNumero,
+          notificacaoBUf,
+          notificacaoANumero,
+          notificacaoAUf,
+          afastamentoDias,
+          atendimentoType,
+          procedureDetail,
+          aptidaoFinalidade,
+          aptidaoObservacoes,
+          relatorioDocStage,
+          relatorioProcedimentoDesc,
+          relatorioComplementar,
+          tratamentoAndamentoEspecialidade,
+          tratamentoAndamentoFrequencia,
+          tratamentoAndamentoPrevisao,
+          tratamentoAndamentoObservacoes,
+          reciboValor,
+          reciboExtenso,
+          reciboReferente,
+          reciboFormaPagamento,
+          tomographyRegions: getSelectedTomographyRegions(),
+          tomographyIndications: getSelectedTomographyIndications(),
+          tomographyDelivery: getSelectedTomographyDelivery(),
+          tomographyFov,
+          tomographyNotes,
+          isPaioActive,
+          topicalAnesthetics,
+          paioAnesthesiaSites,
+          injectableTubetes,
+          paioTechnique,
+          paioBloodPressure,
+          paioHeartRate,
+          paioProcedure,
+          paioToothRegion,
+          paioComplications,
+          paioPostOpInstructions,
+          tcleImplanteRegiao,
+          tcleImplanteEnxerto,
+          tcleClareamentoTipo,
+          tcleOrtoTipo
+        }
+      }, false);
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+      const printWin = window.open(blobUrl, '_blank');
+      if (printWin) {
+        setTimeout(() => {
+          document.title = prevTitle;
+          URL.revokeObjectURL(blobUrl);
+        }, 5000);
+        return;
       }
-    });
+    }
+    
+    try {
+      window.print();
+    } catch (err) {
+      console.warn('Direct window.print encountered error, fallback to system window:', err);
+      if (activeTemplate) {
+        handlePrintSystemWindow({
+          id: activeTemplate.id,
+          title: activeTemplate.title,
+          patientName: patientDisplayName,
+          professionalName: activeProfessional?.name || clinicInfo.dentistName,
+          formattedDateStr: formattedFormattedDate,
+          templateId: activeTemplate.id,
+        });
+      }
+    } finally {
+      setTimeout(() => {
+        document.title = prevTitle;
+      }, 2500);
+    }
   };
 
   const getWhatsAppTargetUrl = () => {
@@ -3359,7 +3423,7 @@ export const DentalDocumentManager: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-24 md:pb-8 font-sans">
+    <div className={`space-y-6 pb-24 md:pb-8 font-sans ${isRenderModalOpen ? 'print:hidden' : ''}`}>
       {/* Top Header & Search Bar */}
       <div className={`${t.cardBg} border ${t.cardBorder} rounded-3xl p-5 md:p-6 shadow-xs space-y-4`}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -6114,17 +6178,17 @@ export const DentalDocumentManager: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* MODO 1: NOTAÇÃO MESCLADA COM AS 12 REGIÕES ANATÔMICAS OFICIAIS + FDI */}
+                      {/* MODO 1: NOTAÇÃO MESCLADA COM AS 14 REGIÕES ANATÔMICAS OFICIAIS + FDI */}
                       {rxPeriapicalNotationMode === 'merged' && (
                         <div className="space-y-3">
-                          {/* Painel das 12 Regiões Padronizadas */}
+                          {/* Painel das 14 Regiões Padronizadas */}
                           <div className="bg-white p-3 rounded-xl border border-stone-200 space-y-2.5 shadow-2xs">
                             <div className="flex items-center justify-between">
                               <span className="text-[11px] font-extrabold uppercase tracking-wide text-stone-800 flex items-center gap-1">
-                                <span>🗺️ Notação Oficial das 12 Regiões Periapicais</span>
+                                <span>🗺️ Notação Oficial das 14 Regiões Periapicais</span>
                               </span>
                               <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                                Clique para selecionar / alternar
+                                Selecione dente ou região pré-estabelecida
                               </span>
                             </div>
 
@@ -6134,7 +6198,7 @@ export const DentalDocumentManager: React.FC = () => {
                                 Arco Superior / Maxila (7 Regiões):
                               </span>
                               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-1.5">
-                                {PERIAPICAL_REGIONS_12.filter(r => r.arch === 'superior').map(reg => {
+                                {PERIAPICAL_REGIONS_14.filter(r => r.arch === 'superior').map(reg => {
                                   const isSelected = rxPeriapicalSelectedRegions.includes(reg.code) || rxPeriapicalTeethInput.includes(reg.code);
                                   return (
                                     <button
@@ -6166,13 +6230,13 @@ export const DentalDocumentManager: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* ARCADA INFERIOR (MANDÍBULA - 5 REGIÕES) */}
+                            {/* ARCADA INFERIOR (MANDÍBULA - 7 REGIÕES: RMID, RPID, RCID, RII, RCIE, RPIE, RMIE) */}
                             <div className="space-y-1 pt-1">
                               <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
-                                Arco Inferior / Mandíbula (5 Regiões):
+                                Arco Inferior / Mandíbula (7 Regiões com Caninos RCID e RCIE):
                               </span>
-                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
-                                {PERIAPICAL_REGIONS_12.filter(r => r.arch === 'inferior').map(reg => {
+                              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-1.5">
+                                {PERIAPICAL_REGIONS_14.filter(r => r.arch === 'inferior').map(reg => {
                                   const isSelected = rxPeriapicalSelectedRegions.includes(reg.code) || rxPeriapicalTeethInput.includes(reg.code);
                                   return (
                                     <button
@@ -6208,10 +6272,10 @@ export const DentalDocumentManager: React.FC = () => {
                             <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-stone-200">
                               <button
                                 type="button"
-                                onClick={handleSelectAll12PeriapicalRegions}
+                                onClick={handleSelectAll14PeriapicalRegions}
                                 className="text-[10.5px] font-bold px-2.5 py-1 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-lg text-stone-900 transition cursor-pointer"
                               >
-                                Status Completo (12 Regiões)
+                                Status Completo (14 Regiões)
                               </button>
                               <button
                                 type="button"
@@ -6225,14 +6289,15 @@ export const DentalDocumentManager: React.FC = () => {
                                 onClick={handleSelectInferiorPeriapicalRegions}
                                 className="text-[10.5px] font-bold px-2.5 py-1 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-lg text-stone-900 transition cursor-pointer"
                               >
-                                Arco Inferior (5 Regiões)
+                                Arco Inferior (7 Regiões)
                               </button>
                               <button
                                 type="button"
                                 onClick={handleSelectBiteWingsPeriapical}
-                                className="text-[10.5px] font-bold px-2.5 py-1 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-lg text-stone-900 transition cursor-pointer"
+                                className="text-[10.5px] font-bold px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg text-amber-900 transition cursor-pointer"
+                                title="Molares (RMD, RME) e Pré-Molares (RPD, RPE)"
                               >
-                                Bite-Wings Bilaterais
+                                Bite-Wings Bilaterais (RMD/RME/RPD/RPE)
                               </button>
                               <button
                                 type="button"
