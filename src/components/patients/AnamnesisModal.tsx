@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
-import { Anamnesis, Patient } from '../../types';
+import { Anamnesis, Patient, Gender } from '../../types';
 import { formatCPF } from '../../utils/formatters';
 import { formatPhoneWithDDI } from '../common/PhoneInputWithDDI';
 import { formatFullAddress } from '../common/AddressFields';

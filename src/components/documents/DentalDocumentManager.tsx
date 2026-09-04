@@ -349,17 +349,17 @@ export const DENTAL_DOCUMENT_TEMPLATES: DocumentTemplate[] = [
     id: 'solicitacao_rx_panoramico',
     category: 'solicitacao',
     title: 'Solicitação de Radiografia Panorâmica (Ortopantomografia)',
-    subtitle: 'Panorâmica com opções de Telerradiografia, Modelos 3D, Traçado e ATMs',
+    subtitle: 'Análise de dentição e óssea, ATMs (boca aberta/fechada) e pós-exodontia',
     icon: Eye,
-    description: 'Requisição completa e individualizada de Radiografia Panorâmica Digital, Telerradiografia lateral/frontal, documentação ortodôntica e avaliação de terceiros molares.'
+    description: 'Requisição de Radiografia Panorâmica para análise da dentição e óssea, avaliação específica da ATM (boca aberta/fechada), pós-exodontia de terceiros molares e centros radiológicos indicados.'
   },
   {
     id: 'solicitacao_rx_periapical_interproximal',
     category: 'solicitacao',
     title: 'Solicitação de Radiografia Periapical / Interproximal (Bite-Wing)',
-    subtitle: 'Radiografia intraoral para dentes específicos, cáries e periápice',
+    subtitle: 'Radiografia intraoral localizada com notação FDI ou por regiões anatômicas',
     icon: FilePlus,
-    description: 'Pedido radiográfico intraoral com especificação de dentes de interesse, técnica periapical/bite-wing e indicação diagnóstica.'
+    description: 'Pedido radiográfico intraoral com especificação por lista FDI ou regiões anatômicas carregadas, técnica periapical/bite-wing e indicação clínica.'
   },
   {
     id: 'solicitacao_tomografia',
@@ -409,6 +409,153 @@ export const DENTAL_DOCUMENT_TEMPLATES: DocumentTemplate[] = [
     icon: CheckCircle2,
     description: 'Laudo justificando procedimentos como aumento de coroa, imobilização ou próteses para convênios.'
   }
+];
+
+export interface FdiToothItem {
+  code: string;
+  name: string;
+  quadrant: string;
+}
+
+export const FDI_TEETH_LIST: FdiToothItem[] = [
+  // 1º Quadrante (Superior Direito)
+  { code: '18', name: '18 - Terceiro Molar Superior Direito (Siso)', quadrant: '1º Quadrante (Superior Direito)' },
+  { code: '17', name: '17 - Segundo Molar Superior Direito', quadrant: '1º Quadrante (Superior Direito)' },
+  { code: '16', name: '16 - Primeiro Molar Superior Direito', quadrant: '1º Quadrante (Superior Direito)' },
+  { code: '15', name: '15 - Segundo Pré-Molar Superior Direito', quadrant: '1º Quadrante (Superior Direito)' },
+  { code: '14', name: '14 - Primeiro Pré-Molar Superior Direito', quadrant: '1º Quadrante (Superior Direito)' },
+  { code: '13', name: '13 - Canino Superior Direito', quadrant: '1º Quadrante (Superior Direito)' },
+  { code: '12', name: '12 - Incisivo Lateral Superior Direito', quadrant: '1º Quadrante (Superior Direito)' },
+  { code: '11', name: '11 - Incisivo Central Superior Direito', quadrant: '1º Quadrante (Superior Direito)' },
+  // 2º Quadrante (Superior Esquerdo)
+  { code: '21', name: '21 - Incisivo Central Superior Esquerdo', quadrant: '2º Quadrante (Superior Esquerdo)' },
+  { code: '22', name: '22 - Incisivo Lateral Superior Esquerdo', quadrant: '2º Quadrante (Superior Esquerdo)' },
+  { code: '23', name: '23 - Canino Superior Esquerdo', quadrant: '2º Quadrante (Superior Esquerdo)' },
+  { code: '24', name: '24 - Primeiro Pré-Molar Superior Esquerdo', quadrant: '2º Quadrante (Superior Esquerdo)' },
+  { code: '25', name: '25 - Segundo Pré-Molar Superior Esquerdo', quadrant: '2º Quadrante (Superior Esquerdo)' },
+  { code: '26', name: '26 - Primeiro Molar Superior Esquerdo', quadrant: '2º Quadrante (Superior Esquerdo)' },
+  { code: '27', name: '27 - Segundo Molar Superior Esquerdo', quadrant: '2º Quadrante (Superior Esquerdo)' },
+  { code: '28', name: '28 - Terceiro Molar Superior Esquerdo (Siso)', quadrant: '2º Quadrante (Superior Esquerdo)' },
+  // 3º Quadrante (Inferior Esquerdo)
+  { code: '31', name: '31 - Incisivo Central Inferior Esquerdo', quadrant: '3º Quadrante (Inferior Esquerdo)' },
+  { code: '32', name: '32 - Incisivo Lateral Inferior Esquerdo', quadrant: '3º Quadrante (Inferior Esquerdo)' },
+  { code: '33', name: '33 - Canino Inferior Esquerdo', quadrant: '3º Quadrante (Inferior Esquerdo)' },
+  { code: '34', name: '34 - Primeiro Pré-Molar Inferior Esquerdo', quadrant: '3º Quadrante (Inferior Esquerdo)' },
+  { code: '35', name: '35 - Segundo Pré-Molar Inferior Esquerdo', quadrant: '3º Quadrante (Inferior Esquerdo)' },
+  { code: '36', name: '36 - Primeiro Molar Inferior Esquerdo', quadrant: '3º Quadrante (Inferior Esquerdo)' },
+  { code: '37', name: '37 - Segundo Molar Inferior Esquerdo', quadrant: '3º Quadrante (Inferior Esquerdo)' },
+  { code: '38', name: '38 - Terceiro Molar Inferior Esquerdo (Siso)', quadrant: '3º Quadrante (Inferior Esquerdo)' },
+  // 4º Quadrante (Inferior Direito)
+  { code: '41', name: '41 - Incisivo Central Inferior Direito', quadrant: '4º Quadrante (Inferior Direito)' },
+  { code: '42', name: '42 - Incisivo Lateral Inferior Direito', quadrant: '4º Quadrante (Inferior Direito)' },
+  { code: '43', name: '43 - Canino Inferior Direito', quadrant: '4º Quadrante (Inferior Direito)' },
+  { code: '44', name: '44 - Primeiro Pré-Molar Inferior Direito', quadrant: '4º Quadrante (Inferior Direito)' },
+  { code: '45', name: '45 - Segundo Pré-Molar Inferior Direito', quadrant: '4º Quadrante (Inferior Direito)' },
+  { code: '46', name: '46 - Primeiro Molar Inferior Direito', quadrant: '4º Quadrante (Inferior Direito)' },
+  { code: '47', name: '47 - Segundo Molar Inferior Direito', quadrant: '4º Quadrante (Inferior Direito)' },
+  { code: '48', name: '48 - Terceiro Molar Inferior Direito (Siso)', quadrant: '4º Quadrante (Inferior Direito)' },
+  // Dentição Decídua
+  { code: '51', name: '51 - Incisivo Central Superior Direito Decíduo', quadrant: 'Decíduos (Superior Direito)' },
+  { code: '52', name: '52 - Incisivo Lateral Superior Direito Decíduo', quadrant: 'Decíduos (Superior Direito)' },
+  { code: '53', name: '53 - Canino Superior Direito Decíduo', quadrant: 'Decíduos (Superior Direito)' },
+  { code: '54', name: '54 - Primeiro Molar Superior Direito Decíduo', quadrant: 'Decíduos (Superior Direito)' },
+  { code: '55', name: '55 - Segundo Molar Superior Direito Decíduo', quadrant: 'Decíduos (Superior Direito)' },
+  { code: '61', name: '61 - Incisivo Central Superior Esquerdo Decíduo', quadrant: 'Decíduos (Superior Esquerdo)' },
+  { code: '62', name: '62 - Incisivo Lateral Superior Esquerdo Decíduo', quadrant: 'Decíduos (Superior Esquerdo)' },
+  { code: '63', name: '63 - Canino Superior Esquerdo Decíduo', quadrant: 'Decíduos (Superior Esquerdo)' },
+  { code: '64', name: '64 - Primeiro Molar Superior Esquerdo Decíduo', quadrant: 'Decíduos (Superior Esquerdo)' },
+  { code: '65', name: '65 - Segundo Molar Superior Esquerdo Decíduo', quadrant: 'Decíduos (Superior Esquerdo)' },
+  { code: '71', name: '71 - Incisivo Central Inferior Esquerdo Decíduo', quadrant: 'Decíduos (Inferior Esquerdo)' },
+  { code: '72', name: '72 - Incisivo Lateral Inferior Esquerdo Decíduo', quadrant: 'Decíduos (Inferior Esquerdo)' },
+  { code: '73', name: '73 - Canino Inferior Esquerdo Decíduo', quadrant: 'Decíduos (Inferior Esquerdo)' },
+  { code: '74', name: '74 - Primeiro Molar Inferior Esquerdo Decíduo', quadrant: 'Decíduos (Inferior Esquerdo)' },
+  { code: '75', name: '75 - Segundo Molar Inferior Esquerdo Decíduo', quadrant: 'Decíduos (Inferior Esquerdo)' },
+  { code: '81', name: '81 - Incisivo Central Inferior Direito Decíduo', quadrant: 'Decíduos (Inferior Direito)' },
+  { code: '82', name: '82 - Incisivo Lateral Inferior Direito Decíduo', quadrant: 'Decíduos (Inferior Direito)' },
+  { code: '83', name: '83 - Canino Inferior Direito Decíduo', quadrant: 'Decíduos (Inferior Direito)' },
+  { code: '84', name: '84 - Primeiro Molar Inferior Direito Decíduo', quadrant: 'Decíduos (Inferior Direito)' },
+  { code: '85', name: '85 - Segundo Molar Inferior Direito Decíduo', quadrant: 'Decíduos (Inferior Direito)' },
+];
+
+export interface PeriapicalRegionItem {
+  code: string;
+  name: string;
+  teeth: string;
+  arch: 'superior' | 'inferior';
+  shortDesc: string;
+}
+
+export const PERIAPICAL_REGIONS_12: PeriapicalRegionItem[] = [
+  // Arco Superior (Maxila - da direita do paciente para a esquerda)
+  { code: 'RMSD', name: 'Região de Molares Superiores Direitos', teeth: '18, 17, 16', arch: 'superior', shortDesc: 'Molares Sup. Dir. (18, 17, 16)' },
+  { code: 'RPSD', name: 'Região de Pré-Molares Superiores Direitos', teeth: '15, 14', arch: 'superior', shortDesc: 'Pré-Molares Sup. Dir. (15, 14)' },
+  { code: 'RCSD', name: 'Região de Canino Superior Direito', teeth: '13', arch: 'superior', shortDesc: 'Canino Sup. Dir. (13)' },
+  { code: 'RIS', name: 'Região de Incisivos Superiores', teeth: '12, 11, 21, 22', arch: 'superior', shortDesc: 'Incisivos Superiores (12, 11, 21, 22)' },
+  { code: 'RCSE', name: 'Região de Canino Superior Esquerdo', teeth: '23', arch: 'superior', shortDesc: 'Canino Sup. Esq. (23)' },
+  { code: 'RPSE', name: 'Região de Pré-Molares Superiores Esquerdos', teeth: '24, 25', arch: 'superior', shortDesc: 'Pré-Molares Sup. Esq. (24, 25)' },
+  { code: 'RMSE', name: 'Região de Molares Superiores Esquerdos', teeth: '26, 27, 28', arch: 'superior', shortDesc: 'Molares Sup. Esq. (26, 27, 28)' },
+  // Arco Inferior (Mandíbula - da esquerda do paciente para a direita)
+  { code: 'RMIE', name: 'Região de Molares Inferiores Esquerdos', teeth: '38, 37, 36', arch: 'inferior', shortDesc: 'Molares Inf. Esq. (38, 37, 36)' },
+  { code: 'RPIE', name: 'Região de Pré-Molares Inferiores Esquerdos', teeth: '35, 34', arch: 'inferior', shortDesc: 'Pré-Molares Inf. Esq. (35, 34)' },
+  { code: 'RII', name: 'Região de Incisivos Inferiores', teeth: '32, 31, 41, 42', arch: 'inferior', shortDesc: 'Incisivos Inferiores (32, 31, 41, 42)' },
+  { code: 'RPID', name: 'Região de Pré-Molares Inferiores Direitos', teeth: '44, 45', arch: 'inferior', shortDesc: 'Pré-Molares Inf. Dir. (44, 45)' },
+  { code: 'RMID', name: 'Região de Molares Inferiores Direitos', teeth: '46, 47, 48', arch: 'inferior', shortDesc: 'Molares Inf. Dir. (46, 47, 48)' },
+];
+
+export const formatDocDateYYYYMMDD = (dateInput?: string | Date): string => {
+  let d = new Date();
+  if (dateInput) {
+    if (typeof dateInput === 'string') {
+      const matchPt = dateInput.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (matchPt) {
+        return `${matchPt[3]}/${matchPt[2].padStart(2, '0')}/${matchPt[1].padStart(2, '0')}`;
+      }
+      const matchIso = dateInput.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (matchIso) {
+        return `${matchIso[1]}/${matchIso[2].padStart(2, '0')}/${matchIso[3].padStart(2, '0')}`;
+      }
+      const parsed = new Date(dateInput);
+      if (!isNaN(parsed.getTime())) d = parsed;
+    } else if (dateInput instanceof Date && !isNaN(dateInput.getTime())) {
+      d = dateInput;
+    }
+  }
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}/${month}/${day}`;
+};
+
+export const getDocumentPdfTitle = (docTitle: string, dateInput?: string | Date): string => {
+  const dateStr = formatDocDateYYYYMMDD(dateInput);
+  return `${docTitle} - ${dateStr}`;
+};
+
+export const REGION_NOTATIONS_LIST = [
+  'Incisivos Centrais e Laterais Superiores (Região Anterior Superior - 12, 11, 21, 22)',
+  'Incisivos Centrais e Laterais Inferiores (Região Anterior Inferior - 42, 41, 31, 32)',
+  'Região Canina Superior Direita (13)',
+  'Região Canina Superior Esquerda (23)',
+  'Região Canina Inferior Esquerda (33)',
+  'Região Canina Inferior Direita (43)',
+  'Pré-Molares Superiores Direitos (14 e 15)',
+  'Pré-Molares Superiores Esquerdos (24 e 25)',
+  'Molares Superiores Direitos (16, 17 e 18)',
+  'Molares Superiores Esquerdos (26, 27 e 28)',
+  'Pré-Molares Inferiores Esquerdos (34 e 35)',
+  'Pré-Molares Inferiores Direitos (44 e 45)',
+  'Molares Inferiores Esquerdos (36, 37 e 38)',
+  'Molares Inferiores Direitos (46, 47 e 48)',
+  'Hemiarcada Superior Direita Completa (Quadrante 1)',
+  'Hemiarcada Superior Esquerda Completa (Quadrante 2)',
+  'Hemiarcada Inferior Esquerda Completa (Quadrante 3)',
+  'Hemiarcada Inferior Direita Completa (Quadrante 4)',
+  'Interproximais Bite-Wings Direita (Molares e Pré-Molares Direitos)',
+  'Interproximais Bite-Wings Esquerda (Molares e Pré-Molares Esquerdos)',
+  'Interproximais Bite-Wings Bilaterais (Molares e Pré-Molares Bilaterais)',
+  'Radiografia Oclusal de Maxila (Arco Superior)',
+  'Radiografia Oclusal de Mandíbula (Arco Inferior)',
+  'Status Bucal Completo (Levantamento Periapical de 14 Tomadas)'
 ];
 
 export const DentalDocumentManager: React.FC = () => {
@@ -518,16 +665,100 @@ export const DentalDocumentManager: React.FC = () => {
       .trim();
   };
 
-  // Helper function to open native system print dialog
-  const handlePrintSystemWindow = (doc: { id?: string; title: string; patientName: string; professionalName?: string; formattedDateStr?: string; summary?: string }) => {
-    const isSpecialPrescription = doc.id === 'receituario_controle_especial' || doc.title.toLowerCase().includes('controle especial');
-    const isTomography = doc.id === 'solicitacao_tomografia' || doc.title.toLowerCase().includes('tomografia');
+  // Helper functions for Solicitação de Radiografia Panorâmica (extraídas dos modelos anexados)
+  const getRxPanoramicoSolicitacoesList = (opts?: any, customTxt?: string) => {
+    if (customTxt && customTxt.trim()) {
+      return [customTxt.trim()];
+    }
+    const items: string[] = [];
+    if (opts?.analiseDenticaoOssea) {
+      items.push('Solicito radiografia panorâmica para análise da dentição e óssea.');
+    }
+    if (opts?.atmBocaAbertaFechada) {
+      items.push('Solicito Radiografia Panorâmica específica da ATM de boca fechada e boca aberta para análise da Articulação Temporomandibular.');
+    }
+    if (opts?.posExodontiaSisos) {
+      items.push('Solicito Rx Panorâmico para análise de dentição e óssea pós Exodontia de terceiros molares.');
+    }
+    if (opts?.preOperatorioSisos) {
+      items.push('Solicito Radiografia Panorâmica para avaliação pré-operatória e planejamento cirúrgico de terceiros molares.');
+    }
+    if (items.length === 0) {
+      items.push('Solicito radiografia panorâmica para análise da dentição e óssea.');
+    }
+    return items;
+  };
+
+  const getRxPanoramicoClinicasList = (clinicasOpts?: any, customClinic?: string) => {
+    const list: { name: string; subtitle?: string }[] = [];
+    if (clinicasOpts?.perboyreCastelo ?? true) {
+      list.push({ name: 'Perboyre Castelo', subtitle: 'A imagem da odontologia do Ceará' });
+    }
+    if (clinicasOpts?.dentalImagem ?? true) {
+      list.push({ name: 'Dental Imagem', subtitle: 'Diagnóstico e Documentação Odontológica' });
+    }
+    if (clinicasOpts?.oralScan ?? true) {
+      list.push({ name: 'Oral Scan', subtitle: 'Imaginologia Odontológica' });
+    }
+    if (customClinic && customClinic.trim()) {
+      list.push({ name: customClinic.trim(), subtitle: 'Centro Radiológico Indicado' });
+    }
+    return list;
+  };
+
+  // Helper function to build structured, high-fidelity printable HTML for all document types
+  const buildDocumentPrintHtml = (doc: {
+    id?: string;
+    title: string;
+    patientName: string;
+    professionalName?: string;
+    formattedDateStr?: string;
+    summary?: string;
+    templateId?: string;
+    templateData?: Record<string, any>;
+    cidCode?: string;
+  }, forGovBr: boolean = false): string => {
+    const templateId = doc.templateId || doc.id || '';
+    const isSpecialPrescription = templateId === 'receituario_controle_especial' || doc.title.toLowerCase().includes('controle especial');
+    const isTomography = templateId === 'solicitacao_tomografia' || doc.title.toLowerCase().includes('tomografia');
+    const isRxPanoramico = templateId === 'solicitacao_rx_panoramico' || doc.title.toLowerCase().includes('panorâmica') || doc.title.toLowerCase().includes('panoramica');
+    const isRxPeriapical = templateId === 'solicitacao_rx_periapical_interproximal' || doc.title.toLowerCase().includes('periapical') || doc.title.toLowerCase().includes('interproximal');
+    const isSangue = templateId === 'solicitacao_sangue' || doc.title.toLowerCase().includes('sangue') || doc.title.toLowerCase().includes('laboratoriais');
+    const isReceitaSimples = templateId === 'receituario_simples' || doc.title.toLowerCase().includes('receituário simples') || doc.title.toLowerCase().includes('receituario simples');
+    const isNotificacaoB = templateId === 'receituario_notificacao_b_azul' || doc.title.toLowerCase().includes('notificação de receita b') || doc.title.toLowerCase().includes('notificacao de receita b');
+    const isNotificacaoA = templateId === 'receituario_notificacao_a_amarela' || doc.title.toLowerCase().includes('notificação de receita a') || doc.title.toLowerCase().includes('notificacao de receita a');
+    const isAptidao = templateId === 'atestado_aptidao_odontologica' || doc.title.toLowerCase().includes('aptidão') || doc.title.toLowerCase().includes('aptidao') || doc.title.toLowerCase().includes('sanidade');
+    const isRelatorio = templateId === 'relatorio_atendimento_inicial_final' || doc.title.toLowerCase().includes('relatório de atendimento') || doc.title.toLowerCase().includes('relatorio de atendimento');
+    const isTratamentoAndamento = templateId === 'declaracao_tratamento_andamento' || doc.title.toLowerCase().includes('tratamento em andamento');
+    const isRecibo = templateId === 'declaracao_valores_recibo' || doc.title.toLowerCase().includes('recibo') || doc.title.toLowerCase().includes('valores');
+    const isPaio = templateId === 'protocolo_anestesia_intraoral_paio' || doc.title.toLowerCase().includes('anestesia') || doc.title.toLowerCase().includes('paio');
+    const isTermo = templateId.startsWith('tcle_') || doc.title.toLowerCase().includes('termo de consentimento') || doc.title.toLowerCase().includes('tcle');
+    const isAtestado = !isSpecialPrescription && (doc.title.toLowerCase().includes('atestado') || doc.id?.startsWith('atestado'));
+
     const cleanCity = cleanCityName(effectiveClinicCity);
     const cityOnly = formatCityOnly(effectiveClinicCity);
     const cepFormatted = formatCEP(clinicInfo.cep || '60.160-110');
     const docDateStr = doc.formattedDateStr || formattedFormattedDate || new Date().toLocaleDateString('pt-BR');
     const dentistName = doc.professionalName || effectiveDentistName;
     const dentistCro = effectiveDentistCro;
+    const tData = doc.templateData || {};
+    const pdfDocTitle = getDocumentPdfTitle(doc.title, doc.formattedDateStr || docDate);
+    const autoPrintScript = `
+  <script>
+    function triggerAutoPrint() {
+      try {
+        window.focus();
+        window.print();
+      } catch (err) {}
+    }
+    if (document.readyState === 'complete') {
+      setTimeout(triggerAutoPrint, 250);
+    } else {
+      window.addEventListener('load', function() {
+        setTimeout(triggerAutoPrint, 250);
+      });
+    }
+  </script>`;
 
     const sigAlign = clinicInfo.signatureAlignment || 'right';
     const sigArrangement = clinicInfo.signatureArrangement || 'overlay';
@@ -560,29 +791,129 @@ export const DentalDocumentManager: React.FC = () => {
       </div>
     `;
 
-    const printWindow = window.open('', '_blank', 'width=850,height=950');
-    if (!printWindow) {
-      window.print();
-      return;
-    }
+    const watermarkHtml = (clinicInfo.showWatermark ?? true) && (clinicInfo.watermarkUrl || clinicInfo.logoUrl) ? `
+      <div class="watermark-container">
+        <img src="${clinicInfo.watermarkUrl || clinicInfo.logoUrl}" style="max-width: 320px; max-height: 320px; object-fit: contain; opacity: ${(clinicInfo.watermarkOpacity ?? 15) / 100}; filter: grayscale(100%);" alt="Marca d'Água" />
+      </div>
+    ` : '';
 
-    let htmlContent = '';
+    const clinicFooterHtml = forGovBr ? `
+      <div style="margin-top: 25px; border-top: 1px solid #ccc; padding-top: 12px; font-size: 10.5px; text-align: center; color: #555;">
+        ${clinicInfo.footerText ? `<div style="text-align: center; margin-bottom: 8px; font-size: 10px; color: #444; font-weight: 500;">${clinicInfo.footerText}</div>` : ''}
+        <p style="font-weight: bold; margin: 0 0 4px;">${dentistName}</p>
+        <p style="margin: 0 0 6px;">Cirurgião-Dentista • ${dentistCro}</p>
+        <p style="font-size: 9.5px; color: #002776; margin: 0;">Documento preparado para assinatura digital oficial no portal Gov.br (www.gov.br/assinador)</p>
+      </div>
+    ` : `
+      <div style="margin-top: 20px; border-top: 1px solid #ebebe0; padding-top: 10px; font-size: 9.5px; color: #666;">
+        ${clinicInfo.footerText ? `<div style="text-align: center; margin-bottom: 8px; font-size: 10px; color: #444; font-weight: 500;">${clinicInfo.footerText}</div>` : ''}
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <a href="https://dentispro.com.br" target="_blank" rel="noopener noreferrer" style="color: #666; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            dentispro.com.br
+          </a>
+          <a href="mailto:${effectiveClinicEmail}" style="color: #666; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+            ${effectiveClinicEmail}
+          </a>
+          <a href="tel:${effectiveClinicPhone.replace(/\D/g, '')}" style="color: #666; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            ${effectiveClinicPhone}
+          </a>
+        </div>
+      </div>
+    `;
 
+    const standardHeaderHtml = `
+      ${watermarkHtml}
+      <div class="header">
+        <div class="clinic-info">
+          ${clinicInfo.logoUrl ? `<img src="${clinicInfo.logoUrl}" class="clinic-logo" alt="Logo" />` : ''}
+          <div>
+            <div class="dentist-name">${clinicInfo.headerSubtitle || dentistName}</div>
+            <div class="dentist-cro">Cirurgião-Dentista ${dentistCro} ${clinicInfo.specialty ? `• ${clinicInfo.specialty}` : ''}</div>
+            <div class="dentist-sub">EPAO: ${clinicInfo.epao || '825 CE'} • CNPJ: ${formatCNPJ(clinicInfo.cnpj || '22.144.932/0001-40')}</div>
+          </div>
+        </div>
+        <div class="clinic-right">
+          <div class="clinic-title">${clinicInfo.headerTitle || effectiveClinicName || clinicInfo.name || 'DentisPro'}</div>
+          <div class="clinic-detail">${effectiveClinicAddress}</div>
+          <div class="clinic-detail">${cityOnly} - CE • CEP: ${cepFormatted}</div>
+          <div class="clinic-detail">Tel: ${effectiveClinicPhone}</div>
+        </div>
+      </div>
+    `;
+
+    const baseCss = `
+      @page { size: A4 portrait; margin: 1.2cm 1.5cm 1.2cm 1.5cm; }
+      * { box-sizing: border-box; }
+      body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 0; color: #222; line-height: 1.38; margin: 0 auto; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .watermark-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .header { position: relative; z-index: 1; border-bottom: 2px solid #2c3e2e; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-start; }
+      .clinic-info { display: flex; align-items: center; gap: 10px; }
+      .clinic-logo { height: 48px; width: 48px; object-fit: contain; }
+      .dentist-name { font-size: 13px; font-weight: bold; color: #1b281d; }
+      .dentist-cro { font-size: 10px; color: #555; font-family: monospace; }
+      .dentist-sub { font-size: 9.5px; color: #666; }
+      .clinic-right { text-align: right; max-width: 320px; }
+      .clinic-title { font-size: 13px; font-weight: bold; color: #1b281d; text-transform: uppercase; line-height: 1.2; }
+      .clinic-detail { font-size: 9.5px; color: #555; margin-top: 1px; }
+      .title-box { position: relative; z-index: 1; text-align: center; margin: 8px 0 10px; }
+      .title { font-size: 15px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; color: #1b281d; border-bottom: 1.5px solid #1b281d; display: inline-block; padding-bottom: 2px; }
+      .title-sub { font-size: 9.5px; color: #666; font-weight: 600; text-transform: uppercase; margin-top: 2px; }
+      .patient-card { position: relative; z-index: 1; background: #fbfbf8; border: 1px solid #c8c8b4; border-radius: 6px; padding: 7px 12px; margin-bottom: 10px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; }
+      .section-card { position: relative; z-index: 1; background: #fff; border: 1px solid #c8c8b4; border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; }
+      .section-title { font-size: 10.5px; font-weight: bold; text-transform: uppercase; color: #2c3e2e; border-bottom: 1px solid #ebebe0; padding-bottom: 3px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .grid-item { background: #f9f9f5; border: 1px solid #dcdccb; border-radius: 4px; padding: 6px 8px; font-size: 10.5px; }
+      .check-item { display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #e0e0d0; border-radius: 4px; padding: 4px 8px; font-size: 10.5px; font-weight: 600; }
+      .date-row { position: relative; z-index: 1; text-align: right; font-size: 10.5px; font-weight: 600; color: #2c3e2e; margin-top: 10px; margin-bottom: 6px; }
+      .footer { position: relative; z-index: 1; margin-top: 10px; }
+      @media print {
+        body { padding: 0; margin: 0; }
+        .section-card, .patient-card, .footer { break-inside: avoid; page-break-inside: avoid; }
+        .watermark-container {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          pointer-events: none !important;
+          z-index: 0 !important;
+        }
+      }
+    `;
+
+    // 1. RECEITUÁRIO DE CONTROLE ESPECIAL (PROTECTED MODEL - RULE 1 OF AGENTS.MD)
     if (isSpecialPrescription) {
       const prescriptionText = (doc.summary && !doc.summary.includes('gerado para o(a) paciente'))
         ? doc.summary
-        : (specialPrescriptionText || 'Amoxicilina 500mg + Clavulanato de Potássio 125mg ---------------- 1 caixa\nTomar 1 comprimido por via oral a cada 8 horas durante 7 dias.');
+        : (tData.prescriptionText || specialPrescriptionText || 'Amoxicilina 500mg + Clavulanato de Potássio 125mg ---------------- 1 caixa\nTomar 1 comprimido por via oral a cada 8 horas durante 7 dias.');
 
-      htmlContent = `
+      return `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>${doc.title} - ${doc.patientName}</title>
+  <title>${pdfDocTitle}</title>
   <style>
     @page { size: A4 portrait; margin: 1.5cm; }
     * { box-sizing: border-box; }
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a; padding: 0; margin: 0 auto; background: #fff; line-height: 1.4; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a; padding: 0; margin: 0 auto; background: #fff; line-height: 1.4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .top-rectangles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
     .rect-box { border: 1.5px solid #222; border-radius: 6px; padding: 10px 12px; font-size: 10.5px; min-height: 155px; display: flex; flex-direction: column; justify-content: space-between; background: #fff; }
     .box-title { font-size: 10.5px; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #ccc; padding-bottom: 3px; margin-bottom: 5px; color: #2c3e2e; }
@@ -602,10 +933,23 @@ export const DentalDocumentManager: React.FC = () => {
       body { padding: 0; margin: 0; }
       .rect-box, .bottom-box { border: 1.5px solid #000 !important; }
       .patient-box { border-color: #888 !important; }
+      .watermark-container {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        pointer-events: none !important;
+        z-index: 0 !important;
+      }
     }
   </style>
 </head>
 <body>
+  ${watermarkHtml}
   <div class="top-rectangles">
     <div class="rect-box">
       <div>
@@ -614,7 +958,7 @@ export const DentalDocumentManager: React.FC = () => {
         <div class="emitente-phone">Telefones: ${effectiveClinicPhone}</div>
       </div>
       <div style="border-top: 1px solid #eee; margin-top: 4px; padding-top: 4px;">
-        ${effectiveClinicName ? `<div class="clinic-title">${effectiveClinicName}</div>` : ''}
+        ${(clinicInfo.headerTitle || effectiveClinicName) ? `<div class="clinic-title">${clinicInfo.headerTitle || effectiveClinicName}</div>` : ''}
         <div class="clinic-addr">${effectiveClinicAddress}</div>
         <div class="clinic-addr">${cityOnly} - CE • CEP: ${cepFormatted}</div>
       </div>
@@ -672,125 +1016,109 @@ export const DentalDocumentManager: React.FC = () => {
     </div>
   </div>
 
-  <script>
-    window.onload = function() {
-      setTimeout(function() { window.print(); }, 300);
-    };
-  </script>
+  ${autoPrintScript}
 </body>
-</html>
-      `;
-    } else if (isTomography) {
-      const selectedRegionsList = getSelectedTomographyRegions();
-      const selectedIndicationsList = getSelectedTomographyIndications();
-      const selectedDeliveryList = getSelectedTomographyDelivery();
-      const fovLabel = TOMOGRAPHY_FOV_LABELS[tomographyFov] || tomographyFov;
+</html>`;
+    }
 
-      htmlContent = `
+    // 2. SOLICITAÇÃO DE RADIOGRAFIA PANORÂMICA (ORTOPANTOMOGRAFIA)
+    if (isRxPanoramico) {
+      const teeth = tData.rxPanoramicoTeethInput || rxPanoramicoTeethInput;
+      const finalidade = tData.rxPanoramicoFinalidade || rxPanoramicoFinalidade;
+      const opts = tData.rxPanoramicoOptions || rxPanoramicoOptions;
+      const obs = tData.rxPanoramicoObservacoes || rxPanoramicoObservacoes;
+      const patAge = tData.patientAge || patientAge;
+      const customTxt = tData.rxPanoramicoTextoCustomizado || rxPanoramicoTextoCustomizado;
+      const solicitacoes = getRxPanoramicoSolicitacoesList(opts, customTxt);
+
+      const incluirConvenio = tData.rxPanoramicoIncluirConvenio ?? rxPanoramicoIncluirConvenio;
+      const convNome = tData.rxPanoramicoConvenioNome || rxPanoramicoConvenioNome;
+      const convNum = tData.rxPanoramicoConvenioNumero || rxPanoramicoConvenioNumero;
+
+      const indicarClinicas = tData.rxPanoramicoIndicarClinicas ?? rxPanoramicoIndicarClinicas;
+      const clinicasOpts = tData.rxPanoramicoClinicas || rxPanoramicoClinicas;
+      const customClinica = tData.rxPanoramicoOutraClinica || rxPanoramicoOutraClinica;
+      const clinicasList = getRxPanoramicoClinicasList(clinicasOpts, customClinica);
+
+      return `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>${doc.title} - ${doc.patientName}</title>
-  <style>
-    @page { size: A4 portrait; margin: 1.5cm; }
-    * { box-sizing: border-box; }
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 0; color: #222; line-height: 1.4; margin: 0 auto; background: #fff; overflow-x: hidden; }
-    .header { border-bottom: 2px solid #2c3e2e; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-start; }
-    .clinic-info { display: flex; align-items: center; gap: 10px; }
-    .clinic-logo { height: 48px; width: 48px; object-fit: contain; }
-    .dentist-name { font-size: 13px; font-weight: bold; color: #1b281d; }
-    .dentist-cro { font-size: 10px; color: #555; font-family: monospace; }
-    .dentist-sub { font-size: 9.5px; color: #666; }
-    .clinic-right { text-align: right; max-width: 280px; }
-    .clinic-title { font-size: 14px; font-weight: bold; color: #1b281d; text-transform: uppercase; line-height: 1.2; }
-    .clinic-detail { font-size: 10px; color: #555; margin-top: 1px; }
-    .title-box { text-align: center; margin: 12px 0 10px; }
-    .title { font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; color: #1b281d; border-bottom: 1.5px solid #1b281d; display: inline-block; padding-bottom: 2px; }
-    .title-sub { font-size: 9.5px; color: #666; font-weight: 600; text-transform: uppercase; margin-top: 2px; }
-    .patient-card { background: #fbfbf8; border: 1px solid #dcdccb; border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; font-size: 11.5px; display: flex; justify-content: space-between; align-items: center; }
-    .section-card { background: #fff; border: 1px solid #e0e0d5; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; }
-    .section-title { font-size: 10.5px; font-weight: bold; text-transform: uppercase; color: #2c3e2e; border-bottom: 1px solid #ebebe0; padding-bottom: 3px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
-    .regions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 10.5px; }
-    .region-item { background: #f7f7f2; border: 1px solid #e3e3d6; border-radius: 4px; padding: 4px 7px; font-weight: 600; color: #222; }
-    .indications-list { margin: 0; padding-left: 16px; font-size: 10.5px; line-height: 1.5; }
-    .indications-list li { margin-bottom: 2px; font-weight: 500; }
-    .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 10.5px; }
-    .tech-box { background: #fafaf6; border: 1px solid #e6e6dc; border-radius: 4px; padding: 6px 8px; }
-    .tech-label { font-size: 9.5px; font-weight: bold; text-transform: uppercase; color: #555; margin-bottom: 2px; }
-    .notes-box { font-size: 10.5px; background: #fffef7; border: 1px solid #e9e4be; border-radius: 4px; padding: 6px 8px; line-height: 1.4; color: #333; }
-    .date-row { text-align: right; font-size: 10.5px; font-weight: 600; color: #2c3e2e; margin-top: 12px; margin-bottom: 8px; text-transform: uppercase; }
-    .footer { margin-top: 12px; }
-    @media print {
-      body { padding: 0; margin: 0; background: none; }
-      .patient-card, .section-card, .region-item, .tech-box, .notes-box { border-color: #777 !important; background: none !important; }
-      img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
-  </style>
+  <title>${pdfDocTitle}</title>
+  <style>${baseCss}</style>
 </head>
 <body>
-  <div class="header">
-    <div class="clinic-info">
-      ${clinicInfo.logoUrl ? `<img src="${clinicInfo.logoUrl}" class="clinic-logo" alt="Logo" />` : ''}
-      <div>
-        <div class="dentist-name">${dentistName}</div>
-        <div class="dentist-cro">Cirurgião-Dentista ${dentistCro}</div>
-        <div class="dentist-sub">EPAO: ${clinicInfo.epao || '825 CE'} • CNPJ: ${formatCNPJ(clinicInfo.cnpj || '22.144.932/0001-40')}</div>
-      </div>
-    </div>
-    <div class="clinic-right">
-      <div class="clinic-title">${effectiveClinicName || clinicInfo.name || 'DentisPro'}</div>
-      <div class="clinic-detail">${effectiveClinicAddress}</div>
-      <div class="clinic-detail">${cityOnly} - CE • CEP: ${cepFormatted}</div>
-      <div class="clinic-detail">Tel: ${effectiveClinicPhone}</div>
-    </div>
-  </div>
+  ${standardHeaderHtml}
 
   <div class="title-box">
-    <div class="title">SOLICITAÇÃO DE TOMOGRAFIA CONE BEAM (CBCT)</div>
-    <div class="title-sub">EXAME RADIOLÓGICO TRIDIMENSIONAL DE FEIXE CÔNICO</div>
+    <div class="title">SOLICITAÇÃO DE RADIOGRAFIA PANORÂMICA</div>
+    <div class="title-sub">EXAME RADIOLÓGICO ODONTOLÓGICO EXTRAORAL</div>
   </div>
 
-  <div class="patient-card">
-    <div><strong>Paciente:</strong> <span style="font-size: 12.5px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
-    <div><strong>Idade:</strong> ${patientAge}</div>
+  <div class="patient-card" style="display: block;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px;">
+      <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
+      <div><strong>IDADE:</strong> ${patAge}</div>
+    </div>
+    ${incluirConvenio && convNome ? `
+      <div style="margin-top: 6px; padding-top: 5px; border-top: 1px dashed #ccc; font-size: 11px; display: flex; flex-wrap: wrap; gap: 12px;">
+        <div><strong>CONVÊNIO:</strong> ${convNome}</div>
+        ${convNum ? `<div><strong>MATRÍCULA / CARTEIRINHA:</strong> ${convNum}</div>` : ''}
+      </div>
+    ` : ''}
   </div>
 
   <div class="section-card">
     <div class="section-title">
-      <span>1. REGIÕES ANATÔMICAS SOLICITADAS</span>
-      <span style="font-size: 9px; font-weight: bold; background: #e8e8d8; padding: 2px 6px; border-radius: 4px;">${selectedRegionsList.length} Região(ões) Selecionada(s)</span>
+      <span>SOLICITAÇÃO CLÍNICA</span>
     </div>
-    <div class="regions-grid">
-      ${selectedRegionsList.map(r => `<div class="region-item">☑ ${r}</div>`).join('')}
+    <div style="padding: 4px 0; font-size: 11.5px; line-height: 1.6; color: #1a1a1a;">
+      ${solicitacoes.map(s => `
+        <div style="margin-bottom: 6px; font-weight: 600;">• ${s}</div>
+      `).join('')}
     </div>
   </div>
 
+  ${teeth || finalidade ? `
   <div class="section-card">
-    <div class="section-title">2. FINALIDADE CLÍNICA E INDICAÇÕES DO EXAME</div>
-    <ul class="indications-list">
-      ${selectedIndicationsList.map(ind => `<li><strong>•</strong> ${ind}</li>`).join('')}
-    </ul>
-  </div>
-
-  <div class="section-card">
-    <div class="section-title">3. ESPECIFICAÇÕES TÉCNICAS E FORMATO DE ENTREGA</div>
-    <div class="tech-grid">
-      <div class="tech-box">
-        <div class="tech-label">Campo de Visão (FOV):</div>
-        <div style="font-weight: bold; color: #1b281d;">${fovLabel}</div>
+    <div class="grid-2">
+      ${teeth ? `
+      <div class="grid-item">
+        <div style="font-size: 9.5px; font-weight: bold; color: #555; text-transform: uppercase;">Região / Dentes de Interesse</div>
+        <div style="font-size: 11px; font-weight: bold; color: #111; margin-top: 2px;">${teeth}</div>
       </div>
-      <div class="tech-box">
-        <div class="tech-label">Formatos Solicitados:</div>
-        <div style="font-weight: 600;">${selectedDeliveryList.map(d => `• ${d}`).join('<br/>')}</div>
+      ` : ''}
+      ${finalidade ? `
+      <div class="grid-item">
+        <div style="font-size: 9.5px; font-weight: bold; color: #555; text-transform: uppercase;">Indicação / Finalidade Clínica</div>
+        <div style="font-size: 11px; font-weight: bold; color: #111; margin-top: 2px;">${finalidade}</div>
       </div>
+      ` : ''}
     </div>
   </div>
+  ` : ''}
 
-  ${tomographyNotes ? `
-  <div class="section-card">
-    <div class="section-title">4. OBSERVAÇÕES E ORIENTAÇÕES CLÍNICAS</div>
-    <div class="notes-box">${tomographyNotes}</div>
+  ${obs ? `
+  <div class="section-card" style="background: #fdfdf9;">
+    <div class="section-title">OBSERVAÇÕES E RECOMENDAÇÕES TÉCNICAS</div>
+    <div style="font-size: 10.5px; color: #333; line-height: 1.4;">${obs}</div>
+  </div>
+  ` : ''}
+
+  ${indicarClinicas && clinicasList.length > 0 ? `
+  <div class="section-card" style="margin-top: 10px; background: #fafaf7; border: 1px dashed #bbb; padding: 10px 14px;">
+    <div style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #444; margin-bottom: 8px;">
+      Faça este exame em clínicas radiológicas:
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px;">
+      ${clinicasList.map(c => `
+        <div style="background: #ffffff; border: 1px solid #dcdcd0; border-radius: 6px; padding: 6px 10px;">
+          <div style="font-size: 11px; font-weight: bold; color: #1a2a1c;">${c.name}</div>
+          ${c.subtitle ? `<div style="font-size: 9px; color: #666; margin-top: 2px;">${c.subtitle}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
   </div>
   ` : ''}
 
@@ -800,71 +1128,210 @@ export const DentalDocumentManager: React.FC = () => {
 
   <div class="footer">
     ${signatureBlockHtml}
-    <p style="font-size: 9px; color: #777; margin-top: 10px; text-align: center;">Documento emitido e registrado no sistema DentisPro (https://dentispro.com.br)</p>
+    ${clinicFooterHtml}
   </div>
 
-  <script>
-    window.onload = function() {
-      setTimeout(function() { window.print(); }, 300);
-    };
-  </script>
+  ${autoPrintScript}
 </body>
-</html>
-      `;
-    } else {
-      htmlContent = `
+</html>`;
+    }
+
+    // 3. SOLICITAÇÃO DE TOMOGRAFIA CONE BEAM (CBCT)
+    if (isTomography) {
+      const selectedRegionsList = tData.tomographyRegions || getSelectedTomographyRegions();
+      const selectedIndicationsList = tData.tomographyIndications || getSelectedTomographyIndications();
+      const selectedDeliveryList = tData.tomographyDelivery || getSelectedTomographyDelivery();
+      const currentFov = tData.tomographyFov || tomographyFov;
+      const fovLabel = TOMOGRAPHY_FOV_LABELS[currentFov] || currentFov;
+      const notes = tData.tomographyNotes || tomographyNotes;
+      const patAge = tData.patientAge || patientAge;
+
+      return `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>${doc.title} - ${doc.patientName}</title>
-  <style>
-    @page { size: A4 portrait; margin: 1.5cm; }
-    * { box-sizing: border-box; }
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 0; color: #2c2c2c; line-height: 1.5; margin: 0 auto; background: #fff; overflow-x: hidden; }
-    .header { border-bottom: 2px solid #2c3e2e; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
-    .clinic-info { display: flex; align-items: center; gap: 10px; }
-    .clinic-logo { height: 48px; width: 48px; object-fit: contain; }
-    .dentist-name { font-size: 13px; font-weight: bold; color: #1b281d; }
-    .dentist-cro { font-size: 10px; color: #555; font-family: monospace; }
-    .dentist-sub { font-size: 9.5px; color: #666; }
-    .clinic-right { text-align: right; max-width: 280px; }
-    .clinic-title { font-size: 14px; font-weight: bold; color: #2c3e2e; text-transform: uppercase; line-height: 1.2; }
-    .clinic-detail { font-size: 10px; color: #555; margin-top: 1px; }
-    .title { text-align: center; font-size: 18px; font-weight: bold; margin: 20px 0 15px; text-transform: uppercase; letter-spacing: 0.5px; color: #1b281d; text-decoration: underline; }
-    .body-content { font-size: 13px; margin: 20px 0; text-align: justify; line-height: 1.8; background: #fafafa; padding: 20px; border-radius: 8px; border: 1px solid #eee; }
-    .date-row { text-align: right; font-size: 10.5px; font-weight: 600; color: #2c3e2e; margin-top: 20px; text-transform: uppercase; }
-    .footer { margin-top: 20px; }
-    @media print {
-      body { padding: 0; margin: 0; background: none; }
-      .body-content { background: none; border: none; padding: 0; }
-      img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
-  </style>
+  <title>${pdfDocTitle}</title>
+  <style>${baseCss}</style>
 </head>
 <body>
-  <div class="header">
-    <div class="clinic-info">
-      ${clinicInfo.logoUrl ? `<img src="${clinicInfo.logoUrl}" class="clinic-logo" alt="Logo" />` : ''}
-      <div>
-        <div class="dentist-name">${dentistName}</div>
-        <div class="dentist-cro">Cirurgião-Dentista ${dentistCro}</div>
-        <div class="dentist-sub">EPAO: ${clinicInfo.epao || '825 CE'} • CNPJ: ${formatCNPJ(clinicInfo.cnpj || '22.144.932/0001-40')}</div>
-      </div>
+  ${standardHeaderHtml}
+
+  <div class="title-box">
+    <div class="title">SOLICITAÇÃO DE TOMOGRAFIA CONE BEAM (CBCT)</div>
+    <div class="title-sub">EXAME RADIOLÓGICO TRIDIMENSIONAL DE FEIXE CÔNICO</div>
+  </div>
+
+  <div class="patient-card">
+    <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
+    <div><strong>IDADE:</strong> ${patAge}</div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">
+      <span>1. REGIÕES ANATÔMICAS SOLICITADAS</span>
+      <span style="font-size: 9px; font-weight: bold; background: #e8e8d8; padding: 2px 6px; border-radius: 4px;">${selectedRegionsList.length} Região(ões)</span>
     </div>
-    <div class="clinic-right">
-      <div class="clinic-title">${effectiveClinicName || clinicInfo.name || 'DentisPro'}</div>
-      <div class="clinic-detail">${effectiveClinicAddress}</div>
-      <div class="clinic-detail">${cityOnly} - CE • CEP: ${cepFormatted}</div>
-      <div class="clinic-detail">Tel: ${effectiveClinicPhone}</div>
+    <div class="grid-2">
+      ${selectedRegionsList.map((r: string) => `<div class="check-item"><span style="color: #0369a1; font-weight: bold;">☑</span><span>${r}</span></div>`).join('')}
     </div>
   </div>
 
-  <div class="title">${doc.title}</div>
+  <div class="section-card">
+    <div class="section-title">2. FINALIDADE CLÍNICA E INDICAÇÕES DO EXAME</div>
+    <ul style="margin: 0; padding-left: 18px; font-size: 10.5px; line-height: 1.5;">
+      ${selectedIndicationsList.map((ind: string) => `<li>${ind}</li>`).join('')}
+    </ul>
+  </div>
 
-  <div class="body-content">
-    <p style="margin-bottom: 12px;"><strong>Paciente:</strong> ${doc.patientName}</p>
-    <p>${doc.summary || 'Documento emitido e registrado no sistema odontológico para fins de prontuário e acompanhamento clínico.'}</p>
+  <div class="section-card">
+    <div class="section-title">3. ESPECIFICAÇÕES TÉCNICAS E FORMATO DE ENTREGA</div>
+    <div class="grid-2">
+      <div class="grid-item">
+        <div style="font-size: 9.5px; font-weight: bold; color: #555; text-transform: uppercase;">Campo de Visão (FOV):</div>
+        <div style="font-weight: bold; color: #1b281d; font-size: 11px; margin-top: 2px;">${fovLabel}</div>
+      </div>
+      <div class="grid-item">
+        <div style="font-size: 9.5px; font-weight: bold; color: #555; text-transform: uppercase;">Formatos Solicitados:</div>
+        <div style="font-weight: 600; font-size: 10.5px; margin-top: 2px;">${selectedDeliveryList.join(' • ')}</div>
+      </div>
+    </div>
+  </div>
+
+  ${notes ? `
+  <div class="section-card" style="background: #fdfdf9;">
+    <div class="section-title">4. OBSERVAÇÕES E ORIENTAÇÕES CLÍNICAS</div>
+    <div style="font-size: 10.5px; color: #333; line-height: 1.4;">${notes}</div>
+  </div>
+  ` : ''}
+
+  <div class="date-row">
+    ${cityOnly}, ${docDateStr}
+  </div>
+
+  <div class="footer">
+    ${signatureBlockHtml}
+    ${clinicFooterHtml}
+  </div>
+
+  ${autoPrintScript}
+</body>
+</html>`;
+    }
+
+    // 4. RADIOGRAFIAS PERIAPICAIS & INTERPROXIMAIS
+    if (isRxPeriapical) {
+      const periapicalTipo = tData.rxPeriapicalTipo || rxPeriapicalTipo;
+      const teeth = tData.rxPeriapicalTeethInput || rxPeriapicalTeethInput;
+      const indication = tData.rxPeriapicalIndication || rxPeriapicalIndication;
+      const notes = tData.rxPeriapicalNotes || rxPeriapicalNotes;
+      const patAge = tData.patientAge || patientAge;
+
+      const tipoLabel = periapicalTipo === 'periapical_localizada' ? 'Periapical Localizada' :
+        periapicalTipo === 'levantamento_completo_14_tomadas' ? 'Levantamento Periapical Completo (14 tomadas)' :
+        periapicalTipo === 'interproximal_bite_wing' ? 'Interproximais (Bite-Wings)' : 'Radiografia Oclusal';
+
+      return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${pdfDocTitle}</title>
+  <style>${baseCss}</style>
+</head>
+<body>
+  ${standardHeaderHtml}
+
+  <div class="title-box">
+    <div class="title">SOLICITAÇÃO DE RADIOGRAFIA INTRAORAL (PERIAPICAL / INTERPROXIMAL)</div>
+    <div class="title-sub">EXAME RADIOGRÁFICO INTRAORAL LOCALIZADO</div>
+  </div>
+
+  <div class="patient-card">
+    <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
+    <div><strong>IDADE:</strong> ${patAge}</div>
+  </div>
+
+  <div class="section-card">
+    <div class="grid-2">
+      <div class="grid-item">
+        <div style="font-size: 9.5px; font-weight: bold; color: #555; text-transform: uppercase;">1. Tipo de Exame</div>
+        <div style="font-size: 11px; font-weight: bold; color: #111; margin-top: 2px;">${tipoLabel}</div>
+      </div>
+      <div class="grid-item">
+        <div style="font-size: 9.5px; font-weight: bold; color: #555; text-transform: uppercase;">2. Dentes / Elementos Solicitados</div>
+        <div style="font-size: 11px; font-weight: bold; color: #111; margin-top: 2px;">${teeth}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">3. INDICAÇÃO CLÍNICA</div>
+    <div style="font-size: 11px; font-weight: 600; color: #222;">${indication}</div>
+  </div>
+
+  ${notes ? `
+  <div class="section-card" style="background: #fdfdf9;">
+    <div class="section-title">4. OBSERVAÇÕES TÉCNICAS</div>
+    <div style="font-size: 10.5px; color: #333; line-height: 1.4;">${notes}</div>
+  </div>
+  ` : ''}
+
+  <div class="date-row">
+    ${cityOnly}, ${docDateStr}
+  </div>
+
+  <div class="footer">
+    ${signatureBlockHtml}
+    ${clinicFooterHtml}
+  </div>
+
+  ${autoPrintScript}
+</body>
+</html>`;
+    }
+
+    // 5. SOLICITAÇÃO DE EXAMES DE SANGUE
+    if (isSangue) {
+      const examsObj = tData.bloodExams || bloodExams;
+      const selectedBloodExams = Object.entries(examsObj).filter(([_, v]) => v).map(([k]) => k);
+      const patAge = tData.patientAge || patientAge;
+
+      return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${pdfDocTitle}</title>
+  <style>${baseCss}</style>
+</head>
+<body>
+  ${standardHeaderHtml}
+
+  <div class="title-box">
+    <div class="title">SOLICITAÇÃO DE EXAMES LABORATORIAIS PRÉ-OPERATÓRIOS</div>
+    <div class="title-sub">AVALIAÇÃO HEMATOLÓGICA E BIOQUÍMICA PRÉ-CIRÚRGICA</div>
+  </div>
+
+  <div class="patient-card">
+    <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
+    <div><strong>IDADE:</strong> ${patAge}</div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">1. FINALIDADE CLÍNICA</div>
+    <div style="font-size: 11px; font-weight: 600; color: #222;">
+      Avaliação pré-operatória e rastreamento de risco cirúrgico odontológico para procedimento ambulatorial.
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">2. EXAMES LABORATORIAIS SOLICITADOS</div>
+    <div class="grid-2">
+      ${(selectedBloodExams.length ? selectedBloodExams : ['Hemograma completo com contagem de plaquetas', 'Tempo de Protrombina (TP / INR)', 'Tempo de Tromboplastina Parcial Ativada (TTPa)', 'Glicemia de Jejum']).map((ex: string) => `
+        <div class="check-item"><span style="color: #0369a1; font-weight: bold;">☑</span><span>${ex}</span></div>
+      `).join('')}
+    </div>
   </div>
 
   <div class="date-row">
@@ -873,90 +1340,697 @@ export const DentalDocumentManager: React.FC = () => {
 
   <div class="footer">
     ${signatureBlockHtml}
-    <p style="font-size: 9.5px; color: #777; margin-top: 15px; text-align: center;">Documento emitido e registrado no sistema DentisPro (https://dentispro.com.br)</p>
+    ${clinicFooterHtml}
   </div>
 
-  <script>
-    window.onload = function() {
-      setTimeout(function() { window.print(); }, 300);
-    };
-  </script>
+  ${autoPrintScript}
 </body>
-</html>
-      `;
+</html>`;
     }
 
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-  };
+    // 6. RECEITUÁRIO SIMPLES
+    if (isReceitaSimples) {
+      const prescText = tData.prescriptionText || specialPrescriptionText || 'Amoxicilina 500mg ------------------ 21 cápsulas\nTomar 1 cápsula via oral de 8 em 8 horas por 7 dias.\n\nIbuprofeno 600mg ------------------- 10 comprimidos\nTomar 1 comprimido via oral de 8 em 8 horas em caso de dor ou inchaço.';
+      const vias = tData.receitaSimplesVias || receitaSimplesVias;
+      const uso = tData.receitaSimplesUso || receitaSimplesUso;
+      const orientacoes = tData.receitaSimplesOrientacoes || receitaSimplesOrientacoes;
 
-  // Helper function to download PDF/HTML and open Gov.br Assinador
-  const handleDownloadPdfForGovBr = (doc: { id?: string; title: string; patientName: string; professionalName?: string; formattedDateStr?: string; summary?: string }, openGovBr: boolean = false) => {
-    const isSpecialPrescription = doc.id === 'receituario_controle_especial' || doc.title.toLowerCase().includes('controle especial');
-    const cleanCity = cleanCityName(clinicInfo.city);
-    const htmlContent = `
+      return `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>${doc.title} - ${doc.patientName}</title>
-  <style>
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 40px; color: #2c2c2c; line-height: 1.6; max-width: 800px; margin: 0 auto; }
-    .header { border-bottom: 2px solid #2c3e2e; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; }
-    .clinic { font-size: 18px; font-weight: bold; color: #2c3e2e; }
-    .subtitle { font-size: 11px; color: #555; }
-    .title { text-align: center; font-size: 18px; font-weight: bold; margin: 25px 0; text-transform: uppercase; letter-spacing: 0.5px; color: #1b281d; text-decoration: underline; }
-    .body-content { font-size: 13px; margin: 30px 0; text-align: justify; line-height: 1.8; background: #fafafa; padding: 20px; border-radius: 8px; border: 1px solid #eee; }
-    .footer { margin-top: 60px; text-align: center; border-top: 1px solid #ccc; padding-top: 15px; font-size: 11px; }
-    @media print { body { padding: 0; } .body-content { background: none; border: none; padding: 0; } }
-  </style>
+  <title>${pdfDocTitle}</title>
+  <style>${baseCss}</style>
 </head>
 <body>
-  <div class="header">
-    <div>
-      <div style="font-size: 13px; font-weight: bold; color: #1b281d;">${doc.professionalName || clinicInfo.dentistName}</div>
-      <div class="subtitle">Cirurgião-Dentista • ${clinicInfo.cro}</div>
-      <div class="subtitle">EPAO: ${clinicInfo.epao || '825 CE'}${isSpecialPrescription ? '' : ` • CNPJ: ${formatCNPJ(clinicInfo.cnpj || '22.144.932/0001-40')}`}</div>
+  ${standardHeaderHtml}
+
+  <div class="title-box">
+    <div class="title">RECEITUÁRIO ODONTOLÓGICO</div>
+    <div class="title-sub">PRESCRIÇÃO MEDICAMENTOSA</div>
+  </div>
+
+  <div class="patient-card">
+    <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
+    <div><strong>VIA:</strong> <span style="font-weight: bold;">${vias}</span></div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">
+      <span>PRESCRIÇÃO</span>
+      <span style="font-size: 9.5px; font-style: italic; color: #555;">(${uso})</span>
     </div>
-    <div style="text-align: right;" class="subtitle">
-      <div class="clinic" style="font-size: 14px; text-transform: uppercase;">${effectiveClinicName || clinicInfo.name || 'DentisPro'}</div>
-      <div>${effectiveClinicAddress}</div>
-      <div>${cleanCity} - CE • CEP: ${formatCEP(clinicInfo.cep || '60.160-110')}</div>
-      <div>Tel: ${effectiveClinicPhone}</div>
+    <div style="background: #fdfdf9; border: 1px solid #e0e0d5; border-radius: 4px; padding: 10px; font-size: 11.5px; white-space: pre-line; line-height: 1.6; font-weight: 500;">
+      ${prescText}
     </div>
   </div>
 
-  <div class="title">${doc.id === 'solicitacao_tomografia' ? 'SOLICITAÇÃO DE TOMOGRAFIA CONE BEAM (CBCT)' : doc.title}</div>
-
-  <div class="body-content">
-    <p style="margin-bottom: 12px;"><strong>Paciente:</strong> ${doc.patientName}</p>
-    <p>${doc.summary || 'Documento emitido e registrado no sistema odontológico para fins de prontuário e acompanhamento clínico.'}</p>
+  ${orientacoes ? `
+  <div class="section-card" style="background: #fcfcf7;">
+    <div class="section-title">ORIENTAÇÕES AO PACIENTE</div>
+    <div style="font-size: 10.5px; color: #333; line-height: 1.4;">${orientacoes}</div>
   </div>
+  ` : ''}
 
-  <div style="text-align: right; font-size: 11px; font-weight: 600; color: #2c3e2e; margin-top: 20px; text-transform: uppercase;">
-    ${cleanCity}, ${doc.formattedDateStr || new Date().toLocaleDateString('pt-BR')}
+  <div class="date-row">
+    ${cityOnly}, ${docDateStr}
   </div>
 
   <div class="footer">
-    <p><strong>${doc.professionalName || clinicInfo.dentistName}</strong></p>
-    <p>Cirurgião-Dentista • ${clinicInfo.cro}</p>
-    <p style="font-size: 10px; color: #777; margin-top: 5px;">Documento assinado digitalmente no portal oficial Gov.br (www.gov.br/assinador)</p>
+    ${signatureBlockHtml}
+    ${clinicFooterHtml}
   </div>
 
-  <script>
-    window.onload = function() {
-      setTimeout(function() { window.print(); }, 400);
-    };
-  </script>
+  ${autoPrintScript}
 </body>
-</html>
-    `;
+</html>`;
+    }
 
+    // 7. NOTIFICAÇÃO DE RECEITA B (AZUL) / A (AMARELA)
+    if (isNotificacaoB || isNotificacaoA) {
+      const num = isNotificacaoB ? (tData.notificacaoBNumero || notificacaoBNumero) : (tData.notificacaoANumero || notificacaoANumero);
+      const uf = isNotificacaoB ? (tData.notificacaoBUf || notificacaoBUf) : (tData.notificacaoAUf || notificacaoAUf);
+      const prescText = tData.prescriptionText || specialPrescriptionText;
+
+      return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${pdfDocTitle}</title>
+  <style>${baseCss}</style>
+</head>
+<body>
+  ${standardHeaderHtml}
+
+  <div style="border: 2px solid #222; border-radius: 6px; padding: 10px; margin-bottom: 12px; background: #fafafa; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <div style="font-size: 13px; font-weight: bold; text-transform: uppercase;">${isNotificacaoB ? 'NOTIFICAÇÃO DE RECEITA B (PSICOTRÓPICOS)' : 'NOTIFICAÇÃO DE RECEITA A (ENTORPECENTES)'}</div>
+      <div style="font-size: 9.5px; color: #666;">Portaria SVS/MS nº 344/98 • Válida em todo o território nacional</div>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 12px; font-mono font-weight: bold;">Nº: ${num}</div>
+      <div style="font-size: 10px; font-weight: bold;">UF: ${uf}</div>
+    </div>
+  </div>
+
+  <div class="patient-card">
+    <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
+    <div><strong>EMITENTE:</strong> ${dentistName} (${dentistCro})</div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">PRESCRIÇÃO E POSOLOGIA</div>
+    <div style="background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; font-size: 11.5px; white-space: pre-line; line-height: 1.6;">
+      ${prescText}
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="section-card" style="font-size: 10px; line-height: 1.7;">
+      <div class="section-title">IDENTIFICAÇÃO DO COMPRADOR</div>
+      <div>Nome: _____________________________________</div>
+      <div>Doc. Identidade: ________________ Órgão: _______</div>
+      <div>Endereço: __________________________________</div>
+      <div>Telefone: __________________________________</div>
+    </div>
+    <div class="section-card" style="font-size: 10px; line-height: 1.7; display: flex; flex-direction: column; justify-content: space-between;">
+      <div class="section-title">IDENTIFICAÇÃO DO FORNECEDOR</div>
+      <div style="text-align: center; margin-top: 15px;">
+        <div style="border-top: 1px solid #666; padding-top: 2px;">Assinatura / Carimbo Farmacêutico</div>
+        <div style="margin-top: 4px;">Data: ____ / ____ / ________</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="date-row">
+    ${cityOnly}, ${docDateStr}
+  </div>
+
+  <div class="footer">
+    ${signatureBlockHtml}
+    ${clinicFooterHtml}
+  </div>
+
+  ${autoPrintScript}
+</body>
+</html>`;
+    }
+
+    // 8. ATESTADO DE APTIDÃO ODONTOLÓGICA
+    if (isAptidao) {
+      const finalidade = tData.aptidaoFinalidade || aptidaoFinalidade;
+      const obs = tData.aptidaoObservacoes || aptidaoObservacoes;
+      const patAge = tData.patientAge || patientAge;
+
+      return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${pdfDocTitle}</title>
+  <style>${baseCss}</style>
+</head>
+<body>
+  ${standardHeaderHtml}
+
+  <div class="title-box">
+    <div class="title">ATESTADO DE APTIDÃO ODONTOLÓGICA / SANIDADE BUCAL</div>
+    <div class="title-sub">EXAME CLÍNICO ADMISSIONAL / CIRÚRGICO / CONCURSOS</div>
+  </div>
+
+  <div class="patient-card">
+    <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
+    <div><strong>IDADE:</strong> ${patAge}</div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">FINALIDADE DA AVALIAÇÃO</div>
+    <div style="font-size: 11px; font-weight: 600; color: #222;">${finalidade}</div>
+  </div>
+
+  <div class="section-card" style="text-align: justify; font-size: 12px; line-height: 1.8; padding: 14px 16px;">
+    Atesto, para os devidos fins de direito, a pedido da parte interessada, que realizei minucioso exame clínico da cavidade bucal no(a) paciente acima identificado(a), constatando ausência de focos de infecção ativa, dentes cariados sem tratamento, patologias ósseas ou lesões estomatológicas aparentes, encontrando-se a sua saúde bucal em condições adequadas e plenamente <strong>APTO(A)</strong> para a finalidade pretendida.
+  </div>
+
+  ${obs ? `
+  <div class="section-card" style="background: #fdfdf9;">
+    <div class="section-title">OBSERVAÇÕES CLÍNICAS</div>
+    <div style="font-size: 10.5px; color: #333; line-height: 1.4;">${obs}</div>
+  </div>
+  ` : ''}
+
+  <div class="date-row">
+    ${cityOnly}, ${docDateStr}
+  </div>
+
+  <div class="footer">
+    ${signatureBlockHtml}
+    ${clinicFooterHtml}
+  </div>
+
+  ${autoPrintScript}
+</body>
+</html>`;
+    }
+
+    // 9. RELATÓRIO DE ATENDIMENTO INICIAL / FINAL
+    if (isRelatorio) {
+      const stage = tData.relatorioDocStage || relatorioDocStage;
+      const procDesc = tData.relatorioProcedimentoDesc || relatorioProcedimentoDesc;
+      const comp = tData.relatorioComplementar || relatorioComplementar;
+      const patAge = tData.patientAge || patientAge;
+
+      return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${pdfDocTitle}</title>
+  <style>${baseCss}</style>
+</head>
+<body>
+  ${standardHeaderHtml}
+
+  <div class="title-box">
+    <div class="title">RELATÓRIO DE ATENDIMENTO ODONTOLÓGICO</div>
+    <div class="title-sub">${stage === 'inicial' ? 'RELATÓRIO INICIAL DE ENCAMINHAMENTO E PLANEJAMENTO' : 'RELATÓRIO CONCLUSIVO DE ALTA CLÍNICA'}</div>
+  </div>
+
+  <div class="patient-card">
+    <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
+    <div><strong>IDADE:</strong> ${patAge}</div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">1. PROCEDIMENTO / TRATAMENTO REALIZADO</div>
+    <div style="font-size: 11px; font-weight: 600; color: #222; line-height: 1.5;">${procDesc}</div>
+  </div>
+
+  <div class="section-card" style="background: #fcfcf7;">
+    <div class="section-title">2. INFORMAÇÕES AOS PACIENTES ASSISTIDOS E JUSTIFICATIVAS CLÍNICAS</div>
+    <div style="font-size: 11px; text-align: justify; line-height: 1.6; color: #333;">
+      O paciente e/ou responsável foi devidamente orientado e esclarecido a respeito de todas as etapas do diagnóstico e do plano de intervenção. Registraram-se as justificativas clínicas que fundamentam o tempo de atendimento em razão da complexidade do quadro, finalidade preventiva/pedagógica e cuidados pós-operatórios recomendados.
+    </div>
+  </div>
+
+  ${comp ? `
+  <div class="section-card">
+    <div class="section-title">3. OBSERVAÇÕES COMPLEMENTARES</div>
+    <div style="font-size: 10.5px; color: #333; line-height: 1.4;">${comp}</div>
+  </div>
+  ` : ''}
+
+  <div class="date-row">
+    ${cityOnly}, ${docDateStr}
+  </div>
+
+  <div class="footer">
+    ${signatureBlockHtml}
+    ${clinicFooterHtml}
+  </div>
+
+  ${autoPrintScript}
+</body>
+</html>`;
+    }
+
+    // 10. DECLARAÇÃO DE TRATAMENTO EM ANDAMENTO
+    if (isTratamentoAndamento) {
+      const esp = tData.tratamentoAndamentoEspecialidade || tratamentoAndamentoEspecialidade;
+      const freq = tData.tratamentoAndamentoFrequencia || tratamentoAndamentoFrequencia;
+      const prev = tData.tratamentoAndamentoPrevisao || tratamentoAndamentoPrevisao;
+      const obs = tData.tratamentoAndamentoObservacoes || tratamentoAndamentoObservacoes;
+      const patAge = tData.patientAge || patientAge;
+
+      return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${pdfDocTitle}</title>
+  <style>${baseCss}</style>
+</head>
+<body>
+  ${standardHeaderHtml}
+
+  <div class="title-box">
+    <div class="title">DECLARAÇÃO DE TRATAMENTO EM ANDAMENTO</div>
+    <div class="title-sub">COMPROVAÇÃO DE ACOMPANHAMENTO CLÍNICO ODONTOLÓGICO</div>
+  </div>
+
+  <div class="patient-card">
+    <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
+    <div><strong>IDADE:</strong> ${patAge}</div>
+  </div>
+
+  <div class="section-card" style="text-align: justify; font-size: 12px; line-height: 1.8; padding: 14px 16px;">
+    Declaro, para os devidos fins de direito, que o(a) Sr(a). <strong>${doc.patientName}</strong> encontra-se sob meus cuidados profissionais neste consultório odontológico, realizando tratamento na área de <strong>${esp}</strong>, com frequência prevista de <strong>${freq}</strong> e estimativa de conclusão para <strong>${prev}</strong>.
+  </div>
+
+  ${obs ? `
+  <div class="section-card" style="background: #fdfdf9;">
+    <div class="section-title">OBSERVAÇÕES E RECOMENDAÇÕES</div>
+    <div style="font-size: 10.5px; color: #333; line-height: 1.4;">${obs}</div>
+  </div>
+  ` : ''}
+
+  <div class="date-row">
+    ${cityOnly}, ${docDateStr}
+  </div>
+
+  <div class="footer">
+    ${signatureBlockHtml}
+    ${clinicFooterHtml}
+  </div>
+
+  ${autoPrintScript}
+</body>
+</html>`;
+    }
+
+    // 11. RECIBO DE PAGAMENTO ODONTOLÓGICO
+    if (isRecibo) {
+      const valor = tData.reciboValor || reciboValor;
+      const extenso = tData.reciboExtenso || reciboExtenso;
+      const referente = tData.reciboReferente || reciboReferente;
+      const forma = tData.reciboFormaPagamento || reciboFormaPagamento;
+
+      return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${pdfDocTitle}</title>
+  <style>${baseCss}</style>
+</head>
+<body>
+  ${standardHeaderHtml}
+
+  <div class="title-box">
+    <div class="title">RECIBO DE PAGAMENTO ODONTOLÓGICO</div>
+    <div class="title-sub">COMPROVANTE DE QUITAÇÃO DE SERVIÇOS PROFISSIONAIS</div>
+  </div>
+
+  <div class="patient-card">
+    <div><strong>PACIENTE / PAGADOR:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
+    <div><strong>VALOR:</strong> <span style="font-size: 14px; font-weight: bold; color: #166534;">R$ ${valor}</span></div>
+  </div>
+
+  <div class="section-card" style="text-align: justify; font-size: 12px; line-height: 1.8; padding: 16px;">
+    Recebi do(a) Sr(a). <strong>${doc.patientName}</strong> a quantia líquida e certa de <strong>R$ ${valor}</strong> (${extenso}), referente a serviços odontológicos prestados de <strong>${referente}</strong>, pagos via <strong>${forma}</strong>, dando plena, rasa e geral quitação pelo valor ora recebido.
+  </div>
+
+  <div class="date-row">
+    ${cityOnly}, ${docDateStr}
+  </div>
+
+  <div class="footer">
+    ${signatureBlockHtml}
+    ${clinicFooterHtml}
+  </div>
+
+  ${autoPrintScript}
+</body>
+</html>`;
+    }
+
+    // 12. PROTOCOLO DE ANESTESIA INTRA-ORAL (PAIO)
+    if (isPaio) {
+      const topicals = tData.topicalAnesthetics || topicalAnesthetics;
+      const sites = tData.paioAnesthesiaSites || paioAnesthesiaSites;
+      const tubetes = tData.injectableTubetes || injectableTubetes;
+      const tech = tData.paioTechnique || paioTechnique;
+      const bp = tData.paioBloodPressure || paioBloodPressure;
+      const hr = tData.paioHeartRate || paioHeartRate;
+      const proc = tData.paioProcedure || paioProcedure;
+      const tooth = tData.paioToothRegion || paioToothRegion;
+      const postOp = tData.paioPostOpInstructions || paioPostOpInstructions;
+
+      return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${pdfDocTitle}</title>
+  <style>${baseCss}</style>
+</head>
+<body>
+  ${standardHeaderHtml}
+
+  <div class="title-box">
+    <div class="title">PROTOCOLO DE ANESTESIA INTRA-ORAL (PAIO)</div>
+    <div class="title-sub">REGISTRO DE TÉCNICAS ANESTÉSICAS E SEGURANÇA DO PACIENTE</div>
+  </div>
+
+  <div class="patient-card">
+    <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
+    <div><strong>SINAIS VITAIS:</strong> PA: ${bp} • FC: ${hr} bpm</div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">1. ANESTESIA TÓPICA & TÉCNICA EXECUTADA</div>
+    <div class="grid-2">
+      <div class="grid-item">
+        <div style="font-size: 9.5px; font-weight: bold; color: #555; text-transform: uppercase;">Anestésicos Tópicos Utilizados:</div>
+        <div style="font-weight: bold; margin-top: 2px;">${topicals.join(', ') || 'Benzocaína 20% Pomada'}</div>
+      </div>
+      <div class="grid-item">
+        <div style="font-size: 9.5px; font-weight: bold; color: #555; text-transform: uppercase;">Locais / Sítios de Aplicação:</div>
+        <div style="font-weight: bold; margin-top: 2px;">${sites.join(', ') || 'Fundo de sulco vestibular'}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">2. ANESTESIA INJETÁVEL & DOSAGEM</div>
+    <div class="grid-2">
+      <div class="grid-item">
+        <div style="font-size: 9.5px; font-weight: bold; color: #555; text-transform: uppercase;">Técnica Infiltrativa / Bloqueio:</div>
+        <div style="font-weight: bold; margin-top: 2px;">${tech}</div>
+      </div>
+      <div class="grid-item">
+        <div style="font-size: 9.5px; font-weight: bold; color: #555; text-transform: uppercase;">Tubetes Consumidos:</div>
+        <div style="font-weight: bold; margin-top: 2px;">${tubetes} tubete(s) (Lidocaína 2% + Epinefrina 1:100.000)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">3. PROCEDIMENTO ODONTOLÓGICO REALIZADO</div>
+    <div style="font-size: 11px; font-weight: 600; color: #222;">
+      ${proc} • Dente / Região: <strong>${tooth}</strong>
+    </div>
+  </div>
+
+  ${postOp ? `
+  <div class="section-card" style="background: #fdfdf9;">
+    <div class="section-title">4. ORIENTAÇÕES PÓS-ANESTÉSICAS</div>
+    <div style="font-size: 10.5px; color: #333; line-height: 1.4;">${postOp}</div>
+  </div>
+  ` : ''}
+
+  <div class="date-row">
+    ${cityOnly}, ${docDateStr}
+  </div>
+
+  <div class="footer">
+    ${signatureBlockHtml}
+    ${clinicFooterHtml}
+  </div>
+
+  ${autoPrintScript}
+</body>
+</html>`;
+    }
+
+    // 13. TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO (TCLE)
+    if (isTermo) {
+      const summaryText = doc.summary || 'O paciente declara haver recebido todos os esclarecimentos cabíveis a respeito do procedimento odontológico proposto, seus riscos e benefícios, autorizando sua realização.';
+
+      return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${pdfDocTitle}</title>
+  <style>${baseCss}</style>
+</head>
+<body>
+  ${standardHeaderHtml}
+
+  <div class="title-box">
+    <div class="title">${doc.title.toUpperCase()}</div>
+    <div class="title-sub">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO (TCLE)</div>
+  </div>
+
+  <div class="patient-card">
+    <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
+    <div><strong>DATA:</strong> ${docDateStr}</div>
+  </div>
+
+  <div class="section-card" style="text-align: justify; font-size: 11.5px; line-height: 1.7; padding: 14px 16px;">
+    ${summaryText}
+  </div>
+
+  <div class="date-row">
+    ${cityOnly}, ${docDateStr}
+  </div>
+
+  <div class="grid-2" style="margin-top: 25px; margin-bottom: 10px;">
+    <div style="border-top: 1.5px solid #222; text-align: center; padding-top: 4px; font-size: 10.5px;">
+      <strong>${doc.patientName}</strong><br/>
+      <span style="color: #666; font-size: 9.5px;">Paciente / Responsável Legal</span>
+    </div>
+    <div style="border-top: 1.5px solid #222; text-align: center; padding-top: 4px; font-size: 10.5px;">
+      <strong>${dentistName}</strong><br/>
+      <span style="color: #666; font-size: 9.5px;">Cirurgião-Dentista • ${dentistCro}</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    ${clinicFooterHtml}
+  </div>
+
+  ${autoPrintScript}
+</body>
+</html>`;
+    }
+
+    // 14. ATESTADO ODONTOLÓGICO PADRÃO
+    if (isAtestado) {
+      const cid = doc.cidCode || (isManualCid ? customCid : cidCode);
+      const dias = tData.afastamentoDias || afastamentoDias;
+      const atType = tData.atendimentoType || atendimentoType;
+      const time = tData.docTime || docTime;
+      const periodo = tData.periodoStr || periodoStr;
+
+      return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${pdfDocTitle}</title>
+  <style>${baseCss}</style>
+</head>
+<body>
+  ${standardHeaderHtml}
+
+  <div class="title-box">
+    <div class="title">ATESTADO ODONTOLÓGICO</div>
+    <div class="title-sub">COMPROVAÇÃO DE ATENDIMENTO E AFASTAMENTO LABORAL</div>
+  </div>
+
+  <div class="patient-card">
+    <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
+    <div><strong>DATA:</strong> ${docDateStr}</div>
+  </div>
+
+  <div class="section-card" style="text-align: justify; font-size: 12.5px; line-height: 2; padding: 18px 20px;">
+    Atesto, para os devidos fins, que <strong>${doc.patientName}</strong> submeteu-se a atendimento odontológico ${atType}, ${cid ? `CID: <strong>${cid}</strong>,` : ''} no dia <strong>${docDateStr}</strong> às <strong>${time}</strong> (período ${periodo}), devendo se afastar de suas atividades habituais pelo período de <strong>${dias} dia(s)</strong> por estar sob meus cuidados profissionais.
+  </div>
+
+  <div class="date-row">
+    ${cityOnly}, ${docDateStr}
+  </div>
+
+  <div class="footer">
+    ${signatureBlockHtml}
+    ${clinicFooterHtml}
+  </div>
+
+  ${autoPrintScript}
+</body>
+</html>`;
+    }
+
+    // 15. DEFAULT STRUCTURED DOCUMENT CARD
+    return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${pdfDocTitle}</title>
+  <style>${baseCss}</style>
+</head>
+<body>
+  ${standardHeaderHtml}
+
+  <div class="title-box">
+    <div class="title">${doc.title.toUpperCase()}</div>
+  </div>
+
+  <div class="patient-card">
+    <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
+    <div><strong>DATA:</strong> ${docDateStr}</div>
+  </div>
+
+  <div class="section-card" style="text-align: justify; font-size: 12px; line-height: 1.8; padding: 16px;">
+    ${doc.summary || 'Documento emitido e registrado no sistema odontológico para fins de prontuário e acompanhamento clínico.'}
+  </div>
+
+  <div class="date-row">
+    ${cityOnly}, ${docDateStr}
+  </div>
+
+  <div class="footer">
+    ${signatureBlockHtml}
+    ${clinicFooterHtml}
+  </div>
+
+  ${autoPrintScript}
+</body>
+</html>`;
+  };
+
+  // Helper function to open native system print dialog with dynamic PDF naming and isolated iframe
+  const handlePrintSystemWindow = (doc: {
+    id?: string;
+    title: string;
+    patientName: string;
+    professionalName?: string;
+    formattedDateStr?: string;
+    summary?: string;
+    templateId?: string;
+    templateData?: Record<string, any>;
+    cidCode?: string;
+  }) => {
+    const pdfDocumentTitle = getDocumentPdfTitle(doc.title, doc.formattedDateStr || docDate);
+    const prevTitle = document.title;
+    document.title = pdfDocumentTitle;
+
+    const htmlContent = buildDocumentPrintHtml(doc, false);
+
+    // Remove any previous print iframe to ensure a clean state
+    const oldFrame = document.getElementById('dentispro-print-sandbox-iframe');
+    if (oldFrame) {
+      try { oldFrame.remove(); } catch (_) {}
+    }
+
+    // Create a dedicated off-screen printable iframe with full layout rendering
+    // NOTE: Chromium/Safari silently ignore window.print() if visibility is 'hidden' or dimensions are 0x0.
+    // By using opacity: 0 with 100vw/100vh and z-index: -99999, the browser renders the layout and reliably triggers print dialog.
+    const iframe = document.createElement('iframe');
+    iframe.id = 'dentispro-print-sandbox-iframe';
+    iframe.style.position = 'fixed';
+    iframe.style.top = '0';
+    iframe.style.left = '0';
+    iframe.style.width = '100vw';
+    iframe.style.height = '100vh';
+    iframe.style.border = '0';
+    iframe.style.opacity = '0';
+    iframe.style.pointerEvents = 'none';
+    iframe.style.zIndex = '-99999';
+    iframe.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(iframe);
+
+    let hasTriggered = false;
+    const executePrint = () => {
+      if (hasTriggered) return;
+      hasTriggered = true;
+      try {
+        const frameWin = iframe.contentWindow;
+        if (frameWin) {
+          frameWin.focus();
+          frameWin.print();
+        } else {
+          window.print();
+        }
+      } catch (err) {
+        console.warn('Iframe print access restricted, attempting fallback window:', err);
+        const printWindow = window.open('', '_blank', 'width=880,height=980');
+        if (printWindow) {
+          printWindow.document.open();
+          printWindow.document.write(htmlContent);
+          printWindow.document.close();
+          printWindow.focus();
+          setTimeout(() => { printWindow.print(); }, 350);
+        } else {
+          window.print();
+        }
+      } finally {
+        setTimeout(() => {
+          document.title = prevTitle;
+          try { iframe.remove(); } catch (_) {}
+        }, 3500);
+      }
+    };
+
+    try {
+      const frameDoc = iframe.contentWindow?.document || iframe.contentDocument;
+      if (frameDoc) {
+        frameDoc.open();
+        frameDoc.write(htmlContent);
+        frameDoc.close();
+        setTimeout(executePrint, 350);
+      } else {
+        executePrint();
+      }
+    } catch (e) {
+      executePrint();
+    }
+  };
+
+  // Helper function to download PDF/HTML and open Gov.br Assinador
+  const handleDownloadPdfForGovBr = (doc: {
+    id?: string;
+    title: string;
+    patientName: string;
+    professionalName?: string;
+    formattedDateStr?: string;
+    summary?: string;
+    templateId?: string;
+    templateData?: Record<string, any>;
+    cidCode?: string;
+  }, openGovBr: boolean = false) => {
+    const htmlContent = buildDocumentPrintHtml(doc, true);
     const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    const dateFormatted = formatDocDateYYYYMMDD(doc.formattedDateStr || docDate).replace(/\//g, '-');
     a.href = url;
-    a.download = `${doc.title.replace(/[^a-zA-Z0-9]/g, '_')}_${doc.patientName.replace(/[^a-zA-Z0-9]/g, '_')}.html`;
+    a.download = `${doc.title.replace(/\s+/g, '_')}_${dateFormatted}_${doc.patientName.replace(/\s+/g, '_')}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -974,6 +2048,7 @@ export const DentalDocumentManager: React.FC = () => {
         professionalCpf: activeProfessional?.cpf || clinicInfo.govBrSignerCpf || clinicInfo.cpf
       });
       setIsGovBrWizardOpen(true);
+      window.open('https://www.gov.br/governodigital/pt-br/assinador', '_blank');
     }
   };
   
@@ -1738,26 +2813,101 @@ export const DentalDocumentManager: React.FC = () => {
     instrumentist: 'TDB Maria Oliveira'
   });
 
-  // Parameters for Solicitação de Radiografia Panorâmica & Documentação Ortodôntica
+  // Parameters for Solicitação de Radiografia Panorâmica (Ortopantomografia)
+  // Opções extraídas diretamente dos modelos clínicos odontológicos anexados
   const [rxPanoramicoOptions, setRxPanoramicoOptions] = useState({
-    panoramicaPadrao: true,
-    telerradiografiaPerfil: true,
-    tracadoCefalometrico: true,
-    telerradiografiaFrontal: false,
-    rxAtms: false,
-    escaneamentoModelos: false,
-    fotosDocumentacao: true,
-    interproximaisBiteWings: false
+    analiseDenticaoOssea: true, // Modelo 3: "Solicito radiografia panorâmica para análise da dentição e óssea."
+    atmBocaAbertaFechada: false, // Modelo 1: "Solicito Radiografia Panorâmica específica da Atm de boca fechada e boca aberta para análise da Articulação temporomandibular"
+    posExodontiaSisos: false, // Modelo 2: "Solicito Rx Panorâmico para análise de dentição e óssea pós Exodontia de terceiros molares."
+    preOperatorioSisos: false // Avaliação pré-operatória e planejamento cirúrgico de terceiros molares
   });
-  const [rxPanoramicoTeethInput, setRxPanoramicoTeethInput] = useState('Arcada Total / Região de Terceiros Molares (18, 28, 38, 48)');
-  const [rxPanoramicoFinalidade, setRxPanoramicoFinalidade] = useState('Avaliação Geral e Pré-Operatória de Terceiros Molares (Sisos)');
+  const [rxPanoramicoTextoCustomizado, setRxPanoramicoTextoCustomizado] = useState('');
+  const [rxPanoramicoTeethInput, setRxPanoramicoTeethInput] = useState('Arcadas Dentárias Superior e Inferior (Dentes e Estruturas Ósseas)');
+  const [rxPanoramicoFinalidade, setRxPanoramicoFinalidade] = useState('Avaliação Diagnóstica Geral e Planejamento');
   const [rxPanoramicoObservacoes, setRxPanoramicoObservacoes] = useState('Favor realizar radiografia panorâmica digital com ampliação padronizada e laudo radiológico minucioso.');
+
+  // Dados de Convênio do Paciente (presente no Modelo 2 anexado)
+  const [rxPanoramicoIncluirConvenio, setRxPanoramicoIncluirConvenio] = useState(false);
+  const [rxPanoramicoConvenioNome, setRxPanoramicoConvenioNome] = useState('INPAO / Care Plus');
+  const [rxPanoramicoConvenioNumero, setRxPanoramicoConvenioNumero] = useState('3817.109.02956-01');
+
+  // Indicação de Clínicas Radiológicas Parceiras (presente no Modelo 3 anexado)
+  const [rxPanoramicoIndicarClinicas, setRxPanoramicoIndicarClinicas] = useState(true);
+  const [rxPanoramicoClinicas, setRxPanoramicoClinicas] = useState({
+    perboyreCastelo: true, // "Perboyre Castelo - A imagem da odontologia do Ceará"
+    dentalImagem: true,    // "Dental Imagem - Diagnóstico e Documentação Odontológica"
+    oralScan: true         // "Oral Scan - Imaginologia Odontológica"
+  });
+  const [rxPanoramicoOutraClinica, setRxPanoramicoOutraClinica] = useState('');
 
   // Parameters for Radiografias Periapicais & Interproximais (Bite-Wings)
   const [rxPeriapicalTipo, setRxPeriapicalTipo] = useState<'periapical_localizada' | 'levantamento_completo_14_tomadas' | 'interproximal_bite_wing' | 'oclusal'>('periapical_localizada');
   const [rxPeriapicalTeethInput, setRxPeriapicalTeethInput] = useState('Dentes 11, 21 e 22');
   const [rxPeriapicalIndication, setRxPeriapicalIndication] = useState('Avaliação endodôntica e lesão periapical');
   const [rxPeriapicalNotes, setRxPeriapicalNotes] = useState('Favor realizar tomada periapical digital com posicionador e técnica do paralelismo.');
+  const [rxPeriapicalNotationMode, setRxPeriapicalNotationMode] = useState<'merged' | 'fdi' | 'regions'>('merged');
+  const [rxPeriapicalSelectedFdiTooth, setRxPeriapicalSelectedFdiTooth] = useState<string>('11');
+  const [rxPeriapicalSelectedRegion, setRxPeriapicalSelectedRegion] = useState<string>('');
+  const [rxPeriapicalSelectedRegions, setRxPeriapicalSelectedRegions] = useState<string[]>([]);
+
+  // Toggle single periapical region code (RMSD, RPSD, RCSD, RIS, RCSE, RPSE, RMSE, RMIE, RPIE, RII, RPID, RMID)
+  const togglePeriapicalRegion = (regionCode: string) => {
+    setRxPeriapicalSelectedRegions(prev => {
+      const exists = prev.includes(regionCode);
+      const next = exists ? prev.filter(c => c !== regionCode) : [...prev, regionCode];
+      if (next.length === 0) {
+        setRxPeriapicalTeethInput('');
+      } else {
+        const sorted = PERIAPICAL_REGIONS_12.filter(r => next.includes(r.code)).map(r => r.code);
+        setRxPeriapicalTeethInput(`Regiões Periapicais: ${sorted.join(', ')}`);
+      }
+      return next;
+    });
+  };
+
+  // Helper to select all 12 periapical regions
+  const handleSelectAll12PeriapicalRegions = () => {
+    const allCodes = PERIAPICAL_REGIONS_12.map(r => r.code);
+    setRxPeriapicalSelectedRegions(allCodes);
+    setRxPeriapicalTeethInput(`Status Completo (12 Regiões): ${allCodes.join(', ')}`);
+  };
+
+  // Helper to select superior arch regions
+  const handleSelectSuperiorPeriapicalRegions = () => {
+    const supCodes = PERIAPICAL_REGIONS_12.filter(r => r.arch === 'superior').map(r => r.code);
+    setRxPeriapicalSelectedRegions(supCodes);
+    setRxPeriapicalTeethInput(`Arco Superior (${supCodes.length} Regiões): ${supCodes.join(', ')}`);
+  };
+
+  // Helper to select inferior arch regions
+  const handleSelectInferiorPeriapicalRegions = () => {
+    const infCodes = PERIAPICAL_REGIONS_12.filter(r => r.arch === 'inferior').map(r => r.code);
+    setRxPeriapicalSelectedRegions(infCodes);
+    setRxPeriapicalTeethInput(`Arco Inferior (${infCodes.length} Regiões): ${infCodes.join(', ')}`);
+  };
+
+  // Helper to select Bite-Wings Bilaterais
+  const handleSelectBiteWingsPeriapical = () => {
+    setRxPeriapicalTipo('interproximal_bite_wing');
+    setRxPeriapicalTeethInput('Interproximais Bite-Wings Bilaterais (Molares e Pré-Molares Superiores e Inferiores)');
+  };
+
+  // Helper to clear periapical selection
+  const handleClearPeriapicalSelection = () => {
+    setRxPeriapicalSelectedRegions([]);
+    setRxPeriapicalTeethInput('');
+  };
+
+  // Helper to insert FDI tooth
+  const handleInsertFdiTooth = (toothCode: string) => {
+    if (!toothCode) return;
+    setRxPeriapicalTeethInput(prev => {
+      const cleaned = prev.trim();
+      if (!cleaned) return `Dente ${toothCode}`;
+      if (cleaned.includes(`Dente ${toothCode}`) || cleaned.includes(`, ${toothCode}`)) return cleaned;
+      return `${cleaned} • Dente ${toothCode}`;
+    });
+  };
 
   // Parameters for Receituário Simples
   const [receitaSimplesUso, setReceitaSimplesUso] = useState<'Uso Interno' | 'Uso Tópico' | 'Uso Interno e Tópico'>('Uso Interno');
@@ -1799,14 +2949,23 @@ export const DentalDocumentManager: React.FC = () => {
   const selectedPatient = patients.find(p => p.id === selectedPatientId);
   const patientDisplayName = customPatientName || selectedPatient?.name || 'Nome do Paciente';
 
-  // Automatically sync patient age when selecting a registered patient
+  // Automatically sync patient age and health insurance when selecting a registered patient
   React.useEffect(() => {
     if (selectedPatientId) {
       const p = patients.find(patient => patient.id === selectedPatientId);
-      if (p && p.birthDate) {
-        const details = getPatientAgeAndBirthDate(p.birthDate);
-        setCustomPatientAgeYears(String(details.ageYears));
-        setCustomPatientAgeMonths(String(details.ageMonths));
+      if (p) {
+        if (p.birthDate) {
+          const details = getPatientAgeAndBirthDate(p.birthDate);
+          setCustomPatientAgeYears(String(details.ageYears));
+          setCustomPatientAgeMonths(String(details.ageMonths));
+        }
+        if (p.healthInsurance) {
+          setRxPanoramicoConvenioNome(p.healthInsurance);
+          setRxPanoramicoIncluirConvenio(true);
+        }
+        if (p.insuranceNumber) {
+          setRxPanoramicoConvenioNumero(p.insuranceNumber);
+        }
       }
     }
   }, [selectedPatientId, patients]);
@@ -1896,6 +3055,108 @@ export const DentalDocumentManager: React.FC = () => {
 
   const handleGenerateDocument = () => {
     if (activeTemplate) {
+      let docSummary = '';
+      if (activeTemplate.id === 'receituario_controle_especial' || activeTemplate.title.toLowerCase().includes('controle especial')) {
+        docSummary = specialPrescriptionText;
+      } else if (activeTemplate.id === 'solicitacao_rx_panoramico') {
+        const solList = getRxPanoramicoSolicitacoesList(rxPanoramicoOptions, rxPanoramicoTextoCustomizado);
+        docSummary = `Solicitação de Radiografia Panorâmica (${solList[0] || 'Análise da dentição e óssea'}) para ${patientDisplayName}.`;
+      } else if (activeTemplate.id === 'solicitacao_rx_periapical_interproximal') {
+        docSummary = `Solicitação de Radiografia ${rxPeriapicalTipo} (${rxPeriapicalTeethInput}) para ${patientDisplayName}. Indicação: ${rxPeriapicalIndication}.`;
+      } else if (activeTemplate.id === 'receituario_simples') {
+        docSummary = `Receituário (${receitaSimplesUso}) para ${patientDisplayName}: ${specialPrescriptionText}`;
+      } else if (activeTemplate.id === 'receituario_notificacao_b_azul' || activeTemplate.id === 'receituario_notificacao_a_amarela') {
+        docSummary = `Notificação de Receita para ${patientDisplayName}: ${specialPrescriptionText}`;
+      } else if (activeTemplate.id === 'atestado_aptidao_odontologica') {
+        docSummary = `Atestado de Aptidão Odontológica para ${patientDisplayName} (${aptidaoFinalidade}).`;
+      } else if (activeTemplate.id === 'declaracao_tratamento_andamento') {
+        docSummary = `Declaração de Tratamento em Andamento (${tratamentoAndamentoEspecialidade}) para ${patientDisplayName}.`;
+      } else if (activeTemplate.id === 'declaracao_valores_recibo') {
+        docSummary = `Recibo de Pagamento no valor de R$ ${reciboValor} (${reciboExtenso}) referente a ${reciboReferente}.`;
+      } else if (activeTemplate.id.startsWith('tcle_')) {
+        docSummary = `Termo de Consentimento Livre e Esclarecido (${activeTemplate.title}) firmado para ${patientDisplayName}.`;
+      } else if (activeTemplate.category === 'atestado') {
+        docSummary = `Atesto que ${patientDisplayName} submeteu-se a atendimento odontológico ${atendimentoType}, CID: ${isManualCid ? customCid : cidCode}, no dia ${formattedFormattedDate}, com ${afastamentoDias} dia(s) de afastamento.`;
+      } else if (activeTemplate.id === 'relatorio_atendimento_inicial_final') {
+        docSummary = `${relatorioDocStage === 'inicial' ? 'Relatório de Atendimento Inicial' : 'Relatório de Atendimento Final'}: ${relatorioProcedimentoDesc}.`;
+      } else if (activeTemplate.id === 'declaracao_comparecimento') {
+        docSummary = `Declaro que ${patientDisplayName} compareceu a este consultório no dia ${formattedFormattedDate}, período ${docTime} (${periodoStr}).`;
+      } else if (activeTemplate.id === 'solicitacao_sangue') {
+        const selectedExams = Object.entries(bloodExams).filter(([_, v]) => v).map(([k]) => k).join(', ');
+        docSummary = `Exames de Sangue Solicitados: ${selectedExams || 'Hemograma completo, Coagulograma, Glicemia em jejum'}.`;
+      } else if (activeTemplate.id === 'solicitacao_tomografia') {
+        docSummary = buildFormattedTomographySummary();
+      } else {
+        docSummary = `${activeTemplate.title} gerado para o(a) paciente ${patientDisplayName} (${patientAge}) em ${formattedFormattedDate}.`;
+      }
+
+      const currentTemplateData: Record<string, any> = {
+        patientAge,
+        docDate,
+        docTime,
+        periodoStr,
+        rxPanoramicoOptions,
+        rxPanoramicoTextoCustomizado,
+        rxPanoramicoTeethInput,
+        rxPanoramicoFinalidade,
+        rxPanoramicoObservacoes,
+        rxPanoramicoIncluirConvenio,
+        rxPanoramicoConvenioNome,
+        rxPanoramicoConvenioNumero,
+        rxPanoramicoIndicarClinicas,
+        rxPanoramicoClinicas,
+        rxPanoramicoOutraClinica,
+        rxPeriapicalTipo,
+        rxPeriapicalTeethInput,
+        rxPeriapicalIndication,
+        rxPeriapicalNotes,
+        bloodExams,
+        prescriptionText: specialPrescriptionText,
+        receitaSimplesVias,
+        receitaSimplesUso,
+        receitaSimplesOrientacoes,
+        notificacaoBNumero,
+        notificacaoBUf,
+        notificacaoANumero,
+        notificacaoAUf,
+        afastamentoDias,
+        atendimentoType,
+        procedureDetail,
+        aptidaoFinalidade,
+        aptidaoObservacoes,
+        relatorioDocStage,
+        relatorioProcedimentoDesc,
+        relatorioComplementar,
+        tratamentoAndamentoEspecialidade,
+        tratamentoAndamentoFrequencia,
+        tratamentoAndamentoPrevisao,
+        tratamentoAndamentoObservacoes,
+        reciboValor,
+        reciboExtenso,
+        reciboReferente,
+        reciboFormaPagamento,
+        tomographyRegions: getSelectedTomographyRegions(),
+        tomographyIndications: getSelectedTomographyIndications(),
+        tomographyDelivery: getSelectedTomographyDelivery(),
+        tomographyFov,
+        tomographyNotes,
+        isPaioActive,
+        topicalAnesthetics,
+        paioAnesthesiaSites,
+        injectableTubetes,
+        paioTechnique,
+        paioBloodPressure,
+        paioHeartRate,
+        paioProcedure,
+        paioToothRegion,
+        paioComplications,
+        paioPostOpInstructions,
+        tcleImplanteRegiao,
+        tcleImplanteEnxerto,
+        tcleClareamentoTipo,
+        tcleOrtoTipo
+      };
+
       addSavedClinicDocument({
         title: activeTemplate.title,
         subtitle: activeTemplate.subtitle,
@@ -1904,7 +3165,9 @@ export const DentalDocumentManager: React.FC = () => {
         patientName: patientDisplayName,
         professionalName: activeProfessional?.name || clinicInfo.dentistName,
         cidCode: activeTemplate.category === 'atestado' ? (isManualCid ? customCid : cidCode) : undefined,
-        summary: `${activeTemplate.title} gerado para o(a) paciente ${patientDisplayName} (${patientAge}) em ${formattedFormattedDate}.`
+        summary: docSummary,
+        templateId: activeTemplate.id,
+        templateData: currentTemplateData
       });
     }
     setIsRenderModalOpen(true);
@@ -1938,18 +3201,11 @@ export const DentalDocumentManager: React.FC = () => {
         bodyText += `\n\n*4. OBSERVAÇÕES E ORIENTAÇÕES CLÍNICAS:*\n${tomographyNotes}`;
       }
     } else if (activeTemplate.id === 'solicitacao_rx_panoramico') {
-      const selectedOpts = [
-        rxPanoramicoOptions.panoramicaPadrao && 'Panorâmica Padrão',
-        rxPanoramicoOptions.telerradiografiaPerfil && 'Telerradiografia Perfil',
-        rxPanoramicoOptions.tracadoCefalometrico && 'Traçado Cefalométrico',
-        rxPanoramicoOptions.telerradiografiaFrontal && 'Telerradiografia Frontal',
-        rxPanoramicoOptions.rxAtms && 'Radiografia ATMs',
-        rxPanoramicoOptions.fotosDocumentacao && 'Documentação Fotográfica',
-        rxPanoramicoOptions.escaneamentoModelos && 'Escaneamento 3D STL',
-        rxPanoramicoOptions.interproximaisBiteWings && 'Interproximais Bite-Wings'
-      ].filter(Boolean).join(', ');
+      const solLines = getRxPanoramicoSolicitacoesList(rxPanoramicoOptions, rxPanoramicoTextoCustomizado).map(s => `• ${s}`).join('\n');
+      const clinicas = rxPanoramicoIndicarClinicas ? getRxPanoramicoClinicasList(rxPanoramicoClinicas, rxPanoramicoOutraClinica).map(c => `  - ${c.name}`).join('\n') : '';
+      const conv = rxPanoramicoIncluirConvenio && rxPanoramicoConvenioNome ? `\n• *Convênio:* ${rxPanoramicoConvenioNome}${rxPanoramicoConvenioNumero ? ` (${rxPanoramicoConvenioNumero})` : ''}` : '';
 
-      bodyText = `*SOLICITAÇÃO DE RADIOGRAFIA PANORÂMICA & DOCUMENTAÇÃO*\n\n• *Dentes / Região:* ${rxPanoramicoTeethInput}\n• *Finalidade Clínica:* ${rxPanoramicoFinalidade}\n• *Exames Solicitados:* ${selectedOpts || 'Panorâmica Padrão'}${rxPanoramicoObservacoes ? `\n• *Observações:* ${rxPanoramicoObservacoes}` : ''}`;
+      bodyText = `*SOLICITAÇÃO DE RADIOGRAFIA PANORÂMICA*\n\n*Paciente:* ${patientDisplayName}${conv}\n\n*Solicitação:*\n${solLines}${rxPanoramicoTeethInput ? `\n\n• *Região:* ${rxPanoramicoTeethInput}` : ''}${rxPanoramicoFinalidade ? `\n• *Indicação:* ${rxPanoramicoFinalidade}` : ''}${rxPanoramicoObservacoes ? `\n• *Observações:* ${rxPanoramicoObservacoes}` : ''}${clinicas ? `\n\n*Faça este exame em clínicas radiológicas:*\n${clinicas}` : ''}`;
     } else if (activeTemplate.id === 'solicitacao_rx_periapical_interproximal') {
       bodyText = `*SOLICITAÇÃO DE RADIOGRAFIAS PERIAPICAIS / INTERPROXIMAIS*\n\n• *Modalidade:* ${rxPeriapicalTipo}\n• *Dentes / Região:* ${rxPeriapicalTeethInput}\n• *Indicação Clínica:* ${rxPeriapicalIndication}${rxPeriapicalNotes ? `\n• *Observações:* ${rxPeriapicalNotes}` : ''}`;
     } else if (activeTemplate.id === 'receituario_simples') {
@@ -2006,6 +3262,87 @@ export const DentalDocumentManager: React.FC = () => {
     const footer = `\n\n────────────────\nDocumento emitido via DentisPro (https://dentispro.com.br)`;
 
     return `${header}${bodyText}${footer}`;
+  };
+
+  const handlePrintActiveDocument = () => {
+    if (!activeTemplate) {
+      window.print();
+      return;
+    }
+    handlePrintSystemWindow({
+      id: activeTemplate.id,
+      title: activeTemplate.title,
+      patientName: patientDisplayName,
+      professionalName: activeProfessional?.name || clinicInfo.dentistName,
+      formattedDateStr: formattedFormattedDate,
+      templateId: activeTemplate.id,
+      templateData: {
+        patientAge,
+        docDate,
+        docTime,
+        periodoStr,
+        rxPanoramicoOptions,
+        rxPanoramicoTextoCustomizado,
+        rxPanoramicoTeethInput,
+        rxPanoramicoFinalidade,
+        rxPanoramicoObservacoes,
+        rxPanoramicoIncluirConvenio,
+        rxPanoramicoConvenioNome,
+        rxPanoramicoConvenioNumero,
+        rxPanoramicoIndicarClinicas,
+        rxPanoramicoClinicas,
+        rxPanoramicoOutraClinica,
+        rxPeriapicalTipo,
+        rxPeriapicalTeethInput,
+        rxPeriapicalIndication,
+        rxPeriapicalNotes,
+        bloodExams,
+        prescriptionText: specialPrescriptionText,
+        receitaSimplesVias,
+        receitaSimplesUso,
+        receitaSimplesOrientacoes,
+        notificacaoBNumero,
+        notificacaoBUf,
+        notificacaoANumero,
+        notificacaoAUf,
+        afastamentoDias,
+        atendimentoType,
+        procedureDetail,
+        aptidaoFinalidade,
+        aptidaoObservacoes,
+        relatorioDocStage,
+        relatorioProcedimentoDesc,
+        relatorioComplementar,
+        tratamentoAndamentoEspecialidade,
+        tratamentoAndamentoFrequencia,
+        tratamentoAndamentoPrevisao,
+        tratamentoAndamentoObservacoes,
+        reciboValor,
+        reciboExtenso,
+        reciboReferente,
+        reciboFormaPagamento,
+        tomographyRegions: getSelectedTomographyRegions(),
+        tomographyIndications: getSelectedTomographyIndications(),
+        tomographyDelivery: getSelectedTomographyDelivery(),
+        tomographyFov,
+        tomographyNotes,
+        isPaioActive,
+        topicalAnesthetics,
+        paioAnesthesiaSites,
+        injectableTubetes,
+        paioTechnique,
+        paioBloodPressure,
+        paioHeartRate,
+        paioProcedure,
+        paioToothRegion,
+        paioComplications,
+        paioPostOpInstructions,
+        tcleImplanteRegiao,
+        tcleImplanteEnxerto,
+        tcleClareamentoTipo,
+        tcleOrtoTipo
+      }
+    });
   };
 
   const getWhatsAppTargetUrl = () => {
@@ -2217,66 +3554,84 @@ export const DentalDocumentManager: React.FC = () => {
       {/* Arquivos Recentes & Assinatura Digital Gov.br - Acesso Rápido */}
       <div className={`${t.cardBg} border ${t.cardBorder} rounded-3xl p-5 md:p-6 shadow-xs space-y-4`}>
         <div className={`flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b ${t.cardBorder}`}>
-          <div className="flex items-center gap-3">
-            <div className={`p-2.5 ${t.btnSecondaryBg} rounded-2xl ${t.headingText}`}>
-              <FolderOpen className={`w-6 h-6 ${t.accentText}`} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className={`text-lg font-bold ${t.headingText}`}>
-                  Arquivos Recentes (Prontuário & Documentos Gerados)
-                </h2>
-                <span className={`${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold px-2.5 py-0.5 rounded-full`}>
-                  {(() => {
-                    const selPatientObj = patients.find(p => p.id === selectedPatientId);
-                    const list = savedClinicDocuments.filter(doc => {
-                      if (showAllPatientsDocs || !selectedPatientId) return true;
-                      return doc.patientId === selectedPatientId ||
-                        (selPatientObj && doc.patientName && doc.patientName.toLowerCase().trim() === selPatientObj.name.toLowerCase().trim());
-                    });
-                    return list.length;
-                  })()} doc(s)
+          <div className="flex flex-col md:flex-row md:items-center gap-4 flex-wrap">
+            {/* Quick Patient Selector with Image placed on the LEFT for prominent visual access */}
+            <div className="flex items-center gap-2.5 bg-stone-100/95 p-2 rounded-2xl border border-stone-200/90 shadow-2xs shrink-0 self-start md:self-center">
+              {(() => {
+                const currentPat = patients.find(p => p.id === selectedPatientId);
+                const patImage = currentPat?.avatarUrl || currentPat?.photoUrl || currentPat?.images?.[0];
+                if (patImage) {
+                  return (
+                    <img
+                      src={patImage}
+                      alt={currentPat?.name || 'Paciente'}
+                      className="w-9 h-9 rounded-xl object-cover border border-amber-300 shadow-2xs shrink-0"
+                    />
+                  );
+                }
+                return (
+                  <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs shrink-0 border border-amber-200">
+                    {currentPat?.name ? currentPat.name.charAt(0).toUpperCase() : <User className="w-5 h-5 text-amber-700" />}
+                  </div>
+                );
+              })()}
+              <div className="flex flex-col pr-1">
+                <span className="text-[10px] uppercase font-bold text-stone-500 tracking-wider">
+                  Paciente:
                 </span>
-                {selectedPatientId && (
-                  <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 animate-fadeIn">
-                    <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    Sincronizado: {patients.find(p => p.id === selectedPatientId)?.name || customPatientName || 'Paciente'}
-                  </span>
-                )}
+                <select
+                  value={selectedPatientId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) {
+                      handleSyncPatientAndQuickDoc(val, undefined);
+                    } else {
+                      setSelectedPatientId('');
+                      setSelectedRecentPatient(null);
+                      setShowAllPatientsDocs(true);
+                    }
+                  }}
+                  className="bg-white text-stone-900 text-xs font-bold px-2.5 py-1 rounded-xl border border-stone-300 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer max-w-[210px] sm:max-w-[260px] truncate"
+                >
+                  <option value="">-- Todos os Pacientes --</option>
+                  {patients.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Alterne ou selecione o paciente para sincronizar com os geradores de atestados, declarações, termos e receituários.
-              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className={`p-2.5 ${t.btnSecondaryBg} rounded-2xl ${t.headingText}`}>
+                <FolderOpen className={`w-6 h-6 ${t.accentText}`} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className={`text-lg font-bold ${t.headingText}`}>
+                    Arquivos Recentes (Prontuário & Documentos Gerados)
+                  </h2>
+                  <span className={`${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold px-2.5 py-0.5 rounded-full`}>
+                    {(() => {
+                      const selPatientObj = patients.find(p => p.id === selectedPatientId);
+                      const list = savedClinicDocuments.filter(doc => {
+                        if (showAllPatientsDocs || !selectedPatientId) return true;
+                        return doc.patientId === selectedPatientId ||
+                          (selPatientObj && doc.patientName && doc.patientName.toLowerCase().trim() === selPatientObj.name.toLowerCase().trim());
+                      });
+                      return list.length;
+                    })()} doc(s)
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Prontuário eletrônico e papéis do expediente emitidos.
+                </p>
+              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            {/* Quick Synchronized Patient Selector Dropdown */}
-            <div className="flex items-center gap-1.5 bg-stone-100/90 p-1.5 rounded-2xl border border-stone-200 shrink-0">
-              <User className="w-4 h-4 text-amber-700 ml-1.5 shrink-0" />
-              <select
-                value={selectedPatientId}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val) {
-                    handleSyncPatientAndQuickDoc(val, undefined);
-                  } else {
-                    setSelectedPatientId('');
-                    setSelectedRecentPatient(null);
-                    setShowAllPatientsDocs(true);
-                  }
-                }}
-                className="bg-white text-stone-800 text-xs font-bold px-2.5 py-1.5 rounded-xl border border-stone-200 focus:outline-none cursor-pointer max-w-[180px] sm:max-w-[220px] truncate"
-              >
-                <option value="">-- Selecionar / Sincronizar Paciente --</option>
-                {patients.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {selectedPatientId && (
               <button
                 type="button"
@@ -2428,10 +3783,6 @@ export const DentalDocumentManager: React.FC = () => {
                               </h3>
                               <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-amber-300">
                                 {patientDocs.length} documento(s)
-                              </span>
-                              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
-                                <UserCheck className="w-3 h-3 text-emerald-600" />
-                                Paciente Sincronizado
                               </span>
                             </div>
                             <p className="text-[11px] opacity-70 mt-0.5">
@@ -2845,6 +4196,60 @@ export const DentalDocumentManager: React.FC = () => {
 
             {/* Modal Scrollable Content - Form Parameters */}
             <div className="p-4 md:p-6 space-y-5 overflow-y-auto flex-1 font-sans text-xs">
+              {/* 0. IDENTIDADE VISUAL E LAYOUT DO DOCUMENTO (CONFIGURAÇÕES) */}
+              <div className={`${t.cardBg} p-3.5 rounded-2xl border ${t.cardBorder} space-y-2.5 shadow-2xs`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[10.5px] uppercase font-bold ${t.accentText} tracking-wider flex items-center gap-1.5`}>
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    Layout de Documento Aplicado (Configurações)
+                  </span>
+                  <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
+                    Sincronizado
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                  <div className={`flex items-center gap-2.5 min-w-0 ${t.btnSecondaryBg} p-2 rounded-xl border ${t.cardBorder}`}>
+                    {clinicInfo.logoUrl ? (
+                      <img src={clinicInfo.logoUrl} alt="Logo" className="w-9 h-9 object-contain rounded-lg shrink-0 border border-stone-200 bg-white p-0.5" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-lg bg-[#5a5a40] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                        DP
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className={`font-bold ${t.headingText} truncate text-[11.5px]`}>
+                        {clinicInfo.headerTitle || effectiveClinicName}
+                      </p>
+                      <p className="text-[10.5px] text-stone-500 truncate">
+                        {clinicInfo.headerSubtitle || `${effectiveDentistName} • ${effectiveDentistCro}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className={`${t.btnSecondaryBg} p-2 rounded-xl border ${t.cardBorder} flex flex-col justify-center space-y-1 text-[10.5px]`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-stone-500">Marca d'Água:</span>
+                      <span className={`font-bold ${t.headingText}`}>
+                        {(clinicInfo.showWatermark ?? true) ? `Ativa (${clinicInfo.watermarkOpacity ?? 15}%)` : 'Oculta'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-stone-500">Assinatura Digital:</span>
+                      <span className={`font-bold ${t.headingText}`}>
+                        {clinicInfo.enableGovBrSignature ? 'Gov.br Habilitado' : 'Padrão / CRM'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {clinicInfo.footerText && (
+                  <div className={`text-[10.5px] ${t.btnSecondaryBg} px-2.5 py-1.5 rounded-lg border ${t.cardBorder} truncate`}>
+                    <span className="font-semibold text-stone-600">Rodapé:</span> <span className={t.headingText}>{clinicInfo.footerText}</span>
+                  </div>
+                )}
+              </div>
+
               {/* 1. SELEÇÃO DO PACIENTE & IDADE/MESES */}
               <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-3`}>
                 <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center gap-1.5 border-b ${t.cardBorder} pb-2`}>
@@ -4403,119 +5808,220 @@ export const DentalDocumentManager: React.FC = () => {
                 </div>
               )}
 
-              {/* 8. PARÂMETROS ESPECÍFICOS: SOLICITAÇÃO DE RX PANORÂMICO E DOCUMENTAÇÃO ORTODÔNTICA */}
+              {/* 8. PARÂMETROS ESPECÍFICOS: SOLICITAÇÃO DE RX PANORÂMICO */}
               {activeTemplate.id === 'solicitacao_rx_panoramico' && (
                 <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-4`}>
                   <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center justify-between border-b ${t.cardBorder} pb-2`}>
                     <span className="flex items-center gap-1.5">
                       <FileText className={`w-4 h-4 ${t.accentText}`} />
-                      3. Parâmetros da Solicitação Radiológica & Exames
+                      3. Parâmetros da Solicitação de Radiografia Panorâmica
                     </span>
                     <span className="text-[10px] bg-sky-500/10 text-sky-700 font-bold px-2 py-0.5 rounded-full border border-sky-300/40">
-                      Radiologia & Documentação
+                      Ortopantomografia
                     </span>
                   </span>
 
-                  {/* Seleção de Exames Radiológicos */}
-                  <div className="space-y-1.5">
+                  {/* A. Opções Clínicas de Solicitação (Modelos Anexados) */}
+                  <div className="space-y-2">
                     <label className={`block text-xs font-bold ${t.headingText}`}>
-                      A. Exames Radiológicos e Documentação Solicitada:
+                      A. Finalidade / Texto da Solicitação (Modelos Clínicos):
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
+                    <div className="space-y-2">
+                      <label className={`flex items-start gap-2.5 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
                         <input
                           type="checkbox"
-                          checked={rxPanoramicoOptions.panoramicaPadrao}
-                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, panoramicaPadrao: e.target.checked }))}
-                          className="w-4 h-4 text-sky-600 rounded"
+                          checked={rxPanoramicoOptions.analiseDenticaoOssea}
+                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, analiseDenticaoOssea: e.target.checked }))}
+                          className="w-4 h-4 mt-0.5 text-sky-600 rounded"
                         />
-                        <span className="text-xs font-semibold text-stone-800">Radiografia Panorâmica Padrão (com ampliações)</span>
+                        <div className="flex-1">
+                          <span className="text-xs font-bold text-stone-900 block">Análise da Dentição e Óssea (Geral)</span>
+                          <span className="text-[11px] text-stone-600 italic">"Solicito radiografia panorâmica para análise da dentição e óssea."</span>
+                        </div>
                       </label>
-                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
+
+                      <label className={`flex items-start gap-2.5 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
                         <input
                           type="checkbox"
-                          checked={rxPanoramicoOptions.telerradiografiaPerfil}
-                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, telerradiografiaPerfil: e.target.checked }))}
-                          className="w-4 h-4 text-sky-600 rounded"
+                          checked={rxPanoramicoOptions.atmBocaAbertaFechada}
+                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, atmBocaAbertaFechada: e.target.checked }))}
+                          className="w-4 h-4 mt-0.5 text-sky-600 rounded"
                         />
-                        <span className="text-xs font-semibold text-stone-800">Telerradiografia Lateral de Perfil</span>
+                        <div className="flex-1">
+                          <span className="text-xs font-bold text-stone-900 block">Específica da ATM (Boca Aberta e Boca Fechada)</span>
+                          <span className="text-[11px] text-stone-600 italic">"Solicito Radiografia Panorâmica específica da ATM de boca fechada e boca aberta para análise da Articulação Temporomandibular."</span>
+                        </div>
                       </label>
-                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
+
+                      <label className={`flex items-start gap-2.5 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
                         <input
                           type="checkbox"
-                          checked={rxPanoramicoOptions.tracadoCefalometrico}
-                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, tracadoCefalometrico: e.target.checked }))}
-                          className="w-4 h-4 text-sky-600 rounded"
+                          checked={rxPanoramicoOptions.posExodontiaSisos}
+                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, posExodontiaSisos: e.target.checked }))}
+                          className="w-4 h-4 mt-0.5 text-sky-600 rounded"
                         />
-                        <span className="text-xs font-semibold text-stone-800">Traçado Cefalométrico Padronizado (USP/Ricketts)</span>
+                        <div className="flex-1">
+                          <span className="text-xs font-bold text-stone-900 block">Pós-Exodontia de Terceiros Molares (Sisos)</span>
+                          <span className="text-[11px] text-stone-600 italic">"Solicito Rx Panorâmico para análise de dentição e óssea pós Exodontia de terceiros molares."</span>
+                        </div>
                       </label>
-                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
+
+                      <label className={`flex items-start gap-2.5 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
                         <input
                           type="checkbox"
-                          checked={rxPanoramicoOptions.telerradiografiaFrontal}
-                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, telerradiografiaFrontal: e.target.checked }))}
-                          className="w-4 h-4 text-sky-600 rounded"
+                          checked={rxPanoramicoOptions.preOperatorioSisos}
+                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, preOperatorioSisos: e.target.checked }))}
+                          className="w-4 h-4 mt-0.5 text-sky-600 rounded"
                         />
-                        <span className="text-xs font-semibold text-stone-800">Telerradiografia Frontal (Póstero-Anterior)</span>
+                        <div className="flex-1">
+                          <span className="text-xs font-bold text-stone-900 block">Avaliação Pré-Operatória de Dentes Inclusos / Sisos</span>
+                          <span className="text-[11px] text-stone-600 italic">"Solicito Radiografia Panorâmica para avaliação pré-operatória e planejamento cirúrgico de terceiros molares."</span>
+                        </div>
                       </label>
-                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
-                        <input
-                          type="checkbox"
-                          checked={rxPanoramicoOptions.rxAtms}
-                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, rxAtms: e.target.checked }))}
-                          className="w-4 h-4 text-sky-600 rounded"
-                        />
-                        <span className="text-xs font-semibold text-stone-800">Radiografia de ATMs (Boca Aberta / Fechada)</span>
-                      </label>
-                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
-                        <input
-                          type="checkbox"
-                          checked={rxPanoramicoOptions.fotosDocumentacao}
-                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, fotosDocumentacao: e.target.checked }))}
-                          className="w-4 h-4 text-sky-600 rounded"
-                        />
-                        <span className="text-xs font-semibold text-stone-800">Documentação Fotográfica (Extra e Intraoral)</span>
-                      </label>
-                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
-                        <input
-                          type="checkbox"
-                          checked={rxPanoramicoOptions.escaneamentoModelos}
-                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, escaneamentoModelos: e.target.checked }))}
-                          className="w-4 h-4 text-sky-600 rounded"
-                        />
-                        <span className="text-xs font-semibold text-stone-800">Escaneamento Intraoral 3D / Modelos Digitais STL</span>
-                      </label>
-                      <label className={`flex items-center gap-2 p-2.5 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer hover:border-amber-400 transition`}>
-                        <input
-                          type="checkbox"
-                          checked={rxPanoramicoOptions.interproximaisBiteWings}
-                          onChange={(e) => setRxPanoramicoOptions(prev => ({ ...prev, interproximaisBiteWings: e.target.checked }))}
-                          className="w-4 h-4 text-sky-600 rounded"
-                        />
-                        <span className="text-xs font-semibold text-stone-800">Radiografias Interproximais (Bite-Wings)</span>
-                      </label>
+                    </div>
+
+                    {/* Texto Customizado Alternativo */}
+                    <div className="pt-1">
+                      <label className="block text-[11px] font-semibold text-stone-700 mb-1">Ou Redija um Texto Personalizado para a Solicitação (opcional):</label>
+                      <input
+                        type="text"
+                        value={rxPanoramicoTextoCustomizado}
+                        onChange={(e) => setRxPanoramicoTextoCustomizado(e.target.value)}
+                        placeholder="Ex: Solicito radiografia panorâmica para controle e planejamento de..."
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-medium`}
+                      />
                     </div>
                   </div>
 
+                  {/* B. Convênio e Carteirinha (Modelo 2) */}
+                  <div className="p-3 bg-stone-50/80 rounded-xl border border-stone-200/80 space-y-2.5">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={rxPanoramicoIncluirConvenio}
+                        onChange={(e) => setRxPanoramicoIncluirConvenio(e.target.checked)}
+                        className="w-4 h-4 text-emerald-600 rounded"
+                      />
+                      <span className="text-xs font-bold text-stone-900">
+                        B. Incluir Dados de Convênio / Carteirinha do Paciente (opcional)
+                      </span>
+                    </label>
+
+                    {rxPanoramicoIncluirConvenio && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-stone-700 mb-1">Nome da Operadora / Convênio:</label>
+                          <input
+                            type="text"
+                            value={rxPanoramicoConvenioNome}
+                            onChange={(e) => setRxPanoramicoConvenioNome(e.target.value)}
+                            placeholder="Ex: INPAO / Care Plus / Bradesco Dental"
+                            className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-stone-700 mb-1">Matrícula / Carteirinha:</label>
+                          <input
+                            type="text"
+                            value={rxPanoramicoConvenioNumero}
+                            onChange={(e) => setRxPanoramicoConvenioNumero(e.target.value)}
+                            placeholder="Ex: 3817.109.02956-01"
+                            className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* C. Indicação de Clínicas Radiológicas Parceiras (Modelo 3: "Faça este exame em clínicas radiológicas:") */}
+                  <div className="p-3 bg-stone-50/80 rounded-xl border border-stone-200/80 space-y-2.5">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={rxPanoramicoIndicarClinicas}
+                        onChange={(e) => setRxPanoramicoIndicarClinicas(e.target.checked)}
+                        className="w-4 h-4 text-sky-600 rounded"
+                      />
+                      <span className="text-xs font-bold text-stone-900">
+                        C. Incluir recomendação: "Faça este exame em clínicas radiológicas:"
+                      </span>
+                    </label>
+
+                    {rxPanoramicoIndicarClinicas && (
+                      <div className="space-y-2 pt-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <label className={`flex items-center gap-2 p-2 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer`}>
+                            <input
+                              type="checkbox"
+                              checked={rxPanoramicoClinicas.perboyreCastelo}
+                              onChange={(e) => setRxPanoramicoClinicas(prev => ({ ...prev, perboyreCastelo: e.target.checked }))}
+                              className="w-3.5 h-3.5 text-sky-600 rounded"
+                            />
+                            <div>
+                              <span className="text-xs font-bold text-stone-900 block">Perboyre Castelo</span>
+                              <span className="text-[10px] text-stone-500">A imagem da odontologia</span>
+                            </div>
+                          </label>
+
+                          <label className={`flex items-center gap-2 p-2 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer`}>
+                            <input
+                              type="checkbox"
+                              checked={rxPanoramicoClinicas.dentalImagem}
+                              onChange={(e) => setRxPanoramicoClinicas(prev => ({ ...prev, dentalImagem: e.target.checked }))}
+                              className="w-3.5 h-3.5 text-sky-600 rounded"
+                            />
+                            <div>
+                              <span className="text-xs font-bold text-stone-900 block">Dental Imagem</span>
+                              <span className="text-[10px] text-stone-500">Diagnóstico & Doc.</span>
+                            </div>
+                          </label>
+
+                          <label className={`flex items-center gap-2 p-2 ${t.inputBg} rounded-xl border ${t.cardBorder} cursor-pointer`}>
+                            <input
+                              type="checkbox"
+                              checked={rxPanoramicoClinicas.oralScan}
+                              onChange={(e) => setRxPanoramicoClinicas(prev => ({ ...prev, oralScan: e.target.checked }))}
+                              className="w-3.5 h-3.5 text-sky-600 rounded"
+                            />
+                            <div>
+                              <span className="text-xs font-bold text-stone-900 block">Oral Scan</span>
+                              <span className="text-[10px] text-stone-500">Imaginologia Odonto.</span>
+                            </div>
+                          </label>
+                        </div>
+
+                        <div>
+                          <input
+                            type="text"
+                            value={rxPanoramicoOutraClinica}
+                            onChange={(e) => setRxPanoramicoOutraClinica(e.target.value)}
+                            placeholder="Outra clínica radiológica parceira (opcional)"
+                            className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-1.5 text-xs`}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Dentes / Região e Finalidade */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
-                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Dentes ou Região de Interesse:</label>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Dentes ou Região de Interesse (opcional):</label>
                       <input
                         type="text"
                         value={rxPanoramicoTeethInput}
                         onChange={(e) => setRxPanoramicoTeethInput(e.target.value)}
-                        placeholder="Ex: Terceiros Molares (18, 28, 38, 48) ou Arcada Total"
+                        placeholder="Ex: Arcadas Dentárias Superior e Inferior"
                         className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
                       />
                     </div>
                     <div>
-                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Finalidade Clínica / Indicação:</label>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Finalidade Clínica / Indicação (opcional):</label>
                       <input
                         type="text"
                         value={rxPanoramicoFinalidade}
                         onChange={(e) => setRxPanoramicoFinalidade(e.target.value)}
-                        placeholder="Ex: Avaliação Pré-Operatória / Planejamento Ortodôntico"
+                        placeholder="Ex: Avaliação Diagnóstica Geral / Planejamento"
                         className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
                       />
                     </div>
@@ -4542,15 +6048,21 @@ export const DentalDocumentManager: React.FC = () => {
                       <FileText className={`w-4 h-4 ${t.accentText}`} />
                       3. Parâmetros do Exame Periapical / Interproximal
                     </span>
+                    <span className="text-[10.5px] font-bold text-sky-800 bg-sky-100 px-2.5 py-0.5 rounded-full border border-sky-200">
+                      Intraoral Digital
+                    </span>
                   </span>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-3.5">
+                    {/* 1. Tipo de Tomada */}
                     <div>
-                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Tipo de Tomada Radiográfica:</label>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>
+                        Tipo de Tomada Radiográfica:
+                      </label>
                       <select
                         value={rxPeriapicalTipo}
                         onChange={(e) => setRxPeriapicalTipo(e.target.value as any)}
-                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold focus:outline-none`}
                       >
                         <option value="periapical_localizada">Radiografia Periapical Localizada</option>
                         <option value="levantamento_completo_14_tomadas">Levantamento Periapical Completo (14 tomadas)</option>
@@ -4559,34 +6071,373 @@ export const DentalDocumentManager: React.FC = () => {
                       </select>
                     </div>
 
-                    <div>
-                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Dentes / Elementos de Interesse:</label>
-                      <input
-                        type="text"
-                        value={rxPeriapicalTeethInput}
-                        onChange={(e) => setRxPeriapicalTeethInput(e.target.value)}
-                        placeholder="Ex: Dentes 11, 21 e 22"
-                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
-                      />
+                    {/* 2. Seleção de Notação: Mesclada (12 Regiões Oficiais) vs. FDI vs. Grupos */}
+                    <div className={`${t.btnSecondaryBg} p-3.5 rounded-2xl border ${t.cardBorder} space-y-3.5`}>
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <label className={`text-xs font-bold ${t.headingText} flex items-center gap-1.5`}>
+                          <span>Seleção dos Elementos / Região:</span>
+                        </label>
+                        <div className="flex items-center gap-1 bg-stone-200/70 p-1 rounded-xl">
+                          <button
+                            type="button"
+                            onClick={() => setRxPeriapicalNotationMode('merged')}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                              rxPeriapicalNotationMode === 'merged'
+                                ? `${t.btnPrimaryBg} ${t.btnPrimaryText} shadow-xs`
+                                : 'text-stone-700 hover:text-stone-900'
+                            }`}
+                          >
+                            🔀 Notação por Regiões (12 Áreas) + FDI
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRxPeriapicalNotationMode('fdi')}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                              rxPeriapicalNotationMode === 'fdi'
+                                ? `${t.btnPrimaryBg} ${t.btnPrimaryText} shadow-xs`
+                                : 'text-stone-700 hover:text-stone-900'
+                            }`}
+                          >
+                            🦷 FDI Individual
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRxPeriapicalNotationMode('regions')}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                              rxPeriapicalNotationMode === 'regions'
+                                ? `${t.btnPrimaryBg} ${t.btnPrimaryText} shadow-xs`
+                                : 'text-stone-700 hover:text-stone-900'
+                            }`}
+                          >
+                            📍 Grupos Gerais
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* MODO 1: NOTAÇÃO MESCLADA COM AS 12 REGIÕES ANATÔMICAS OFICIAIS + FDI */}
+                      {rxPeriapicalNotationMode === 'merged' && (
+                        <div className="space-y-3">
+                          {/* Painel das 12 Regiões Padronizadas */}
+                          <div className="bg-white p-3 rounded-xl border border-stone-200 space-y-2.5 shadow-2xs">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-extrabold uppercase tracking-wide text-stone-800 flex items-center gap-1">
+                                <span>🗺️ Notação Oficial das 12 Regiões Periapicais</span>
+                              </span>
+                              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                Clique para selecionar / alternar
+                              </span>
+                            </div>
+
+                            {/* ARCADA SUPERIOR (MAXILA - 7 REGIÕES) */}
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
+                                Arco Superior / Maxila (7 Regiões):
+                              </span>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-1.5">
+                                {PERIAPICAL_REGIONS_12.filter(r => r.arch === 'superior').map(reg => {
+                                  const isSelected = rxPeriapicalSelectedRegions.includes(reg.code) || rxPeriapicalTeethInput.includes(reg.code);
+                                  return (
+                                    <button
+                                      key={reg.code}
+                                      type="button"
+                                      onClick={() => togglePeriapicalRegion(reg.code)}
+                                      className={`p-2 rounded-xl text-left border transition cursor-pointer flex flex-col justify-between ${
+                                        isSelected
+                                          ? 'bg-emerald-700 text-white border-emerald-800 shadow-xs ring-1 ring-emerald-500'
+                                          : 'bg-stone-50 hover:bg-stone-100 text-stone-800 border-stone-200'
+                                      }`}
+                                      title={`${reg.name} (Dentes: ${reg.teeth})`}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className={`font-mono text-xs font-black ${isSelected ? 'text-white' : 'text-stone-900'}`}>
+                                          {reg.code}
+                                        </span>
+                                        {isSelected && <span className="text-[10px]">✓</span>}
+                                      </div>
+                                      <span className={`text-[10px] font-semibold leading-tight line-clamp-1 ${isSelected ? 'text-emerald-100' : 'text-stone-600'}`}>
+                                        {reg.shortDesc.split(' (')[0]}
+                                      </span>
+                                      <span className={`text-[9px] font-mono ${isSelected ? 'text-emerald-200' : 'text-stone-400'}`}>
+                                        {reg.teeth}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* ARCADA INFERIOR (MANDÍBULA - 5 REGIÕES) */}
+                            <div className="space-y-1 pt-1">
+                              <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
+                                Arco Inferior / Mandíbula (5 Regiões):
+                              </span>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
+                                {PERIAPICAL_REGIONS_12.filter(r => r.arch === 'inferior').map(reg => {
+                                  const isSelected = rxPeriapicalSelectedRegions.includes(reg.code) || rxPeriapicalTeethInput.includes(reg.code);
+                                  return (
+                                    <button
+                                      key={reg.code}
+                                      type="button"
+                                      onClick={() => togglePeriapicalRegion(reg.code)}
+                                      className={`p-2 rounded-xl text-left border transition cursor-pointer flex flex-col justify-between ${
+                                        isSelected
+                                          ? 'bg-emerald-700 text-white border-emerald-800 shadow-xs ring-1 ring-emerald-500'
+                                          : 'bg-stone-50 hover:bg-stone-100 text-stone-800 border-stone-200'
+                                      }`}
+                                      title={`${reg.name} (Dentes: ${reg.teeth})`}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className={`font-mono text-xs font-black ${isSelected ? 'text-white' : 'text-stone-900'}`}>
+                                          {reg.code}
+                                        </span>
+                                        {isSelected && <span className="text-[10px]">✓</span>}
+                                      </div>
+                                      <span className={`text-[10px] font-semibold leading-tight line-clamp-1 ${isSelected ? 'text-emerald-100' : 'text-stone-600'}`}>
+                                        {reg.shortDesc.split(' (')[0]}
+                                      </span>
+                                      <span className={`text-[9px] font-mono ${isSelected ? 'text-emerald-200' : 'text-stone-400'}`}>
+                                        {reg.teeth}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Botões de Ação em Bloco das Regiões */}
+                            <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-stone-200">
+                              <button
+                                type="button"
+                                onClick={handleSelectAll12PeriapicalRegions}
+                                className="text-[10.5px] font-bold px-2.5 py-1 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-lg text-stone-900 transition cursor-pointer"
+                              >
+                                Status Completo (12 Regiões)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleSelectSuperiorPeriapicalRegions}
+                                className="text-[10.5px] font-bold px-2.5 py-1 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-lg text-stone-900 transition cursor-pointer"
+                              >
+                                Arco Superior (7 Regiões)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleSelectInferiorPeriapicalRegions}
+                                className="text-[10.5px] font-bold px-2.5 py-1 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-lg text-stone-900 transition cursor-pointer"
+                              >
+                                Arco Inferior (5 Regiões)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleSelectBiteWingsPeriapical}
+                                className="text-[10.5px] font-bold px-2.5 py-1 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-lg text-stone-900 transition cursor-pointer"
+                              >
+                                Bite-Wings Bilaterais
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleClearPeriapicalSelection}
+                                className="text-[10.5px] font-bold px-2.5 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg text-rose-700 transition cursor-pointer"
+                              >
+                                Limpar
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Mesclar com Dente Individual FDI (Dropdown Vertical) */}
+                          <div className="bg-white p-2.5 rounded-xl border border-stone-200 space-y-2">
+                            <label className={`block text-[11px] font-semibold ${t.headingText}`}>
+                              Mesclar com Dente Individual FDI (Dropdown Vertical):
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={rxPeriapicalSelectedFdiTooth}
+                                onChange={(e) => setRxPeriapicalSelectedFdiTooth(e.target.value)}
+                                className={`flex-1 ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none`}
+                              >
+                                <option value="">-- Selecione o dente FDI para adicionar --</option>
+                                <optgroup label="1º Quadrante (Superior Direito)">
+                                  {FDI_TEETH_LIST.filter(t => t.quadrant.includes('1º')).map(t => (
+                                    <option key={t.code} value={t.code}>{t.name}</option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="2º Quadrante (Superior Esquerdo)">
+                                  {FDI_TEETH_LIST.filter(t => t.quadrant.includes('2º')).map(t => (
+                                    <option key={t.code} value={t.code}>{t.name}</option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="3º Quadrante (Inferior Esquerdo)">
+                                  {FDI_TEETH_LIST.filter(t => t.quadrant.includes('3º')).map(t => (
+                                    <option key={t.code} value={t.code}>{t.name}</option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="4º Quadrante (Inferior Direito)">
+                                  {FDI_TEETH_LIST.filter(t => t.quadrant.includes('4º')).map(t => (
+                                    <option key={t.code} value={t.code}>{t.name}</option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Dentição Decídua (Dentes de Leite)">
+                                  {FDI_TEETH_LIST.filter(t => t.quadrant.includes('Decíduos')).map(t => (
+                                    <option key={t.code} value={t.code}>{t.name}</option>
+                                  ))}
+                                </optgroup>
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => handleInsertFdiTooth(rxPeriapicalSelectedFdiTooth)}
+                                className={`px-3 py-1.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} rounded-xl text-xs font-bold hover:opacity-90 shrink-0 transition cursor-pointer`}
+                              >
+                                + Inserir Dente
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* MODO 2: APENAS LISTA VERTICAL FDI */}
+                      {rxPeriapicalNotationMode === 'fdi' && (
+                        <div className="space-y-2">
+                          <label className={`block text-[11px] font-semibold ${t.headingText}`}>
+                            Lista de Dentes FDI (Dropdown Vertical Carregado):
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={rxPeriapicalSelectedFdiTooth}
+                              onChange={(e) => {
+                                setRxPeriapicalSelectedFdiTooth(e.target.value);
+                                handleInsertFdiTooth(e.target.value);
+                              }}
+                              className={`flex-1 ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold focus:outline-none`}
+                            >
+                              <option value="">-- Selecione o dente FDI na lista vertical --</option>
+                              <optgroup label="1º Quadrante (Superior Direito)">
+                                {FDI_TEETH_LIST.filter(t => t.quadrant.includes('1º')).map(t => (
+                                  <option key={t.code} value={t.code}>{t.name}</option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="2º Quadrante (Superior Esquerdo)">
+                                {FDI_TEETH_LIST.filter(t => t.quadrant.includes('2º')).map(t => (
+                                  <option key={t.code} value={t.code}>{t.name}</option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="3º Quadrante (Inferior Esquerdo)">
+                                {FDI_TEETH_LIST.filter(t => t.quadrant.includes('3º')).map(t => (
+                                  <option key={t.code} value={t.code}>{t.name}</option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="4º Quadrante (Inferior Direito)">
+                                {FDI_TEETH_LIST.filter(t => t.quadrant.includes('4º')).map(t => (
+                                  <option key={t.code} value={t.code}>{t.name}</option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="Dentição Decídua (Dentes de Leite)">
+                                {FDI_TEETH_LIST.filter(t => t.quadrant.includes('Decíduos')).map(t => (
+                                  <option key={t.code} value={t.code}>{t.name}</option>
+                                ))}
+                              </optgroup>
+                            </select>
+
+                            <button
+                              type="button"
+                              onClick={() => handleInsertFdiTooth(rxPeriapicalSelectedFdiTooth)}
+                              className={`px-3 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} rounded-xl text-xs font-bold hover:opacity-90 shrink-0 transition cursor-pointer`}
+                              title="Adicionar elemento selecionado"
+                            >
+                              + Inserir
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* MODO 3: REGIÕES DESCRITIVAS GERAIS */}
+                      {rxPeriapicalNotationMode === 'regions' && (
+                        <div className="space-y-2">
+                          <label className={`block text-[11px] font-semibold ${t.headingText}`}>
+                            Lista de Regiões Odontológicas Carregadas:
+                          </label>
+                          <select
+                            value={rxPeriapicalSelectedRegion}
+                            onChange={(e) => {
+                              setRxPeriapicalSelectedRegion(e.target.value);
+                              if (e.target.value) {
+                                setRxPeriapicalTeethInput(e.target.value);
+                              }
+                            }}
+                            className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold focus:outline-none`}
+                          >
+                            <option value="">-- Selecione uma região anatômica carregada --</option>
+                            {REGION_NOTATIONS_LIST.map((reg, idx) => (
+                              <option key={idx} value={reg}>{reg}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Campo Editável Final dos Dentes / Região */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className={`block text-xs font-semibold ${t.headingText}`}>
+                            Dentes / Região Solicitada no Documento (Editável):
+                          </label>
+                          <span className="text-[10px] text-stone-500 font-mono">
+                            {rxPeriapicalTeethInput ? `${rxPeriapicalTeethInput.length} caracteres` : 'Vazio'}
+                          </span>
+                        </div>
+                        <input
+                          type="text"
+                          value={rxPeriapicalTeethInput}
+                          onChange={(e) => setRxPeriapicalTeethInput(e.target.value)}
+                          placeholder="Ex: Regiões: RMSD, RIS • Dente 21"
+                          className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold focus:outline-none`}
+                        />
+                      </div>
                     </div>
 
-                    <div className="sm:col-span-2">
-                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Indicação Clínica do Exame:</label>
+                    {/* 3. Indicação Clínica com sugestões */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className={`block text-xs font-semibold ${t.headingText}`}>
+                          Indicação Clínica do Exame:
+                        </label>
+                      </div>
                       <input
                         type="text"
                         value={rxPeriapicalIndication}
                         onChange={(e) => setRxPeriapicalIndication(e.target.value)}
-                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
+                        placeholder="Ex: Avaliação endodôntica e lesão periapical"
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold focus:outline-none mb-1.5`}
                       />
+                      <div className="flex flex-wrap gap-1">
+                        {[
+                          'Avaliação endodôntica e lesão periapical',
+                          'Pesquisa de cárie interproximal / recidiva',
+                          'Avaliação óssea e crista alveolar periodontal',
+                          'Pós-operatório de cirurgia / implante',
+                          'Trauma dentoalveolar e suspeita de fratura'
+                        ].map((sug, sIdx) => (
+                          <button
+                            key={sIdx}
+                            type="button"
+                            onClick={() => setRxPeriapicalIndication(sug)}
+                            className="text-[10px] font-semibold px-2 py-0.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded border border-stone-300 transition cursor-pointer"
+                          >
+                            {sug}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
-                    <div className="sm:col-span-2">
-                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>Observações Complementares:</label>
+                    {/* 4. Observações Técnicas */}
+                    <div>
+                      <label className={`block text-xs font-semibold ${t.headingText} mb-1`}>
+                        Observações Complementares / Recomendações Técnicas:
+                      </label>
                       <textarea
                         rows={2}
                         value={rxPeriapicalNotes}
                         onChange={(e) => setRxPeriapicalNotes(e.target.value)}
-                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl p-3 text-xs font-semibold`}
+                        placeholder="Ex: Favor realizar tomada periapical digital com posicionador e técnica do paralelismo."
+                        className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl p-3 text-xs font-semibold focus:outline-none`}
                       />
                     </div>
                   </div>
@@ -4957,67 +6808,28 @@ export const DentalDocumentManager: React.FC = () => {
         </div>
       )}
 
-      {/* RENDERED A4 DOCUMENT PREVIEW MODAL */}
+      {/* RENDERED A4 DOCUMENT PREVIEW MODAL - FULL SCREEN */}
       {isRenderModalOpen && activeTemplate && (
-        <div className="fixed inset-0 z-50 bg-[#2c2c2c]/70 backdrop-blur-xs flex items-center justify-center p-2 md:p-6 overflow-y-auto print:p-0 print:static print:bg-white print:block">
-          <div className="bg-white border-2 border-[#e5e5d1] rounded-3xl w-full max-w-5xl shadow-2xl overflow-hidden my-auto animate-fadeIn max-h-[96vh] flex flex-col print:max-h-none print:shadow-none print:border-none print:w-full print:rounded-none">
+        <div className="fixed inset-0 z-50 bg-stone-900/85 backdrop-blur-xs flex flex-col overflow-hidden p-0 print:p-0 print:static print:bg-white print:block">
+          <div className="bg-white w-full h-full shadow-2xl overflow-hidden animate-fadeIn flex flex-col print:h-auto print:max-h-none print:shadow-none print:border-none print:w-full print:rounded-none">
             {/* Control Bar Top */}
-            <div className="bg-[#2c3e2e] text-white p-4 flex flex-wrap items-center justify-between gap-3 shrink-0 print:hidden">
+            <div className="bg-[#2c3e2e] text-white p-3 md:p-4 flex flex-wrap items-center justify-between gap-3 shrink-0 print:hidden shadow-md">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                 <span className="font-bold text-xs md:text-sm">
                   Documento Pronto: {activeTemplate.title}
+                </span>
+                <span className="text-[11px] bg-white/10 px-2 py-0.5 rounded-full text-emerald-200">
+                  {patientDisplayName}
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    let summaryText = '';
-                    if (activeTemplate.id === 'receituario_controle_especial' || activeTemplate.title.toLowerCase().includes('controle especial')) {
-                      summaryText = specialPrescriptionText;
-                    } else if (activeTemplate.id === 'solicitacao_rx_panoramico') {
-                      summaryText = `Solicitação de Radiografia Panorâmica (${rxPanoramicoTeethInput}) para ${patientDisplayName}. Finalidade: ${rxPanoramicoFinalidade}.`;
-                    } else if (activeTemplate.id === 'solicitacao_rx_periapical_interproximal') {
-                      summaryText = `Solicitação de Radiografia ${rxPeriapicalTipo} (${rxPeriapicalTeethInput}) para ${patientDisplayName}. Indicação: ${rxPeriapicalIndication}.`;
-                    } else if (activeTemplate.id === 'receituario_simples') {
-                      summaryText = `Receituário (${receitaSimplesUso}) para ${patientDisplayName}: ${specialPrescriptionText}`;
-                    } else if (activeTemplate.id === 'receituario_notificacao_b_azul' || activeTemplate.id === 'receituario_notificacao_a_amarela') {
-                      summaryText = `Notificação de Receita para ${patientDisplayName}: ${specialPrescriptionText}`;
-                    } else if (activeTemplate.id === 'atestado_aptidao_odontologica') {
-                      summaryText = `Atestado de Aptidão Odontológica para ${patientDisplayName} (${aptidaoFinalidade}).`;
-                    } else if (activeTemplate.id === 'declaracao_tratamento_andamento') {
-                      summaryText = `Declaração de Tratamento em Andamento (${tratamentoAndamentoEspecialidade}) para ${patientDisplayName}.`;
-                    } else if (activeTemplate.id === 'declaracao_valores_recibo') {
-                      summaryText = `Recibo de Pagamento no valor de R$ ${reciboValor} (${reciboExtenso}) referente a ${reciboReferente}.`;
-                    } else if (activeTemplate.id.startsWith('tcle_')) {
-                      summaryText = `Termo de Consentimento Livre e Esclarecido (${activeTemplate.title}) firmado para ${patientDisplayName}.`;
-                    } else if (activeTemplate.category === 'atestado') {
-                      summaryText = `Atesto, para os devidos fins, que ${patientDisplayName}, submeteu-se a atendimento odontológico ${atendimentoType} ${procedureDetail ? `(${procedureDetail})` : ''}, CID: ${isManualCid ? customCid : cidCode}, no dia ${formattedFormattedDate} às ${docTime}, período ${periodoStr}, devendo se afastar de suas atividades pelo período de ${afastamentoDias} dia(s) por estar sob meus cuidados e responsabilidade neste período.`;
-                    } else if (activeTemplate.id === 'relatorio_atendimento_inicial_final') {
-                      summaryText = `${relatorioDocStage === 'inicial' ? 'Relatório de Atendimento Inicial' : 'Relatório de Atendimento Final'}: ${relatorioProcedimentoDesc}. Informações prestadas aos pacientes assistidos que justifiquem recusa, interrupção ou tempo mais longo em razão de complexidade, finalidade pedagógica ou casos fortuitos.`;
-                    } else if (activeTemplate.id === 'declaracao_comparecimento') {
-                      summaryText = `Declaro, para os devidos fins de direito, que o(a) Sr(a). ${patientDisplayName} esteve presente neste consultório odontológico no dia ${formattedFormattedDate}, durante o período de ${docTime} (${periodoStr}), submetendo-se a tratamento e acompanhamento clínico odontológico.`;
-                    } else if (activeTemplate.id === 'solicitacao_sangue') {
-                      const selectedExams = Object.entries(bloodExams).filter(([_, v]) => v).map(([k]) => k).join(', ');
-                      summaryText = `Solicito para o(a) paciente ${patientDisplayName} a realização dos exames de sangue pré-operatórios odontológicos: ${selectedExams || 'Hemograma completo, Coagulograma, Glicemia em jejum'}.`;
-                    } else if (activeTemplate.id === 'solicitacao_tomografia') {
-                      summaryText = buildFormattedTomographySummary();
-                    } else {
-                      summaryText = activeTemplate.description || 'Documento emitido e registrado no sistema odontológico para fins de prontuário e acompanhamento clínico.';
-                    }
-
-                    handlePrintSystemWindow({
-                      id: activeTemplate.id,
-                      title: activeTemplate.title,
-                      patientName: patientDisplayName,
-                      professionalName: activeProfessional?.name || clinicInfo.dentistName,
-                      formattedDateStr: formattedFormattedDate,
-                      summary: summaryText
-                    });
-                  }}
-                  className="px-3.5 py-2 bg-[#d4a373] hover:bg-[#c29363] text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                  onClick={handlePrintActiveDocument}
+                  className="px-3.5 py-2 bg-[#d4a373] hover:bg-[#c29363] text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  title="Imprimir documento oficial ou salvar como PDF"
                 >
                   <Printer className="w-4 h-4" />
                   Imprimir
@@ -5046,7 +6858,7 @@ export const DentalDocumentManager: React.FC = () => {
 
             {/* Document Printable Sheet A4 Format */}
             <div className="p-3 md:p-6 bg-stone-100 overflow-y-auto flex-1 flex justify-center print:p-0 print:bg-white">
-              <div className="w-full max-w-[760px] bg-white border border-stone-300 shadow-xl rounded-xl p-5 md:p-7 space-y-3 font-sans text-[#2c2c2c] min-h-[800px] flex flex-col justify-between relative print:shadow-none print:border-none print:w-full overflow-hidden print:overflow-visible print:p-0 box-border">
+              <div id="printable-document-sheet" className="w-full max-w-[760px] bg-white border border-stone-300 shadow-xl rounded-xl p-5 md:p-7 space-y-3 font-sans text-[#2c2c2c] min-h-[800px] flex flex-col justify-between relative print:shadow-none print:border-none print:w-full overflow-hidden print:overflow-visible print:p-0 box-border">
                 
                 {/* Background Watermark (Marca d'Água) */}
                 {(clinicInfo.showWatermark ?? true) && (clinicInfo.watermarkUrl || clinicInfo.logoUrl) && (
@@ -5071,10 +6883,10 @@ export const DentalDocumentManager: React.FC = () => {
                       )}
                       <div>
                         <p className="text-xs font-bold text-[#5a5a40]">
-                          {effectiveDentistName}
+                          {clinicInfo.headerTitle || effectiveDentistName}
                         </p>
                         <p className="text-[10px] text-stone-600 font-mono">
-                          Cirurgião-Dentista {effectiveDentistCro} {effectiveDentistSpecialty ? `• ${effectiveDentistSpecialty}` : ''}
+                          {clinicInfo.headerSubtitle || `Cirurgião-Dentista ${effectiveDentistCro} ${effectiveDentistSpecialty ? `• ${effectiveDentistSpecialty}` : ''}`}
                         </p>
                         {clinicInfo.epao && (
                           <p className="text-[9.5px] text-stone-500 font-mono">EPAO: {clinicInfo.epao}</p>
@@ -5087,7 +6899,7 @@ export const DentalDocumentManager: React.FC = () => {
 
                     <div className="text-right space-y-0.5 max-w-[280px]">
                       <p className="text-sm font-bold uppercase tracking-wider text-stone-900 leading-tight">
-                        {effectiveClinicName || clinicInfo.name || 'DentisPro'}
+                        {clinicInfo.headerTitle || effectiveClinicName || clinicInfo.name || 'DentisPro'}
                       </p>
                       <p className="text-[10px] text-stone-600 font-semibold">{effectiveClinicAddress}</p>
                       <p className="text-[10px] text-stone-600">
@@ -5595,10 +7407,10 @@ export const DentalDocumentManager: React.FC = () => {
                     </div>
                   )}
 
-                  {/* MODEL 11: SOLICITAÇÃO DE RADIOGRAFIA PANORÂMICA & DOCUMENTAÇÃO */}
+                  {/* MODEL 11: SOLICITAÇÃO DE RADIOGRAFIA PANORÂMICA (ORTOPANTOMOGRAFIA) */}
                   {activeTemplate.id === 'solicitacao_rx_panoramico' && (
                     <div className="space-y-3.5 text-xs font-sans text-stone-800">
-                      <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between text-xs font-semibold">
+                      <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
                         <div>
                           <span className="text-stone-500 text-[10px] uppercase font-bold mr-1.5">Paciente:</span>
                           <span className="text-stone-900 font-bold underline">{patientDisplayName}</span>
@@ -5607,76 +7419,61 @@ export const DentalDocumentManager: React.FC = () => {
                           <span className="text-stone-500 text-[10px] uppercase font-bold mr-1.5">Idade:</span>
                           <span className="text-stone-800 font-semibold">{patientAge}</span>
                         </div>
+                        {rxPanoramicoIncluirConvenio && rxPanoramicoConvenioNome && (
+                          <div className="w-full pt-1 border-t border-stone-200/80 flex items-center justify-between text-[11px]">
+                            <span><strong className="text-stone-700">Convênio:</strong> {rxPanoramicoConvenioNome}</span>
+                            {rxPanoramicoConvenioNumero && <span><strong className="text-stone-700">Nº Carteirinha:</strong> {rxPanoramicoConvenioNumero}</span>}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Solicitação Radiológica dos Modelos Clínicos */}
+                      <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                        <span className="font-bold text-[11px] text-stone-900 uppercase block border-b border-stone-200 pb-1">
+                          Exame e Solicitação Radiológica:
+                        </span>
+                        <div className="space-y-1.5 pt-0.5">
+                          {getRxPanoramicoSolicitacoesList(rxPanoramicoOptions, rxPanoramicoTextoCustomizado).map((sol, idx) => (
+                            <div key={idx} className="flex items-start gap-2 text-xs font-medium text-stone-900 bg-white p-2 rounded-lg border border-stone-200">
+                              <span className="text-sky-700 font-bold mt-0.5">✓</span>
+                              <span className="leading-relaxed">{sol}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
 
                       {/* Região e Finalidade */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200">
-                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Região / Dentes de Interesse:</span>
-                          <span className="text-stone-900 font-bold text-xs">{rxPanoramicoTeethInput}</span>
+                      {(rxPanoramicoTeethInput || rxPanoramicoFinalidade) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {rxPanoramicoTeethInput && (
+                            <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200">
+                              <span className="text-stone-500 text-[10px] uppercase font-bold block">Região / Dentes de Interesse:</span>
+                              <span className="text-stone-900 font-bold text-xs">{rxPanoramicoTeethInput}</span>
+                            </div>
+                          )}
+                          {rxPanoramicoFinalidade && (
+                            <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200">
+                              <span className="text-stone-500 text-[10px] uppercase font-bold block">Indicação / Finalidade Clínica:</span>
+                              <span className="text-stone-900 font-bold text-xs">{rxPanoramicoFinalidade}</span>
+                            </div>
+                          )}
                         </div>
-                        <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200">
-                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Indicação / Finalidade Clínica:</span>
-                          <span className="text-stone-900 font-bold text-xs">{rxPanoramicoFinalidade}</span>
-                        </div>
-                      </div>
+                      )}
 
-                      {/* Exames Solicitados */}
-                      <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
-                        <span className="font-bold text-[11px] text-stone-900 uppercase block border-b border-stone-200 pb-1">
-                          Exames e Documentação Radiológica Solicitada:
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-0.5">
-                          {rxPanoramicoOptions.panoramicaPadrao && (
-                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
-                              <span className="text-sky-700 font-bold">☑</span>
-                              <span>Radiografia Panorâmica Padrão (com ampliações)</span>
-                            </div>
-                          )}
-                          {rxPanoramicoOptions.telerradiografiaPerfil && (
-                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
-                              <span className="text-sky-700 font-bold">☑</span>
-                              <span>Telerradiografia Lateral de Perfil</span>
-                            </div>
-                          )}
-                          {rxPanoramicoOptions.tracadoCefalometrico && (
-                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
-                              <span className="text-sky-700 font-bold">☑</span>
-                              <span>Traçado Cefalométrico Padronizado</span>
-                            </div>
-                          )}
-                          {rxPanoramicoOptions.telerradiografiaFrontal && (
-                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
-                              <span className="text-sky-700 font-bold">☑</span>
-                              <span>Telerradiografia Frontal (PA)</span>
-                            </div>
-                          )}
-                          {rxPanoramicoOptions.rxAtms && (
-                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
-                              <span className="text-sky-700 font-bold">☑</span>
-                              <span>Radiografia de ATMs (Boca Aberta / Fechada)</span>
-                            </div>
-                          )}
-                          {rxPanoramicoOptions.fotosDocumentacao && (
-                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
-                              <span className="text-sky-700 font-bold">☑</span>
-                              <span>Documentação Fotográfica (Extra e Intraoral)</span>
-                            </div>
-                          )}
-                          {rxPanoramicoOptions.escaneamentoModelos && (
-                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
-                              <span className="text-sky-700 font-bold">☑</span>
-                              <span>Escaneamento Intraoral 3D / Modelos Digitais STL</span>
-                            </div>
-                          )}
-                          {rxPanoramicoOptions.interproximaisBiteWings && (
-                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-800 bg-white p-1.5 rounded-lg border border-stone-200">
-                              <span className="text-sky-700 font-bold">☑</span>
-                              <span>Radiografias Interproximais (Bite-Wings)</span>
-                            </div>
-                          )}
+                      {/* Clínicas Radiológicas Recomendadas (Modelo 3) */}
+                      {rxPanoramicoIndicarClinicas && (
+                        <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200 space-y-1.5">
+                          <span className="font-bold text-[10px] text-stone-700 uppercase block">Faça este exame em clínicas radiológicas:</span>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                            {getRxPanoramicoClinicasList(rxPanoramicoClinicas, rxPanoramicoOutraClinica).map((c, i) => (
+                              <div key={i} className="bg-white p-2 rounded-lg border border-stone-200 text-center">
+                                <span className="font-bold text-xs text-stone-900 block">{c.name}</span>
+                                {(c.subtitle || (c as any).desc) && <span className="text-[10px] text-stone-500 block">{c.subtitle || (c as any).desc}</span>}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Observações */}
                       {rxPanoramicoObservacoes && (
@@ -6033,6 +7830,11 @@ export const DentalDocumentManager: React.FC = () => {
                           </svg>
                         </div>
                       </div>
+                      {clinicInfo.footerText && (
+                        <div className="col-span-full pt-1.5 border-t border-stone-200 text-center text-[10px] text-stone-500 italic">
+                          {clinicInfo.footerText}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

@@ -751,6 +751,9 @@ export interface SavedClinicDocument {
   summary: string;
   status: 'gerado' | 'assinado_govbr' | 'impresso';
   govBrSignedAt?: string;
+  templateId?: string;
+  templateData?: Record<string, any>;
+  htmlSnapshot?: string;
 }
 
 export interface GovBrProfile {

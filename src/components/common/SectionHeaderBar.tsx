@@ -72,7 +72,7 @@ export const SectionHeaderBar: React.FC = () => {
 
   return (
     <>
-      <div className={`w-full ${barBg} border-b shadow-xs py-3 px-4 sm:px-6 mb-5 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 transition-colors duration-200`}>
+      <div className={`w-full ${barBg} border-b shadow-xs py-3 px-4 sm:px-6 mb-5 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 transition-colors duration-200 print:hidden`}>
         {/* Left Side: Back to Dashboard Button & Breadcrumb */}
         <div className="flex items-center gap-3 flex-wrap">
           <button
