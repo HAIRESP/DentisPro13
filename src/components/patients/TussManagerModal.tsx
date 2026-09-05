@@ -1133,7 +1133,7 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
                     { label: 'Profilaxia / Remoção de placa e tártaro', subLabel: 'TUSS: 81000188 • Periodontia' },
                     { label: 'Restauração em Resina Composta (1 face)', subLabel: 'TUSS: 85100030 • Dentística' },
                     { label: 'Restauração em Resina Composta (2 faces)', subLabel: 'TUSS: 85100048 • Dentística' },
-                    { label: 'Tratamento Endodôntico Unirradicular (Canal)', subLabel: 'TUSS: 85200010 • Endodontia' },
+                    { label: 'Tratamento Endodôntico Unirradicular', subLabel: 'TUSS: 85200010 • Endodontia' },
                     { label: 'Exodontia Simples de Dente Permanente', subLabel: 'TUSS: 85300015 • Cirurgia' },
                     { label: 'Coroa Total em Porcelana / Zircônia', subLabel: 'TUSS: 85500019 • Prótese' },
                     { label: 'Clareamento Dental a Laser no Consultório', subLabel: 'TUSS: 85600011 • Estética' }

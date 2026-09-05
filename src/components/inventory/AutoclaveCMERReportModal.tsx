@@ -51,8 +51,8 @@ export const AutoclaveCMERReportModal: React.FC<AutoclaveCMERReportModalProps> =
   };
 
   // 1. RESPONSÁVEL TÉCNICO (RT) STATE & CONTROLS
-  const defaultRTName = activeClinic.technicalManager || 'Dr. Hugo Andres Iglesias Ricoy';
-  const defaultRTCRO = activeClinic.croTechnicalManager || 'CRO/CE 5925';
+  const defaultRTName = activeClinic?.technicalManager || 'Dr. Hugo Andres Iglesias Ricoy';
+  const defaultRTCRO = activeClinic?.croTechnicalManager || 'CRO/CE 5925';
   const [selectedRT, setSelectedRT] = useState<string>(`${defaultRTName} — ${defaultRTCRO}`);
   const [isRTVerified, setIsRTVerified] = useState<boolean>(true);
   const [isRTDigitalSigned, setIsRTDigitalSigned] = useState<boolean>(true);
@@ -374,17 +374,17 @@ export const AutoclaveCMERReportModal: React.FC<AutoclaveCMERReportModalProps> =
             <div className="p-4 bg-[#fbfbf9] flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-[#1b281d] gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-[#1b281d] text-amber-300 flex items-center justify-center font-black text-xl shrink-0 border border-[#d4a373]">
-                  {activeClinic.name ? activeClinic.name.charAt(0) : 'D'}
+                  {activeClinic?.name ? activeClinic.name.charAt(0) : 'D'}
                 </div>
                 <div>
                   <h1 className="text-base font-black text-[#1b281d] uppercase tracking-wide">
-                    {activeClinic.name || clinicName}
+                    {activeClinic?.name || clinicName}
                   </h1>
                   <p className="text-[11px] text-gray-600 font-medium">
-                    {activeClinic.address || 'Fortaleza - CE'} {activeClinic.phone ? `• Tel: ${activeClinic.phone}` : ''}
+                    {activeClinic?.address || 'Fortaleza - CE'} {activeClinic?.phone ? `• Tel: ${activeClinic.phone}` : ''}
                   </p>
                   <p className="text-[10px] text-gray-500 font-mono">
-                    EPAO: {activeClinic.epaoNumber || '12345'} • CNPJ: {activeClinic.cnpj || '12.345.678/0001-90'}
+                    EPAO: {activeClinic?.epaoNumber || '12345'} • CNPJ: {activeClinic?.cnpj || '12.345.678/0001-90'}
                   </p>
                 </div>
               </div>
@@ -621,7 +621,7 @@ export const AutoclaveCMERReportModal: React.FC<AutoclaveCMERReportModalProps> =
             </div>
 
             <div className="pt-2 border-t border-gray-200 text-center text-[10px] text-gray-400 font-mono">
-              DentisPro Odontologia • Laudo oficial de biossegurança de esterilização emitido digitalmente • {activeClinic.name}
+              DentisPro Odontologia • Laudo oficial de biossegurança de esterilização emitido digitalmente • {activeClinic?.name || 'Todas as Unidades'}
             </div>
           </div>
 

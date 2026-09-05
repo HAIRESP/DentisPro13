@@ -507,7 +507,7 @@ const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
     minSurfaces: 0,
     maxSurfaces: 5,
     tussCode: '82000034',
-    procedureDescription: 'Tratamento de canal (Endodontia)',
+    procedureDescription: 'Tratamento Endodôntico (Endodontia)',
     specialty: 'Endodontia',
     suggestedCost: 600,
     regionCode: 'RMID',
@@ -2183,7 +2183,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                   <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
                   <input
                     type="text"
-                    placeholder="Ex: Restauração, Implante, Canal..."
+                    placeholder="Ex: Restauração, Implante, Endodontia..."
                     value={searchTuss}
                     onChange={(e) => setSearchTuss(e.target.value)}
                     className="w-full bg-[#fbfbf9] border border-[#e5e5d1] rounded-xl pl-8 pr-3 py-2 text-xs focus:outline-none"
@@ -2786,7 +2786,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                     <option value="carie">Cárie</option>
                     <option value="restauracao_insatisfatoria">Restauração Insatisfatória</option>
                     <option value="girovertido">Dente Girovertido</option>
-                    <option value="canal">Endodontia / Tratam. Canal</option>
+                    <option value="canal">Endodontia / Terapia Endodôntica</option>
                     <option value="extracao_indicada">Extração Indicada</option>
                     <option value="ausente">Dente Ausente / Pérdida</option>
                     <option value="implante">Implante</option>

@@ -260,13 +260,13 @@ export const TreatmentPlanConsentModal: React.FC<TreatmentPlanConsentModalProps>
           <div className="flex items-start justify-between pb-4 border-b-2 border-slate-800 gap-4">
             <div className="space-y-1">
               <h3 className="text-lg font-bold font-serif text-slate-900">
-                {clinicInfo.name || activeClinic.name || 'DentisPro Odontologia Integrada'}
+                {clinicInfo.name || activeClinic?.name || 'DentisPro Odontologia Integrada'}
               </h3>
               <p className="text-xs text-slate-600">
-                {clinicInfo.address || activeClinic.address || 'Av. Santos Dumont, 2800 - Aldeota'} • {clinicInfo.city || 'Fortaleza - CE'}
+                {clinicInfo.address || activeClinic?.address || 'Av. Santos Dumont, 2800 - Aldeota'} • {clinicInfo.city || 'Fortaleza - CE'}
               </p>
               <p className="text-xs text-slate-600">
-                Cirurgião-Dentista: <strong>{activeProfessional.name || clinicInfo.dentistName || 'Dr. Dentista Responsável'}</strong> ({activeProfessional.cro || clinicInfo.cro || 'CRO/CE 5925'})
+                Cirurgião-Dentista: <strong>{activeProfessional?.name || clinicInfo.dentistName || 'Dr. Dentista Responsável'}</strong> ({activeProfessional?.cro || clinicInfo.cro || 'CRO/CE 5925'})
               </p>
             </div>
             <div className="text-right space-y-1 shrink-0">
@@ -616,10 +616,10 @@ export const TreatmentPlanConsentModal: React.FC<TreatmentPlanConsentModalProps>
 
             <div className="text-center space-y-1">
               <DocumentSignatureFooter
-                dentistName={activeProfessional.name || clinicInfo.dentistName}
-                cro={activeProfessional.cro || clinicInfo.cro}
-                specialty={activeProfessional.specialty || clinicInfo.specialty}
-                clinicName={clinicInfo.name || activeClinic.name}
+                dentistName={activeProfessional?.name || clinicInfo.dentistName}
+                cro={activeProfessional?.cro || clinicInfo.cro}
+                specialty={activeProfessional?.specialty || clinicInfo.specialty}
+                clinicName={clinicInfo.name || activeClinic?.name}
               />
             </div>
           </div>

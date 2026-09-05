@@ -40,6 +40,8 @@ export interface Professional {
   croNumber?: string;
   croUf?: string;
   govBrPassword?: string;
+  stampImageUrl?: string;
+  signatureImageUrl?: string;
 }
 
 export interface Anamnesis {

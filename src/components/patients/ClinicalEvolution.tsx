@@ -760,7 +760,7 @@ export const ClinicalEvolution: React.FC<ClinicalEvolutionProps> = ({ patientId,
               <input
                 type="text"
                 required
-                placeholder="Ex: Restauração em Resina Composta, Tratamento de Canal, Exodontia..."
+                placeholder="Ex: Restauração em Resina Composta, Tratamento Endodôntico, Exodontia..."
                 value={procedure}
                 onChange={(e) => setProcedure(e.target.value)}
                 className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3.5 py-2.5 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"

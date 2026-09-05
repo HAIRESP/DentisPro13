@@ -52,7 +52,7 @@ interface OdontogramProps {
 }
 
 const CONDITION_CONFIG: Record<ToothConditionType, { label: string; color: string; bg: string; text: string; textDark?: boolean }> = {
-  sio: { label: 'Hígido (Sem Alteração)', color: '#ffffff', bg: 'bg-white', text: 'text-slate-900', textDark: true },
+  sio: { label: 'Hígido (Íntegro)', color: '#ffffff', bg: 'bg-white', text: 'text-slate-900', textDark: true },
   carie: { label: 'Cárie', color: '#ef4444', bg: 'bg-red-500', text: 'text-white' },
   restauracao: { label: 'Restauração satisfatória', color: '#2563eb', bg: 'bg-blue-600', text: 'text-white' },
   restauracao_insatisfatoria: { label: 'Restauração insatisfatória', color: '#4ade80', bg: 'bg-green-400', text: 'text-slate-950', textDark: true },
@@ -2049,7 +2049,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
                   'Restauração nos dentes 11, 12, 21 e 22',
                   'Dentes 18 e 28 ausentes',
                   'Implante no dente 24',
-                  'Canal no dente 46',
+                  'Tratamento Endodôntico no dente 46',
                   'Cálculo supragengival nos dentes 31, 32, 41, 42',
                   'Dente 12 girovertido',
                   'Limpar dente 36',

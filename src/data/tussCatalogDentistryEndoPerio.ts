@@ -625,7 +625,7 @@ export const TUSS_PROCEDURES_CLINICAL: TUSSProcedure[] = [
     chapter: 'PROCEDIMENTOS ODONTOLÓGICOS',
     segmentation: 'OD',
     dut: '1. Cobertura obrigatória em dentes permanentes com tratamento endodôntico prévio, conforme indicação do cirurgião-dentista assistente.',
-    fullDescription: 'Desobturação parcial calibrada do canal radicular com brocas de Gates-Glidden ou Largo mantendo o selamento apical mínimo de 4 a 5mm.'
+    fullDescription: 'Desobturação parcial calibrada do conduto radicular com brocas de Gates-Glidden ou Largo mantendo o selamento apical mínimo de 4 a 5mm.'
   },
   {
     code: '85200034',
@@ -664,7 +664,7 @@ export const TUSS_PROCEDURES_CLINICAL: TUSSProcedure[] = [
     group: 'CABEÇA E PESCOÇO',
     chapter: 'PROCEDIMENTOS ODONTOLÓGICOS',
     segmentation: 'OD',
-    fullDescription: 'Desobstrução do canal radicular com pontas de ultrassom e kits de microextratores para resgate de instrumentos fraturados ou fragmentos retidos.'
+    fullDescription: 'Desobstrução do conduto radicular com pontas de ultrassom e kits de microextratores para resgate de instrumentos fraturados ou fragmentos retidos.'
   },
   {
     code: '85200069',
@@ -729,7 +729,7 @@ export const TUSS_PROCEDURES_CLINICAL: TUSSProcedure[] = [
     group: 'CABEÇA E PESCOÇO',
     chapter: 'PROCEDIMENTOS ODONTOLÓGICOS',
     segmentation: 'OD',
-    fullDescription: 'Retratamento de canal em molares com localização de condutos omitidos, desinfecção com ultrassom e novo selamento biocerâmico hermético.'
+    fullDescription: 'Retratamento endodôntico em molares com localização de condutos omitidos, desinfecção com ultrassom e novo selamento biocerâmico hermético.'
   },
   {
     code: '85200115',
@@ -742,7 +742,7 @@ export const TUSS_PROCEDURES_CLINICAL: TUSSProcedure[] = [
     group: 'CABEÇA E PESCOÇO',
     chapter: 'PROCEDIMENTOS ODONTOLÓGICOS',
     segmentation: 'OD',
-    fullDescription: 'Desobturação e nova instrumentação mecanizada com medicação intracanal e reobturação em dente anterior ou pré-molar de canal único.'
+    fullDescription: 'Desobturação e nova instrumentação mecanizada com medicação intracanal e reobturação em dente anterior ou pré-molar de conduto único.'
   },
   {
     code: '85200123',
@@ -781,7 +781,7 @@ export const TUSS_PROCEDURES_CLINICAL: TUSSProcedure[] = [
     group: 'CABEÇA E PESCOÇO',
     chapter: 'PROCEDIMENTOS ODONTOLÓGICOS',
     segmentation: 'OD',
-    fullDescription: 'Tratamento de canal em pré-molares com instrumentação rotatória/reciprocante de níquel-titânio, irrigação com hipoclorito 2,5% e obturação condensada.'
+    fullDescription: 'Tratamento endodôntico em pré-molares com instrumentação rotatória/reciprocante de níquel-titânio, irrigação com hipoclorito 2,5% e obturação condensada.'
   },
   {
     code: '85200158',

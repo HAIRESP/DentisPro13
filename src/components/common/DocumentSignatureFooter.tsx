@@ -6,18 +6,26 @@ import { GovBrSignatureWizardModal } from './GovBrSignatureWizardModal';
 
 interface DocumentSignatureFooterProps {
   customDentistName?: string;
+  dentistName?: string;
   customCro?: string;
+  cro?: string;
+  specialty?: string;
+  clinicName?: string;
   documentTitle?: string;
   compact?: boolean;
   hideSignatureLine?: boolean;
   hideDigitalSignature?: boolean;
   hideStampAndManualSignature?: boolean;
-  align?: 'left' | 'right';
+  align?: 'left' | 'right' | 'center';
 }
 
 export const DocumentSignatureFooter: React.FC<DocumentSignatureFooterProps> = ({
   customDentistName,
+  dentistName: propDentistName,
   customCro,
+  cro: propCro,
+  specialty: _propSpecialty,
+  clinicName: _propClinicName,
   documentTitle = 'Documento Odontológico',
   compact = false,
   hideSignatureLine = false,
@@ -31,10 +39,13 @@ export const DocumentSignatureFooter: React.FC<DocumentSignatureFooterProps> = (
   const [isSigning, setIsSigning] = useState(false);
   const [signedSuccessfully, setSignedSuccessfully] = useState(false);
 
-  const dentistName = customDentistName || activeProfessional?.name || clinicInfo.dentistName || 'Hugo Andres Iglesias Ricoy';
-  const cro = customCro || activeProfessional?.cro || clinicInfo.cro || 'CRO/CE 5925';
+  const dentistName = customDentistName || propDentistName || activeProfessional?.name || clinicInfo.dentistName || 'Hugo Andres Iglesias Ricoy';
+  const cro = customCro || propCro || activeProfessional?.cro || clinicInfo.cro || 'CRO/CE 5925';
   const cpf = formatCPF(activeProfessional?.cpf || clinicInfo.cpf || '879.750.253-72');
   const certificateType = clinicInfo.govBrCertificateType || 'Assinatura Eletrônica Avançada Gov.br (Pessoa Física - Gratuita • Conta Prata/Ouro)';
+  
+  const effectiveStampUrl = activeProfessional?.stampImageUrl || clinicInfo.stampImageUrl;
+  const effectiveSigUrl = activeProfessional?.signatureImageUrl || clinicInfo.signatureImageUrl;
 
   // Static or generated hash for digital validity
   const now = new Date();
@@ -150,22 +161,24 @@ export const DocumentSignatureFooter: React.FC<DocumentSignatureFooterProps> = (
       {!hideStampAndManualSignature && (
         <div className={`w-full flex flex-col ${
           effectiveAlign === 'right' 
-            ? 'items-end justify-end text-right' 
+            ? 'items-end justify-end text-right ml-auto' 
             : effectiveAlign === 'center' 
-            ? 'items-center justify-center text-center' 
-            : 'items-start justify-start text-left'
+            ? 'items-center justify-center text-center mx-auto' 
+            : 'items-start justify-start text-left mr-auto'
         } space-y-2`}>
 
           {arrangement === 'side_by_side' ? (
             /* SIDE BY SIDE ARRANGEMENT */
-            <div className="flex items-center justify-center gap-4 mb-1">
+            <div className={`flex items-center gap-4 mb-1 ${
+              effectiveAlign === 'right' ? 'justify-end ml-auto' : effectiveAlign === 'center' ? 'justify-center mx-auto' : 'justify-start mr-auto'
+            }`}>
               {(clinicInfo.showStampImage ?? true) && (
                 <div>
-                  {clinicInfo.stampImageUrl ? (
+                  {effectiveStampUrl ? (
                     <img
-                      src={clinicInfo.stampImageUrl}
+                      src={effectiveStampUrl}
                       alt="Carimbo Profissional"
-                      className="h-16 max-w-[150px] object-contain border border-[#5a5a40]/40 rounded-lg p-1 bg-white/90 shadow-2xs filter contrast-110 -rotate-3"
+                      className="h-16 max-w-[150px] object-contain border border-[#5a5a40]/40 rounded-lg p-1 bg-white/95 shadow-2xs filter contrast-110 -rotate-3"
                     />
                   ) : (
                     <div className="border-2 border-dashed border-[#5a5a40] text-[#5a5a40] rounded-xl px-3 py-1.5 bg-amber-50/80 text-left uppercase tracking-tight shadow-2xs flex flex-col justify-center min-w-[155px]">
@@ -179,9 +192,9 @@ export const DocumentSignatureFooter: React.FC<DocumentSignatureFooterProps> = (
 
               {(clinicInfo.showSignatureImage ?? true) && (
                 <div>
-                  {clinicInfo.signatureImageUrl ? (
+                  {effectiveSigUrl ? (
                     <img
-                      src={clinicInfo.signatureImageUrl}
+                      src={effectiveSigUrl}
                       alt="Assinatura Manual"
                       className="h-16 max-w-[210px] object-contain filter contrast-125 drop-shadow-xs -rotate-2"
                     />
@@ -198,12 +211,14 @@ export const DocumentSignatureFooter: React.FC<DocumentSignatureFooterProps> = (
             </div>
           ) : arrangement === 'stacked' ? (
             /* STACKED VERTICAL ARRANGEMENT */
-            <div className="flex flex-col items-center gap-2 mb-1">
+            <div className={`flex flex-col gap-2 mb-1 ${
+              effectiveAlign === 'right' ? 'items-end ml-auto' : effectiveAlign === 'center' ? 'items-center mx-auto' : 'items-start mr-auto'
+            }`}>
               {(clinicInfo.showSignatureImage ?? true) && (
                 <div>
-                  {clinicInfo.signatureImageUrl ? (
+                  {effectiveSigUrl ? (
                     <img
-                      src={clinicInfo.signatureImageUrl}
+                      src={effectiveSigUrl}
                       alt="Assinatura Manual"
                       className="h-16 max-w-[210px] object-contain filter contrast-125 drop-shadow-xs -rotate-2"
                     />
@@ -220,11 +235,11 @@ export const DocumentSignatureFooter: React.FC<DocumentSignatureFooterProps> = (
 
               {(clinicInfo.showStampImage ?? true) && (
                 <div>
-                  {clinicInfo.stampImageUrl ? (
+                  {effectiveStampUrl ? (
                     <img
-                      src={clinicInfo.stampImageUrl}
+                      src={effectiveStampUrl}
                       alt="Carimbo Profissional"
-                      className="h-14 max-w-[150px] object-contain border border-[#5a5a40]/40 rounded-lg p-1 bg-white/90 shadow-2xs filter contrast-110 -rotate-3"
+                      className="h-14 max-w-[150px] object-contain border border-[#5a5a40]/40 rounded-lg p-1 bg-white/95 shadow-2xs filter contrast-110 -rotate-3"
                     />
                   ) : (
                     <div className="border-2 border-dashed border-[#5a5a40] text-[#5a5a40] rounded-xl px-3 py-1 bg-amber-50/80 text-left uppercase tracking-tight shadow-2xs flex flex-col justify-center min-w-[155px]">
@@ -237,16 +252,21 @@ export const DocumentSignatureFooter: React.FC<DocumentSignatureFooterProps> = (
               )}
             </div>
           ) : (
-            /* OVERLAY CLASSIC ARRANGEMENT (DEFAULT) */
-            <div className="relative w-80 min-h-[96px] mb-1">
-              {/* Professional Stamp / Carimbo Figure (Background layer, rotated -12.5° left) */}
+            /* OVERLAY CLASSIC ARRANGEMENT (DEFAULT: 1cm abaixo da assinatura e inclinação 12,5 graus para a esquerda) */
+            <div className={`relative w-80 min-h-[105px] mb-1 ${
+              effectiveAlign === 'right' ? 'ml-auto' : effectiveAlign === 'center' ? 'mx-auto' : 'mr-auto'
+            }`}>
+              {/* Professional Stamp / Carimbo Figure (Posicionado 1 cm abaixo da assinatura e inclinado 12,5° para a esquerda) */}
               {(clinicInfo.showStampImage ?? true) && (
-                <div className={`absolute ${effectiveAlign === 'right' ? 'right-0' : effectiveAlign === 'center' ? 'left-1/2 -translate-x-1/2' : 'left-0'} bottom-0 z-10 -rotate-[12.5deg]`} style={{ transformOrigin: 'center center' }}>
-                  {clinicInfo.stampImageUrl ? (
+                <div 
+                  className={`absolute ${effectiveAlign === 'right' ? 'right-0' : effectiveAlign === 'center' ? 'left-1/2 -translate-x-1/2' : 'left-0'} z-10`} 
+                  style={{ top: '1cm', transform: 'rotate(-12.5deg)', transformOrigin: 'center center' }}
+                >
+                  {effectiveStampUrl ? (
                     <img
-                      src={clinicInfo.stampImageUrl}
+                      src={effectiveStampUrl}
                       alt="Carimbo Profissional"
-                      className="h-16 max-w-[150px] object-contain border border-[#5a5a40]/40 rounded-lg p-1 bg-white/90 shadow-2xs filter contrast-110"
+                      className="h-16 max-w-[150px] object-contain border border-[#5a5a40]/40 rounded-lg p-1 bg-white/95 shadow-2xs filter contrast-110"
                     />
                   ) : (
                     <div className="border-2 border-dashed border-[#5a5a40] text-[#5a5a40] rounded-xl px-3 py-1.5 bg-amber-50/80 text-left uppercase tracking-tight shadow-2xs flex flex-col justify-center min-w-[165px]">
@@ -258,17 +278,17 @@ export const DocumentSignatureFooter: React.FC<DocumentSignatureFooterProps> = (
                 </div>
               )}
 
-              {/* Handwritten Signature Figure (Overlaid horizontally) */}
+              {/* Handwritten Signature Figure (Posicionada na parte superior) */}
               {(clinicInfo.showSignatureImage ?? true) && (
-                <div className={`absolute ${effectiveAlign === 'right' ? 'right-8' : effectiveAlign === 'center' ? 'left-1/2 -translate-x-1/2' : 'left-8'} top-0 z-20 pointer-events-none`}>
-                  {clinicInfo.signatureImageUrl ? (
+                <div className={`absolute ${effectiveAlign === 'right' ? 'right-6' : effectiveAlign === 'center' ? 'left-1/2 -translate-x-1/2' : 'left-6'} top-0 z-20 pointer-events-none`}>
+                  {effectiveSigUrl ? (
                     <img
-                      src={clinicInfo.signatureImageUrl}
+                      src={effectiveSigUrl}
                       alt="Assinatura Manual"
-                      className="h-16 max-w-[210px] object-contain filter contrast-125 drop-shadow-xs -rotate-3"
+                      className="h-16 max-w-[210px] object-contain filter contrast-125 drop-shadow-xs -rotate-2"
                     />
                   ) : (
-                    <div className="relative h-16 w-56 flex items-center justify-start -rotate-3">
+                    <div className="relative h-16 w-56 flex items-center justify-start -rotate-2">
                       <svg className="w-full h-full text-indigo-950 opacity-95" viewBox="0 0 240 60" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M 10 35 C 30 10, 45 50, 60 25 C 70 10, 80 40, 95 30 C 110 20, 115 45, 130 25 C 145 10, 160 50, 180 20 C 195 10, 210 35, 230 30" />
                         <path d="M 30 45 C 70 48, 120 40, 200 42" strokeWidth="1.8" />
@@ -284,10 +304,10 @@ export const DocumentSignatureFooter: React.FC<DocumentSignatureFooterProps> = (
           {!hideSignatureLine && (clinicInfo.showSignatureLine ?? true) && (
             <div className={`space-y-1 ${
               effectiveAlign === 'right' 
-                ? 'text-right items-end' 
+                ? 'text-right items-end ml-auto' 
                 : effectiveAlign === 'center' 
-                ? 'text-center items-center' 
-                : 'text-left items-start'
+                ? 'text-center items-center mx-auto' 
+                : 'text-left items-start mr-auto'
             } w-full max-w-xs pt-1 flex flex-col`}>
               <div className="w-64 border-b-2 border-stone-800" />
               <p className="font-bold text-stone-900 text-xs">{clinicInfo.signatureLabel || `${dentistName} • ${cro}`}</p>

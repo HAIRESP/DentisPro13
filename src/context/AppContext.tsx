@@ -280,11 +280,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const [clinics, setClinics] = useState<ClinicUnit[]>(() => {
-    return loadInitial<ClinicUnit[]>(STORAGE_KEYS.CLINICS, INITIAL_CLINICS);
+    const loaded = loadInitial<ClinicUnit[]>(STORAGE_KEYS.CLINICS, INITIAL_CLINICS);
+    const hasOnline = loaded.some(c => c.id === 'cli-online' || c.name.toLowerCase().includes('atendimento online'));
+    const list = hasOnline ? [...loaded] : [
+      {
+        id: 'cli-online',
+        name: 'Atendimento Online',
+        address: 'Teleodontologia / Plataforma Digital',
+        phone: '(85) 98684-6424',
+        city: 'Online / Brasil',
+        email: 'contato@dentispro.com.br'
+      },
+      ...loaded
+    ];
+    return list.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
   });
 
   const [professionals, setProfessionals] = useState<Professional[]>(() => {
-    return loadInitial<Professional[]>(STORAGE_KEYS.PROFESSIONALS, INITIAL_PROFESSIONALS);
+    const loaded = loadInitial<Professional[]>(STORAGE_KEYS.PROFESSIONALS, INITIAL_PROFESSIONALS);
+    return [...loaded].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
   });
   const [activeProfessionalId, setActiveProfessionalIdState] = useState<string>(() => {
     const loaded = loadInitial('dentispro_active_prof_v1', '');

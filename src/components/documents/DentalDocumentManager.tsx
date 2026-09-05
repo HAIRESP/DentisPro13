@@ -283,7 +283,7 @@ export const DENTAL_DOCUMENT_TEMPLATES: DocumentTemplate[] = [
   {
     id: 'tcle_endodontia',
     category: 'termo',
-    title: 'TCLE - Tratamento de Endodontia (Canal)',
+    title: 'TCLE - Tratamento Endodôntico (Endodontia)',
     subtitle: 'Termo de Consentimento Livre e Esclarecido',
     icon: Stethoscope,
     description: 'Termo detalhando procedimento endodôntico, fratura de instrumentos, retratamento e cuidados.'
@@ -787,9 +787,9 @@ export const DentalDocumentManager: React.FC = () => {
 
     const sigElementHtml = allowSig ? (
       effectiveSigUrl ? `
-        <img src="${effectiveSigUrl}" style="height: 60px; max-width: 210px; object-fit: contain; filter: contrast(125%);" alt="Assinatura Manual" />
+        <img src="${effectiveSigUrl}" style="height: 60px; max-width: 210px; object-fit: contain; filter: contrast(125%); transform: rotate(-2deg);" alt="Assinatura Manual" />
       ` : `
-        <div style="height: 55px; width: 220px; display: inline-flex; align-items: center; justify-content: flex-start; transform: rotate(-2.5deg);">
+        <div style="height: 55px; width: 220px; display: inline-flex; align-items: center; justify-content: flex-start; transform: rotate(-2deg);">
           <svg style="width: 100%; height: 100%; color: #1e1b4b;" viewBox="0 0 240 60" fill="none" stroke="#1e1b4b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M 10 35 C 30 10, 45 50, 60 25 C 70 10, 80 40, 95 30 C 110 20, 115 45, 130 25 C 145 10, 160 50, 180 20 C 195 10, 210 35, 230 30" />
             <path d="M 30 45 C 70 48, 120 40, 200 42" stroke-width="1.8" />
@@ -802,7 +802,7 @@ export const DentalDocumentManager: React.FC = () => {
       effectiveStampUrl ? `
         <img src="${effectiveStampUrl}" style="height: 60px; max-width: 150px; object-fit: contain; border: 1px solid rgba(90,90,64,0.4); border-radius: 6px; padding: 2px; background: #fff;" alt="Carimbo" />
       ` : `
-        <div style="border: 2px dashed #5a5a40; color: #5a5a40; border-radius: 8px; padding: 4px 8px; background: #fffdf5; text-align: left; text-transform: uppercase; display: inline-flex; flex-direction: column; justify-content: center; min-width: 150px; transform: rotate(-10deg);">
+        <div style="border: 2px dashed #5a5a40; color: #5a5a40; border-radius: 8px; padding: 4px 8px; background: #fffdf5; text-align: left; text-transform: uppercase; display: inline-flex; flex-direction: column; justify-content: center; min-width: 150px;">
           <span style="font-weight: bold; font-size: 9.5px; display: block; line-height: 1.1; color: #2c3e2e;">${dentistName}</span>
           <span style="font-size: 8.5px; font-family: monospace; display: block; line-height: 1.1; color: #555;">${dentistCro}</span>
           <span style="font-size: 7.5px; color: #666; display: block;">Cirurgião-Dentista</span>
@@ -811,25 +811,25 @@ export const DentalDocumentManager: React.FC = () => {
     ) : '';
 
     const signatureBlockHtml = `
-      <div style="margin-top: 15px; display: flex; flex-direction: column; align-items: ${sigAlign === 'right' ? 'flex-end' : sigAlign === 'center' ? 'center' : 'flex-start'}; text-align: ${sigAlign};">
+      <div style="margin-top: 15px; width: 100%; display: flex; flex-direction: column; align-items: ${sigAlign === 'right' ? 'flex-end' : sigAlign === 'center' ? 'center' : 'flex-start'}; text-align: ${sigAlign}; margin-left: ${sigAlign === 'right' ? 'auto' : '0'};">
         ${sigArrangement === 'side_by_side' ? `
-          <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 5px;">
-            ${stampElementHtml}
+          <div style="display: flex; align-items: center; justify-content: ${sigAlign === 'right' ? 'flex-end' : sigAlign === 'center' ? 'center' : 'flex-start'}; gap: 14px; margin-bottom: 5px; margin-left: ${sigAlign === 'right' ? 'auto' : '0'};">
+            <div style="transform: rotate(-12.5deg); transform-origin: center center;">${stampElementHtml}</div>
             ${sigElementHtml}
           </div>
         ` : sigArrangement === 'stacked' ? `
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 5px;">
+          <div style="display: flex; flex-direction: column; align-items: ${sigAlign === 'right' ? 'flex-end' : sigAlign === 'center' ? 'center' : 'flex-start'}; gap: 8px; margin-bottom: 5px; margin-left: ${sigAlign === 'right' ? 'auto' : '0'};">
             ${sigElementHtml}
-            ${stampElementHtml}
+            <div style="transform: rotate(-12.5deg); transform-origin: center center; margin-top: 4px;">${stampElementHtml}</div>
           </div>
         ` : `
-          <div style="position: relative; width: 300px; min-height: 80px; margin-bottom: 5px;">
-            ${allowStamp ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 0' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%);' : 'left: 0'}; bottom: 0; z-index: 1;">${stampElementHtml}</div>` : ''}
-            ${allowSig ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 20px' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%);' : 'left: 20px'}; top: 0; z-index: 2;">${sigElementHtml}</div>` : ''}
+          <div style="position: relative; width: 290px; min-height: 105px; margin-bottom: 5px; margin-left: ${sigAlign === 'right' ? 'auto' : sigAlign === 'center' ? 'auto' : '0'}; margin-right: ${sigAlign === 'center' ? 'auto' : '0'};">
+            ${allowStamp ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 0' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%) rotate(-12.5deg);' : 'left: 0'}; top: 1cm; z-index: 1; transform: rotate(-12.5deg); transform-origin: center center;">${stampElementHtml}</div>` : ''}
+            ${allowSig ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 20px' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%);' : 'left: 20px'}; top: 0; z-index: 2; pointer-events: none;">${sigElementHtml}</div>` : ''}
           </div>
         `}
         ${(clinicInfo.showSignatureLine ?? true) ? `
-          <div style="width: 250px; border-top: 1.5px solid #222; margin-top: 5px; padding-top: 4px; font-weight: bold; font-size: 11px;">
+          <div style="width: 250px; border-top: 1.5px solid #222; margin-top: 5px; padding-top: 4px; font-weight: bold; font-size: 11px; text-align: ${sigAlign}; margin-left: ${sigAlign === 'right' ? 'auto' : '0'};">
             ${clinicInfo.signatureLabel || `${dentistName} • ${dentistCro}`}
           </div>
         ` : ''}
@@ -1020,7 +1020,7 @@ export const DentalDocumentManager: React.FC = () => {
         </div>
         <div style="margin: 4px 0; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
           ${allowSig && effectiveSigUrl ? `<div style="display: flex; align-items: center; justify-content: center; transform: rotate(-1deg);"><img src="${effectiveSigUrl}" style="height: 32px; max-width: 130px; object-fit: contain;" alt="Assinatura" /></div>` : ''}
-          ${allowStamp && effectiveStampUrl ? `<div style="display: flex; align-items: center; justify-content: center; transform: rotate(-2deg);"><img src="${effectiveStampUrl}" style="height: 30px; max-width: 110px; object-fit: contain; border: 1px solid #999; padding: 1px; background: #fff;" alt="Carimbo" /></div>` : ''}
+          ${allowStamp && effectiveStampUrl ? `<div style="display: flex; align-items: center; justify-content: center; transform: rotate(-12.5deg); transform-origin: center center;"><img src="${effectiveStampUrl}" style="height: 30px; max-width: 110px; object-fit: contain; border: 1px solid #999; padding: 1px; background: #fff;" alt="Carimbo" /></div>` : ''}
           ${(!allowStamp || !effectiveStampUrl) && (!allowSig || !effectiveSigUrl) ? `<span style="font-size: 9px; color: #888;">(Assinatura / Carimbo do Emitente)</span>` : ''}
         </div>
       </div>
@@ -1964,14 +1964,13 @@ export const DentalDocumentManager: React.FC = () => {
     ${cityOnly}, ${docDateStr}
   </div>
 
-  <div class="grid-2" style="margin-top: 25px; margin-bottom: 10px;">
-    <div style="border-top: 1.5px solid #222; text-align: center; padding-top: 4px; font-size: 10.5px;">
+  <div class="grid-2" style="margin-top: 25px; margin-bottom: 10px; align-items: flex-end;">
+    <div style="border-top: 1.5px solid #222; text-align: center; padding-top: 4px; font-size: 10.5px; margin-bottom: 6px;">
       <strong>${doc.patientName}</strong><br/>
       <span style="color: #666; font-size: 9.5px;">Paciente / Responsável Legal</span>
     </div>
-    <div style="border-top: 1.5px solid #222; text-align: center; padding-top: 4px; font-size: 10.5px;">
-      <strong>${dentistName}</strong><br/>
-      <span style="color: #666; font-size: 9.5px;">Cirurgião-Dentista • ${dentistCro}</span>
+    <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
+      ${signatureBlockHtml}
     </div>
   </div>
 
@@ -3917,7 +3916,7 @@ export const DentalDocumentManager: React.FC = () => {
                 <ChevronRight className="w-4 h-4 text-sky-600 group-hover:translate-x-0.5 transition-transform" />
               </div>
               <p className="text-[10.5px] text-sky-800/80 truncate mt-0.5">
-                Afastamentos por cirurgia e canal
+                Afastamentos por cirurgia e tratamento endodôntico
               </p>
             </div>
           </button>
@@ -7773,9 +7772,9 @@ export const DentalDocumentManager: React.FC = () => {
                             {/* Assinatura Manual (Em cima) */}
                             {(clinicInfo.showSignatureImage ?? true) && (
                               <div className="flex items-center justify-center -rotate-1 h-8">
-                                {clinicInfo.signatureImageUrl ? (
+                                {(activeProfessional?.signatureImageUrl || clinicInfo.signatureImageUrl) ? (
                                   <img
-                                    src={clinicInfo.signatureImageUrl}
+                                    src={activeProfessional?.signatureImageUrl || clinicInfo.signatureImageUrl}
                                     alt="Assinatura"
                                     className="h-8 max-w-[130px] object-contain filter contrast-125"
                                   />
@@ -7792,10 +7791,10 @@ export const DentalDocumentManager: React.FC = () => {
 
                             {/* Carimbo Profissional (Embaixo) */}
                             {(clinicInfo.showStampImage ?? true) && (
-                              <div className="flex items-center justify-center -rotate-2">
-                                {clinicInfo.stampImageUrl ? (
+                              <div className="flex items-center justify-center -rotate-[12.5deg]">
+                                {(activeProfessional?.stampImageUrl || clinicInfo.stampImageUrl) ? (
                                   <img
-                                    src={clinicInfo.stampImageUrl}
+                                    src={activeProfessional?.stampImageUrl || clinicInfo.stampImageUrl}
                                     alt="Carimbo"
                                     className="h-8 max-w-[110px] object-contain border border-stone-400 rounded bg-white/95 p-0.5"
                                   />
@@ -7926,12 +7925,12 @@ export const DentalDocumentManager: React.FC = () => {
                     <div className="space-y-4 text-xs text-justify">
                       <p className="font-bold text-center text-sm uppercase">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO PARA ENDODONTIA</p>
                       <p>
-                        Pelo presente instrumento, eu <strong className="underline">{patientDisplayName}</strong> declaro que fui suficientemente esclarecido(a) pelo cirurgião-dentista sobre a necessidade de tratamento endodôntico (canal).
+                        Pelo presente instrumento, eu <strong className="underline">{patientDisplayName}</strong> declaro que fui suficientemente esclarecido(a) pelo cirurgião-dentista sobre a necessidade de tratamento endodôntico especializado.
                       </p>
                       <ul className="list-disc pl-5 space-y-1 text-[11px] text-stone-700">
                         <li>Estou ciente de que existe índice de insucesso de 5 a 10% nos tratamentos endodônticos.</li>
-                        <li>Se ocorrer fratura de instrumentos no canal radicular, o dentista avaliará a melhor conduta cirúrgica.</li>
-                        <li>O dente tratado de canal é desidratado e mais propenso a fraturas, necessitando de reabilitação posterior.</li>
+                        <li>Se ocorrer fratura de instrumentos no conduto radicular, o dentista avaliará a melhor conduta cirúrgica.</li>
+                        <li>O dente submetido a tratamento endodôntico é desidratado e mais propenso a fraturas, necessitando de reabilitação posterior.</li>
                       </ul>
                     </div>
                   )}
@@ -9314,7 +9313,7 @@ export const DentalDocumentManager: React.FC = () => {
             <div className="overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3 pr-1 flex-1 text-xs">
               {[
                 { title: 'Exodontia de 3º Molar Incluso', cid: 'K01.1', days: '2 a 3 dias', desc: 'Sisos impactados com osteotomia e sutura.' },
-                { title: 'Pulpite Aguda / Tratamento de Canal', cid: 'K04.0', days: '1 dia', desc: 'Urgência endodôntica com pulpectomia.' },
+                { title: 'Pulpite Aguda / Tratamento Endodôntico', cid: 'K04.0', days: '1 dia', desc: 'Urgência endodôntica com pulpectomia.' },
                 { title: 'Abscesso Periapical com Inchaço', cid: 'K04.7', days: '2 dias', desc: 'Infeccioso agudo, drenagem e antibioticoterapia.' },
                 { title: 'Cirurgia Periodontal / Enxerto', cid: 'K05.3', days: '2 a 3 dias', desc: 'Procedimento cirúrgico resectivo/regenerativo.' },
                 { title: 'Instalação de Implante Dentário', cid: 'K08.1', days: '1 a 2 dias', desc: 'Reabilitação cirúrgica prévia ou imediata.' },

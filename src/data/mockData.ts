@@ -3,6 +3,14 @@ import { OFFICIAL_ANS_TUSS_PROCEDURES } from './tussCatalog';
 
 export const INITIAL_CLINICS: ClinicUnit[] = [
   {
+    id: 'cli-online',
+    name: 'Atendimento Online',
+    address: 'Teleodontologia / Plataforma Digital',
+    phone: '(85) 98684-6424',
+    city: 'Online / Brasil',
+    email: 'contato@dentispro.com.br'
+  },
+  {
     id: 'cli-marv',
     name: 'Clínica MARV',
     address: 'Av. Santos Dumont, 2800 - Aldeota',
@@ -24,57 +32,57 @@ export const INITIAL_CLINICS: ClinicUnit[] = [
     city: 'São Paulo - SP'
   },
   {
-    id: 'cli-3',
-    name: 'DentisPro - Unidade Vila Mariana / Sul',
-    address: 'Rua Vergueiro, 2200 - Conjunto 81 - Vila Mariana',
-    phone: '(11) 5084-1100',
-    city: 'São Paulo - SP'
-  },
-  {
     id: 'cli-4',
     name: 'DentisPro - Unidade Tatuapé / Zona Leste',
     address: 'Rua Tuiuti, 1800 - Sala 405 - Tatuapé',
     phone: '(11) 2091-7700',
+    city: 'São Paulo - SP'
+  },
+  {
+    id: 'cli-3',
+    name: 'DentisPro - Unidade Vila Mariana / Sul',
+    address: 'Rua Vergueiro, 2200 - Conjunto 81 - Vila Mariana',
+    phone: '(11) 5084-1100',
     city: 'São Paulo - SP'
   }
 ];
 
 export const INITIAL_PROFESSIONALS: Professional[] = [
   {
+    id: 'prof-2',
+    name: 'Dra. Camila Alves',
+    cro: 'CRO/SP 654321',
+    specialty: 'Ortodontia & Estética Dental',
+    clinicIds: ['cli-online', 'cli-1', 'cli-2', 'cli-4']
+  },
+  {
     id: 'prof-hugo',
     name: 'Dr. Hugo Andres Iglesias Ricoy',
     cro: 'CRO/CE 5925',
     cpf: '879.750.253-72',
     specialty: 'Implantodontia, Prótese & Clínica Geral',
-    clinicIds: ['cli-marv', 'cli-1', 'cli-2', 'cli-3', 'cli-4']
-  },
-  {
-    id: 'prof-1',
-    name: 'Dr. Lucas Mendes',
-    cro: 'CRO/SP 123456',
-    specialty: 'Implantodontia & Prótese',
-    clinicIds: ['cli-1', 'cli-2', 'cli-3']
-  },
-  {
-    id: 'prof-2',
-    name: 'Dra. Camila Alves',
-    cro: 'CRO/SP 654321',
-    specialty: 'Ortodontia & Estética Dental',
-    clinicIds: ['cli-1', 'cli-2', 'cli-4']
-  },
-  {
-    id: 'prof-3',
-    name: 'Dr. Roberto Fonseca',
-    cro: 'CRO/SP 789012',
-    specialty: 'Endodontia & Cirurgia Bucomaxilofacial',
-    clinicIds: ['cli-2', 'cli-3', 'cli-4']
+    clinicIds: ['cli-online', 'cli-marv', 'cli-1', 'cli-2', 'cli-3', 'cli-4']
   },
   {
     id: 'prof-4',
     name: 'Dra. Juliana Costa',
     cro: 'CRO/SP 345678',
     specialty: 'Odontopediatria & Pacientes com Necessidades Especiais',
-    clinicIds: ['cli-1', 'cli-3']
+    clinicIds: ['cli-online', 'cli-1', 'cli-3']
+  },
+  {
+    id: 'prof-1',
+    name: 'Dr. Lucas Mendes',
+    cro: 'CRO/SP 123456',
+    specialty: 'Implantodontia & Prótese',
+    clinicIds: ['cli-online', 'cli-1', 'cli-2', 'cli-3']
+  },
+  {
+    id: 'prof-3',
+    name: 'Dr. Roberto Fonseca',
+    cro: 'CRO/SP 789012',
+    specialty: 'Endodontia & Cirurgia Bucomaxilofacial',
+    clinicIds: ['cli-online', 'cli-2', 'cli-3', 'cli-4']
   }
 ];
 
@@ -642,7 +650,38 @@ export const WHATSAPP_TEMPLATES: WhatsAppTemplate[] = [
   }
 ];
 
-export const INITIAL_PRESCRIPTIONS: Prescription[] = [];
+export const INITIAL_PRESCRIPTIONS: Prescription[] = [
+  {
+    id: 'presc-1',
+    patientId: 'pat-1',
+    patientName: 'Ana Silva Santos',
+    patientCpf: '123.456.789-00',
+    date: today,
+    dentistName: 'Dr. Hugo Andres Iglesias Ricoy',
+    dentistCro: 'CRO/CE 5925',
+    clinicName: 'Clínica MARV',
+    type: 'simples',
+    observations: 'Manter higienização cuidadosa na região posterior superior direita.',
+    medications: [
+      {
+        name: 'Ibuprofeno 600mg',
+        dosage: 'Comprimido',
+        quantity: '1 caixa (10 comprimidos)',
+        instructions: 'Tomar 1 comprimido a cada 8 horas por 3 dias em caso de dor ou sensibilidade mastigatória.',
+        interval: '8/8h',
+        duration: '3 dias'
+      },
+      {
+        name: 'Clorexidina 0,12%',
+        dosage: 'Solução Bucal',
+        quantity: '1 frasco (250ml)',
+        instructions: 'Bochechar 15ml puro durante 1 minuto, 2 vezes ao dia, 30 min após escovação por 5 dias.',
+        interval: '12/12h',
+        duration: '5 dias'
+      }
+    ]
+  }
+];
 
 export const DEFAULT_MEDICATION_CATALOG = [
   {
@@ -695,11 +734,55 @@ export const DEFAULT_MEDICATION_CATALOG = [
   }
 ];
 
-export const INITIAL_ODONTOGRAM_DATA: Record<string, ToothCondition[]> = {};
+export const INITIAL_ODONTOGRAM_DATA: Record<string, ToothCondition[]> = {
+  'pat-1': [
+    { toothNumber: 16, surfaces: { oclusal: 'restauracao' } },
+    { toothNumber: 26, surfaces: { oclusal: 'carie', mesial: 'carie' }, wholeToothCondition: 'carie' },
+    { toothNumber: 36, wholeToothCondition: 'endodontia_satisfatoria' },
+    { toothNumber: 46, surfaces: { oclusal: 'restauracao_insatisfatoria' } }
+  ]
+};
 
 export const INITIAL_ODONTOGRAM_SNAPSHOTS: Record<string, OdontogramSnapshot[]> = {};
 
-export const INITIAL_CLINICAL_EVOLUTION: ClinicalEvolutionEntry[] = [];
+export const INITIAL_CLINICAL_EVOLUTION: ClinicalEvolutionEntry[] = [
+  {
+    id: 'evo-1',
+    patientId: 'pat-1',
+    date: today,
+    dentistName: 'Dr. Hugo Andres Iglesias Ricoy',
+    clinicName: 'Clínica MARV',
+    toothNumber: 26,
+    procedure: 'Restauração Classe II em Resina Composta (OD)',
+    description: 'Anestesia infiltrativa com Articaína 4% 1:100.000. Isolamento absoluto com grampo 26. Remoção de tecido cariado com broca esférica em baixa rotação. Condicionamento ácido seletivo em esmalte por 30s. Sistema adesivo universal fotopolimerizado por 20s. Restauração incremental com Resina Composta Z350 XT cor A2. Ajuste oclusal em máxima intercuspidação e desoclusão lateral. Acabamento e polimento com discos abrasivos.',
+    cost: 320,
+    status: 'concluido'
+  },
+  {
+    id: 'evo-2',
+    patientId: 'pat-1',
+    date: '2026-08-15',
+    dentistName: 'Dr. Hugo Andres Iglesias Ricoy',
+    clinicName: 'Clínica MARV',
+    toothNumber: 16,
+    procedure: 'Profilaxia e Aplicação Tópica de Flúor',
+    description: 'Remoção de biofilme e cálculo supragengival com ultrassom e ponta universal. Jato de bicarbonato de sódio para polimento coronário. Aplicação tópica de flúor gel neutro 2%. Orientações de higiene bucal e uso correto do fio dental.',
+    cost: 180,
+    status: 'concluido'
+  },
+  {
+    id: 'evo-3',
+    patientId: 'pat-2',
+    date: today,
+    dentistName: 'Dra. Camila Alves',
+    clinicName: 'DentisPro - Unidade Jardins',
+    toothNumber: 46,
+    procedure: 'Raspagem e Alisamento Radicular por Sextante',
+    description: 'Sessão inicial de instrumentação periodontal nos sextantes inferiores. Anestesia infiltrativa tópica. Remoção de cálculo subgengival com curetas Gracey 11/12 e 13/14. Irrigação com soro fisiológico e aplicação de clorexidina tópica.',
+    cost: 250,
+    status: 'concluido'
+  }
+];
 
 export const DEFAULT_PRICE_TABLES: PriceTable[] = [
   { id: 'particular', name: 'Particular', description: 'Tabela Padrão Atendimento Particular', isDefault: true },
@@ -709,7 +792,58 @@ export const DEFAULT_PRICE_TABLES: PriceTable[] = [
 
 export const INITIAL_TUSS_PROCEDURES: TUSSProcedure[] = OFFICIAL_ANS_TUSS_PROCEDURES;
 
-export const INITIAL_TREATMENT_PLANS: TreatmentPlan[] = [];
+export const INITIAL_TREATMENT_PLANS: TreatmentPlan[] = [
+  {
+    id: 'plan-pat1',
+    patientId: 'pat-1',
+    patientName: 'Ana Silva Santos',
+    title: 'Plano Restaurador Integral & Manutenção Periodontal',
+    date: today,
+    dentistName: 'Dr. Hugo Andres Iglesias Ricoy',
+    clinicId: 'cli-marv',
+    clinicName: 'Clínica MARV',
+    status: 'aprovado',
+    items: [
+      {
+        id: 'item-1',
+        procedureName: 'Restauração Resina Fotopolimerizável 2 Faces',
+        specialty: 'Dentística Restauradora',
+        toothNumber: 26,
+        cost: 320,
+        finalCost: 320,
+        status: 'concluido',
+        selectedForPlan: true,
+        notes: 'Prevenção de infiltração bacteriana e risco endodôntico.'
+      },
+      {
+        id: 'item-2',
+        procedureName: 'Profilaxia e Raspagem Supragengival',
+        specialty: 'Periodontia',
+        cost: 220,
+        finalCost: 200,
+        status: 'concluido',
+        selectedForPlan: true,
+        notes: 'Remoção de tártaro e biofilme bacteriano.'
+      },
+      {
+        id: 'item-3',
+        procedureName: 'Substituição de Restauração Insatisfatória',
+        specialty: 'Dentística Restauradora',
+        toothNumber: 46,
+        cost: 300,
+        finalCost: 300,
+        status: 'pendente',
+        selectedForPlan: true,
+        notes: 'Recidiva de cárie sob margem ocluso-distal.'
+      }
+    ],
+    totalValue: 840,
+    discountValue: 20,
+    finalValue: 820,
+    consentAccepted: true,
+    consentAcceptedAt: today
+  }
+];
 
 export const INITIAL_PATIENT_PAYMENTS: PatientPayment[] = [];
 
