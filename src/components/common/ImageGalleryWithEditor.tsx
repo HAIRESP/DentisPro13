@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { CameraModal } from './CameraModal';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
   Camera, 
   Upload, 
@@ -614,7 +615,10 @@ export const ImageGalleryWithEditor: React.FC<ImageGalleryWithEditorProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={() => printDocumentWithTitle({
+                    docTitle: 'Galeria_Fotografica_Odontologica',
+                    date: new Date()
+                  })}
                   className="px-3.5 py-2 bg-[#f0f0e8] hover:bg-[#e5e5d1] text-[#5a5a40] font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
                 >
                   <Printer className="w-4 h-4 text-[#5a5a40]" /> Imprimir

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { FinancialTransaction, DentistCommissionRecord, InsuranceGuide } from '../../types';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -699,7 +700,14 @@ pause
   };
 
   const handlePrintReport = () => {
-    window.print();
+    const reportType = activeSubTab === 'fluxo_caixa' ? 'Fluxo_de_Caixa' :
+      activeSubTab === 'dre' ? 'Demonstrativo_DRE' :
+      activeSubTab === 'comissoes' ? 'Relatorio_Comissoes' :
+      activeSubTab === 'convenios' ? 'Faturamento_Convenios' : 'Ordens_Laboratorio_Protese';
+    printDocumentWithTitle({
+      docTitle: reportType,
+      date: new Date()
+    });
   };
 
   const filteredLabOrders = labOrders.filter(o => {

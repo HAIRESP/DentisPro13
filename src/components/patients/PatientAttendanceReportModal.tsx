@@ -4,6 +4,7 @@ import { getThemeStyles } from '../../utils/themeUtils';
 import { Patient } from '../../types';
 import { formatCPF } from '../../utils/formatters';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
   Printer, 
   X, 
@@ -288,7 +289,11 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
   });
 
   const handlePrint = () => {
-    window.print();
+    printDocumentWithTitle({
+      docTitle: getReportTitle(),
+      patientName: patient.name,
+      date: new Date()
+    });
   };
 
   const getReportTitle = () => {
@@ -347,19 +352,6 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      {/* FLOATING QUICK RETURN BUTTON (STICKY VISIBLE AT ALL SCROLL POSITIONS) */}
-      <div className="fixed bottom-6 right-6 z-50 print:hidden flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-4 py-2.5 bg-stone-900/95 hover:bg-stone-950 text-white font-bold text-xs rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95 cursor-pointer border border-white/20 ring-2 ring-stone-900/20"
-          title="Voltar / Fechar relatório de atendimento"
-        >
-          <ArrowLeft className="w-4 h-4 text-amber-400" />
-          <span>Voltar</span>
-        </button>
-      </div>
-
       <div className="bg-white border border-[#e5e5d1] rounded-[32px] max-w-4xl w-full p-6 shadow-2xl space-y-6 my-auto print:border-none print:shadow-none print:rounded-none print:max-w-none print:w-full print:p-0 relative">
         
         {/* Modal Action Header (Sticky at top of modal, Hidden in Print) */}

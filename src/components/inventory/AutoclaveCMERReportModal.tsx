@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AutoclaveLog } from './InventoryManager';
 import { ClinicUnit, Professional } from '../../types';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
   X, 
   Printer, 
@@ -92,7 +93,11 @@ export const AutoclaveCMERReportModal: React.FC<AutoclaveCMERReportModalProps> =
   ];
 
   const handlePrint = () => {
-    window.print();
+    printDocumentWithTitle({
+      docTitle: 'Relatorio_Biosseguranca_CMER_Autoclave',
+      patientName: activeClinic?.name || clinicName || 'Clinica',
+      date: new Date()
+    });
   };
 
   // Toggle RT Verification (apertou fica marcado, aperta de novo desmarca)

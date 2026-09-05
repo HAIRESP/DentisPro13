@@ -7,6 +7,7 @@ import {
   Professional, 
   ProcedureMaterialRequirement 
 } from '../../types';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
   X, 
   Printer, 
@@ -195,7 +196,11 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
   };
 
   const handlePrint = () => {
-    window.print();
+    printDocumentWithTitle({
+      docTitle: 'Checklist_Materiais_Atendimento',
+      patientName: appointment?.patientName,
+      date: appointment?.date || new Date()
+    });
   };
 
   const handleCopyChecklist = () => {

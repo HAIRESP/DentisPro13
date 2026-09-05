@@ -7,6 +7,7 @@ import { AppointmentMaterialsReportModal } from './AppointmentMaterialsReportMod
 import { YesterdayRegisteredMaterialsReportModal } from './YesterdayRegisteredMaterialsReportModal';
 import { AutoclaveCMERReportModal } from './AutoclaveCMERReportModal';
 import { AutocompleteInput } from '../common/AutocompleteInput';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
   Package, 
   Plus, 
@@ -1662,7 +1663,10 @@ export const InventoryManager: React.FC = () => {
 
   // Trigger Print View
   const handlePrint = () => {
-    window.print();
+    printDocumentWithTitle({
+      docTitle: 'Relatorio_Geral_Estoque_Materiais',
+      date: new Date()
+    });
   };
 
   return (

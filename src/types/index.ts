@@ -39,7 +39,6 @@ export interface Professional {
   state?: string;
   croNumber?: string;
   croUf?: string;
-  govBrPassword?: string;
   stampImageUrl?: string;
   signatureImageUrl?: string;
 }
@@ -753,23 +752,9 @@ export interface SavedClinicDocument {
   professionalName: string;
   cidCode?: string;
   summary: string;
-  status: 'gerado' | 'assinado_govbr' | 'impresso';
-  govBrSignedAt?: string;
+  status: 'gerado' | 'impresso';
   templateId?: string;
   templateData?: Record<string, any>;
   htmlSnapshot?: string;
-}
-
-export interface GovBrProfile {
-  sub: string;
-  name: string;
-  cpf: string;
-  email: string;
-  phone_number?: string;
-  reliability_level: 'bronze' | 'prata' | 'ouro';
-  reliability_description: string;
-  connectedAt: string;
-  token_type?: string;
-  issuer?: string;
 }
 

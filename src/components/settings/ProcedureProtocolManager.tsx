@@ -582,6 +582,13 @@ export const ProcedureProtocolManager: React.FC = () => {
           </div>
 
           <script>
+            const tituloOriginal = document.title;
+            window.addEventListener('beforeprint', function() {
+              document.title = "Tabela_Honorarios_Convenios_DentisPro";
+            });
+            window.addEventListener('afterprint', function() {
+              document.title = tituloOriginal;
+            });
             setTimeout(function() { window.print(); }, 400);
           </script>
         </body>

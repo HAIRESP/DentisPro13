@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
   PainEvaluationExam, 
   ToothPainSummaryItem, 
@@ -231,7 +232,11 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
   const handlePrint = () => {
     handleSave();
     setTimeout(() => {
-      window.print();
+      printDocumentWithTitle({
+        docTitle: 'Ficha_Avaliacao_Dor_Endodontica',
+        patientName: currentPatient?.name,
+        date: new Date()
+      });
     }, 300);
   };
 

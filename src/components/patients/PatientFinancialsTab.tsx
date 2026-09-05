@@ -4,6 +4,7 @@ import { getThemeStyles } from '../../utils/themeUtils';
 import { Patient, PatientPayment, TreatmentPlan } from '../../types';
 import { getPatientAgeAndBirthDate } from '../../utils/patientUtils';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
   DollarSign, 
   CreditCard, 
@@ -472,7 +473,12 @@ export const PatientFinancialsTab: React.FC<PatientFinancialsTabProps> = ({ pati
               </span>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => window.print()}
+                  type="button"
+                  onClick={() => printDocumentWithTitle({
+                    docTitle: 'Comprovante_Pagamento',
+                    patientName: patient?.name,
+                    date: selectedReceipt?.date || new Date()
+                  })}
                   className={`px-4 py-1.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer`}
                 >
                   <Printer className="w-3.5 h-3.5" /> Imprimir

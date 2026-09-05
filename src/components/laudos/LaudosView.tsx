@@ -53,6 +53,7 @@ import {
 } from '../../utils/dentalConditions';
 import { LaudoStampSignature } from './LaudoStampSignature';
 import { TreatmentPlanConsentModal } from './TreatmentPlanConsentModal';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 
 // Calculate age helper
 const calculateAge = (birthDateString?: string): string => {
@@ -610,7 +611,11 @@ export const LaudosView: React.FC = () => {
 
   // Print Action (Standard Window Print adhering to Rule 2 of AGENTS.md)
   const handlePrint = () => {
-    window.print();
+    printDocumentWithTitle({
+      docTitle: 'Laudo_Odontologico_Consolidado',
+      patientName: activePatient?.name,
+      date: new Date()
+    });
   };
 
   // WhatsApp Action: generate structured text and open WhatsApp

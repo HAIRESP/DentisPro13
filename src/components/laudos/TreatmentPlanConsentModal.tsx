@@ -4,6 +4,7 @@ import { getThemeStyles } from '../../utils/themeUtils';
 import { Patient, TreatmentPlan, TreatmentConsentAttachment } from '../../types';
 import { formatCPF, formatPhone } from '../../utils/formatters';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import {
   X,
   Printer,
@@ -236,7 +237,11 @@ export const TreatmentPlanConsentModal: React.FC<TreatmentPlanConsentModalProps>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={() => printDocumentWithTitle({
+                docTitle: 'Laudo_Aceite_Plano_Tratamento',
+                patientName: patient?.name,
+                date: new Date()
+              })}
               className="px-3.5 py-2 bg-[#4a4a35] hover:bg-[#3b3b2a] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
               title="Imprimir laudo de aceite para assinatura física"
             >

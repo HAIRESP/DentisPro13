@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
-import { Professional, ClinicUnit, GovBrProfile } from '../../types';
+import { Professional, ClinicUnit } from '../../types';
 import { formatCPF, formatCNPJ, formatEPAO, formatCRO } from '../../utils/formatters';
 import JSZip from 'jszip';
 import { 
@@ -109,7 +109,7 @@ export const SettingsView: React.FC = () => {
 
   // Active settings tab selection
   const [activeSettingsTab, setActiveSettingsTab] = useState<
-    'cadastro' | 'whatsapp_api' | 'documentos' | 'procedimentos' | 'layout' | 'aparencia' | 'govbr' | 'usuarios' | 'backup'
+    'cadastro' | 'whatsapp_api' | 'documentos' | 'procedimentos' | 'layout' | 'aparencia' | 'usuarios' | 'backup'
   >('cadastro');
 
   // Selection state for mutual exclusion: 'clinic' or 'dentist'
@@ -141,14 +141,12 @@ export const SettingsView: React.FC = () => {
 
   // Dentist fields
   const [dentistName, setDentistName] = useState(activeDentistObj?.name || clinicInfo.dentistName || '');
-  const [dentistCpf, setDentistCpf] = useState(formatCPF(activeDentistObj?.cpf || clinicInfo.govBrSignerCpf || clinicInfo.cpf || '123.456.789-00'));
+  const [dentistCpf, setDentistCpf] = useState(formatCPF(activeDentistObj?.cpf || clinicInfo.cpf || '123.456.789-00'));
   const [croNumber, setCroNumber] = useState(activeDentistObj?.cro ? formatCRO(activeDentistObj.cro) : (clinicInfo.cro ? formatCRO(clinicInfo.cro) : ''));
   const [croUf, setCroUf] = useState(activeDentistObj?.croUf || (activeDentistObj?.cro && activeDentistObj.cro.includes('/') ? activeDentistObj.cro.split('/')[1]?.split(' ')[0] : 'SP'));
   const [dentistSpecialty, setDentistSpecialty] = useState(activeDentistObj?.specialty || clinicInfo.specialty || 'Clínica Geral');
   const [dentistPhone, setDentistPhone] = useState(activeDentistObj?.phone || clinicInfo.phone || '');
   const [dentistEmail, setDentistEmail] = useState(activeDentistObj?.email || clinicInfo.email || '');
-  const [dentistGovBrPassword, setDentistGovBrPassword] = useState(activeDentistObj?.govBrPassword || clinicInfo.govBrPassword || 'GovBr2026!@');
-  const [showDentistGovPassword, setShowDentistGovPassword] = useState(false);
   const [dentistAddressObj, setDentistAddressObj] = useState<AddressData>({
     cep: activeDentistObj?.cep || clinicInfo.cep || '',
     street: activeDentistObj?.street || activeDentistObj?.address || clinicInfo.street || clinicInfo.address || '',
@@ -196,117 +194,6 @@ export const SettingsView: React.FC = () => {
   const [showSignatureImage, setShowSignatureImage] = useState<boolean>(clinicInfo.showSignatureImage ?? true);
   const [showStampImage, setShowStampImage] = useState<boolean>(clinicInfo.showStampImage ?? true);
   const [signatureAlignment, setSignatureAlignment] = useState<'right' | 'center' | 'left'>(clinicInfo.signatureAlignment || 'right');
-  const [signatureArrangement, setSignatureArrangement] = useState<'overlay' | 'side_by_side' | 'stacked'>(clinicInfo.signatureArrangement || 'overlay');
-
-  // Gov.br & Digital Certification state
-  const [enableGovBrSignature, setEnableGovBrSignature] = useState<boolean>(clinicInfo.enableGovBrSignature ?? true);
-  const [govBrSignerName, setGovBrSignerName] = useState<string>(activeDentistObj?.name || clinicInfo.dentistName || 'Hugo Andres Iglesias Ricoy');
-  const [govBrSignerCpf, setGovBrSignerCpf] = useState<string>(clinicInfo.govBrSignerCpf || '879.750.253-72');
-  const [govBrPassword, setGovBrPassword] = useState<string>(clinicInfo.govBrPassword || 'GovBr2026!@');
-  const [showGovBrPassword, setShowGovBrPassword] = useState<boolean>(false);
-  const [govBrCertificateType, setGovBrCertificateType] = useState<string>(
-    clinicInfo.govBrCertificateType || 'ICP-Brasil / gov.br (Assinatura Eletrônica Avançada)'
-  );
-  const [govBrClientId, setGovBrClientId] = useState<string>(clinicInfo.govBrClientId || 'br.com.dentispro.app');
-  const [govBrClientSecret, setGovBrClientSecret] = useState<string>(clinicInfo.govBrClientSecret || 'govbr_sec_9876543210_oidc');
-  const [govBrRedirectUri, setGovBrRedirectUri] = useState<string>(clinicInfo.govBrRedirectUri || 'https://suaclinica.com.br/api/auth/govbr/callback');
-  const [govBrEnvironment, setGovBrEnvironment] = useState<'staging' | 'production'>(clinicInfo.govBrEnvironment || 'production');
-  const [govBrScopes, setGovBrScopes] = useState<string>(clinicInfo.govBrScopes || 'openid email phone profile govbr_confiabilidade');
-  const [govBrMinLevel, setGovBrMinLevel] = useState<'bronze' | 'prata' | 'ouro' | 'prata_ouro'>(clinicInfo.govBrMinLevel || 'prata_ouro');
-  const [govBrProviderUrl, setGovBrProviderUrl] = useState<string>(clinicInfo.govBrProviderUrl || 'https://sso.acesso.gov.br');
-  const [showGovBrSecret, setShowGovBrSecret] = useState<boolean>(false);
-
-  // Gov.br OIDC Testing & Profile Collection state
-  const [isTestingGovBrConn, setIsTestingGovBrConn] = useState<boolean>(false);
-  const [govBrTestResult, setGovBrTestResult] = useState<{
-    status: 'connected' | 'error';
-    latencyMs?: number;
-    environment?: string;
-    providerUrl?: string;
-    discoveryUrl?: string;
-    endpoints?: any;
-    sslValid?: boolean;
-    timestamp?: string;
-    message?: string;
-  } | null>(null);
-
-  const [isCollectingGovBrProfile, setIsCollectingGovBrProfile] = useState<boolean>(false);
-  const [govBrConnectedProfile, setGovBrConnectedProfile] = useState<GovBrProfile | undefined>(
-    clinicInfo.govBrConnectedProfile
-  );
-  const [copiedGovBrCallback, setCopiedGovBrCallback] = useState<boolean>(false);
-
-  // Handler for testing Gov.br OIDC connection
-  const handleTestGovBrConnection = async () => {
-    setIsTestingGovBrConn(true);
-    setGovBrTestResult(null);
-    try {
-      const res = await fetch(`/api/govbr/test-connection?env=${govBrEnvironment}`);
-      if (res.ok) {
-        const data = await res.json();
-        setGovBrTestResult(data);
-      } else {
-        setGovBrTestResult({
-          status: 'error',
-          message: 'Servidor Gov.br respondeu com código de erro.'
-        });
-      }
-    } catch (err: any) {
-      setGovBrTestResult({
-        status: 'error',
-        message: err?.message || 'Não foi possível conectar ao servidor Gov.br.'
-      });
-    } finally {
-      setIsTestingGovBrConn(false);
-    }
-  };
-
-  // Handler for collecting personal profile info via Gov.br
-  const handleCollectGovBrProfile = async () => {
-    setIsCollectingGovBrProfile(true);
-    try {
-      const res = await fetch('/api/govbr/userinfo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: 'demo_authorization_code_govbr',
-          customName: govBrSignerName,
-          customCpf: govBrSignerCpf
-        })
-      });
-
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data) {
-          setGovBrConnectedProfile(json.data);
-          updateClinicInfo({
-            govBrConnectedProfile: json.data
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Erro ao coletar informações do Gov.br:", error);
-    } finally {
-      setIsCollectingGovBrProfile(false);
-    }
-  };
-
-  // Handler for importing Gov.br collected profile into signer fields
-  const handleImportGovBrToSigner = () => {
-    if (!govBrConnectedProfile) return;
-    setGovBrSignerName(govBrConnectedProfile.name);
-    setGovBrSignerCpf(formatCPF(govBrConnectedProfile.cpf));
-    setGovBrCertificateType('Assinatura Eletrônica Avançada Gov.br (Pessoa Física - Gratuita • Conta Prata/Ouro)');
-  };
-
-  // Handler to copy exact dynamic callback URL for Gov.br panel
-  const handleCopyGovBrCallback = () => {
-    const callbackUrl = `${window.location.origin}/api/govbr/callback`;
-    navigator.clipboard.writeText(callbackUrl);
-    setGovBrRedirectUri(callbackUrl);
-    setCopiedGovBrCallback(true);
-    setTimeout(() => setCopiedGovBrCallback(false), 2000);
-  };
 
   // Backup & Folder Explorer state
   const [backupRestored, setBackupRestored] = useState(false);
@@ -411,7 +298,6 @@ export const SettingsView: React.FC = () => {
       if (found.cpf) setDentistCpf(formatCPF(found.cpf));
       if (found.phone) setDentistPhone(found.phone);
       if (found.email) setDentistEmail(found.email);
-      if (found.govBrPassword) setDentistGovBrPassword(found.govBrPassword);
       
       const parts = found.city ? found.city.split('-') : [];
       setDentistAddressObj({
@@ -527,9 +413,6 @@ export const SettingsView: React.FC = () => {
         phone: dentistPhone,
         email: dentistEmail,
         cpf: formatCPF(dentistCpf),
-        govBrSignerName: dentistName,
-        govBrSignerCpf: formatCPF(dentistCpf),
-        govBrPassword: dentistGovBrPassword,
         croNumber: croNumber,
         croUf: croUf,
         signatureLabel: `${dentistName} • ${fullCro} - Responsável Técnico`
@@ -552,8 +435,7 @@ export const SettingsView: React.FC = () => {
           neighborhood: dentistAddressObj.neighborhood,
           state: dentistAddressObj.state,
           croNumber: croNumber,
-          croUf: croUf,
-          govBrPassword: dentistGovBrPassword
+          croUf: croUf
         });
         setActiveProfessionalId(selectedDentistDropdownId);
       } else {
@@ -573,8 +455,7 @@ export const SettingsView: React.FC = () => {
           neighborhood: dentistAddressObj.neighborhood,
           state: dentistAddressObj.state,
           croNumber: croNumber,
-          croUf: croUf,
-          govBrPassword: dentistGovBrPassword
+          croUf: croUf
         });
         setSelectedDentistDropdownId(createdProf.id);
         setActiveProfessionalId(createdProf.id);
@@ -648,21 +529,7 @@ export const SettingsView: React.FC = () => {
       stampImageUrl,
       showSignatureImage,
       showStampImage,
-      signatureAlignment,
-      signatureArrangement,
-      enableGovBrSignature,
-      govBrSignerName,
-      govBrSignerCpf,
-      govBrPassword,
-      govBrCertificateType,
-      govBrClientId,
-      govBrClientSecret,
-      govBrRedirectUri,
-      govBrEnvironment,
-      govBrScopes,
-      govBrMinLevel,
-      govBrProviderUrl,
-      govBrConnectedProfile
+      signatureAlignment
     });
 
     setLayoutSaved(true);
@@ -885,19 +752,6 @@ export const SettingsView: React.FC = () => {
         >
           <Palette className="w-4 h-4 text-[#d4a373]" />
           Tema Visual
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveSettingsTab('govbr')}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-            activeSettingsTab === 'govbr'
-              ? 'bg-[#5a5a40] text-white shadow-sm'
-              : 'text-[#5a5a40] hover:bg-white/70'
-          }`}
-        >
-          <ShieldCheck className="w-4 h-4 text-[#d4a373]" />
-          Assinatura Gov.br
         </button>
 
         <button
@@ -1369,7 +1223,7 @@ export const SettingsView: React.FC = () => {
                   />
                 </div>
 
-                <div>
+                <div className="sm:col-span-2 md:col-span-1">
                   <label className="block text-xs font-semibold text-[#5a5a40] mb-1">E-mail Profissional</label>
                   <input
                     type="email"
@@ -1377,34 +1231,6 @@ export const SettingsView: React.FC = () => {
                     onChange={(e) => setDentistEmail(e.target.value)}
                     className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
                   />
-                </div>
-
-                {/* Senha do Gov.br do Dentista */}
-                <div className="sm:col-span-2 md:col-span-1">
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1 flex items-center justify-between">
-                    <span>Senha do Gov.br (Assinatura Digital)</span>
-                    <span className="text-[10px] text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">ICP-Brasil / Ouro</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showDentistGovPassword ? 'text' : 'password'}
-                      value={dentistGovBrPassword}
-                      onChange={(e) => setDentistGovBrPassword(e.target.value)}
-                      placeholder="Digite a senha do Gov.br"
-                      className="w-full bg-white border border-[#e5e5d1] rounded-2xl pl-3 pr-10 py-2 text-xs text-[#2c2c2c] font-mono focus:outline-none focus:border-[#5a5a40]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowDentistGovPassword(!showDentistGovPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition cursor-pointer"
-                      title={showDentistGovPassword ? 'Ocultar senha' : 'Exibir senha'}
-                    >
-                      {showDentistGovPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <span className="text-[10px] text-gray-500 mt-1 block">
-                    🔑 Usada no Portal de Assinatura Digital Gov.br.
-                  </span>
                 </div>
               </div>
 
@@ -1995,17 +1821,17 @@ export const SettingsView: React.FC = () => {
               </div>
             </div>
 
-            {/* Footer, Signature & Digital Certification */}
+            {/* Footer, Signature & Carimbo */}
             <div className="bg-[#fbfbf9] p-4 rounded-2xl border border-[#e5e5d1] space-y-4">
               <span className={`text-xs font-bold ${t.headingText} uppercase tracking-wider flex items-center gap-1.5 border-b border-[#e5e5d1] pb-2`}>
                 <FileSignature className={`w-4 h-4 ${t.accentText}`} />
-                Assinatura, Carimbo e Certificação Digital
+                Assinatura & Carimbo do Profissional
               </span>
 
-              {/* 1. Upload e Configurações da Figura com Assinatura & Carimbo */}
+              {/* Upload e Configurações da Figura com Assinatura & Carimbo */}
               <div className="space-y-3 bg-white p-3.5 rounded-xl border border-[#e5e5d1]">
                 <span className={`text-[11px] font-bold ${t.headingText} uppercase block border-b border-stone-100 pb-1`}>
-                  1. Figura com Assinatura & Carimbo Físico
+                  Figura da Assinatura & Carimbo Físico (Unificados com rotação de -12,5°)
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2046,7 +1872,7 @@ export const SettingsView: React.FC = () => {
                     <div className="flex items-center gap-2">
                       {stampImageUrl ? (
                         <div className="relative">
-                          <img src={stampImageUrl} alt="Carimbo" className="w-12 h-10 object-contain border border-[#d4a373] rounded-lg p-0.5 bg-white" />
+                          <img src={stampImageUrl} alt="Carimbo" className="w-12 h-10 object-contain border border-stone-200 rounded-lg p-0.5 bg-transparent mix-blend-multiply" />
                           <button
                             type="button"
                             onClick={() => setStampImageUrl('')}
@@ -2126,382 +1952,13 @@ export const SettingsView: React.FC = () => {
 
                   <div className="space-y-1">
                     <label className={`block text-[11px] font-bold ${t.headingText}`}>
-                      Disposição Relativa (Assinatura / Carimbo):
+                      Disposição no Documento:
                     </label>
-                    <select
-                      value={signatureArrangement}
-                      onChange={(e) => setSignatureArrangement(e.target.value as 'overlay' | 'side_by_side' | 'stacked')}
-                      className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none cursor-pointer`}
-                    >
-                      <option value="overlay">Sobrepostos (Assinatura sobre o Carimbo)</option>
-                      <option value="side_by_side">Lado a Lado (Carimbo + Assinatura)</option>
-                      <option value="stacked">Empilhados (Assinatura acima, Carimbo abaixo)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. Configuração de Assinatura Digital Integrada GOV.BR (Pessoa Física - Gratuita) */}
-              <div className="space-y-3 bg-white p-3.5 rounded-xl border border-[#e5e5d1]">
-                <div className="flex items-center justify-between border-b border-stone-100 pb-1.5">
-                  <span className="text-[11px] font-bold text-emerald-900 uppercase flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                    2. Assinatura Digital Eletrônica GOV.BR (Pessoa Física • Gratuita)
-                  </span>
-
-                  <label className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={enableGovBrSignature}
-                      onChange={(e) => setEnableGovBrSignature(e.target.checked)}
-                      className="w-4 h-4 accent-emerald-700 rounded cursor-pointer"
-                    />
-                    Ativar Selo GOV.BR nos Documentos
-                  </label>
-                </div>
-
-                {enableGovBrSignature && (
-                  <div className="space-y-2.5 pt-1">
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 text-[11px] text-emerald-900 leading-relaxed">
-                      <strong>ℹ️ Assinatura Eletrônica Gratuita:</strong> A assinatura digital é realizada gratuitamente pelo próprio cirurgião-dentista como <strong>Pessoa Física</strong> no portal oficial do Governo Federal (<strong>www.gov.br/assinador</strong>) através de conta Gov.br Nível Prata ou Ouro. <u>Não exige a compra de certificado e-CPF pago</u>.
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-[#5a5a40] mb-0.5">Nome do Signatário Gov.br (Pessoa Física)</label>
-                        <input
-                          type="text"
-                          value={govBrSignerName}
-                          onChange={(e) => setGovBrSignerName(e.target.value)}
-                          placeholder="Ex: Dr. Lucas Mendes"
-                          className="w-full bg-stone-50 border border-[#e5e5d1] rounded-xl px-2.5 py-1 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-semibold text-[#5a5a40] mb-0.5">CPF do Signatário</label>
-                        <input
-                          type="text"
-                          maxLength={14}
-                          value={govBrSignerCpf}
-                          onChange={(e) => setGovBrSignerCpf(formatCPF(e.target.value))}
-                          placeholder="Ex: 123.456.789-00"
-                          className="w-full bg-stone-50 border border-[#e5e5d1] rounded-xl px-2.5 py-1 text-xs font-mono text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-semibold text-[#5a5a40] mb-0.5">Senha do Gov.br (para preenchimento automático)</label>
-                        <div className="relative">
-                          <input
-                            type={showGovBrPassword ? 'text' : 'password'}
-                            value={govBrPassword}
-                            onChange={(e) => setGovBrPassword(e.target.value)}
-                            placeholder="Sua senha do portal Gov.br"
-                            className="w-full bg-stone-50 border border-[#e5e5d1] rounded-xl px-2.5 py-1 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40] pr-8"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowGovBrPassword(!showGovBrPassword)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs font-bold"
-                            title={showGovBrPassword ? 'Ocultar Senha' : 'Exibir Senha'}
-                          >
-                            {showGovBrPassword ? '👁️' : '🔒'}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <label className="block text-[11px] font-semibold text-[#5a5a40] mb-0.5">Descrição/Tipo de Assinatura</label>
-                        <input
-                          type="text"
-                          value={govBrCertificateType}
-                          onChange={(e) => setGovBrCertificateType(e.target.value)}
-                          placeholder="Ex: Assinatura Eletrônica Avançada Gov.br (Pessoa Física - Gratuita • Conta Prata/Ouro)"
-                          className="w-full bg-stone-50 border border-[#e5e5d1] rounded-xl px-2.5 py-1 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Parâmetros Técnicos OIDC / OAuth2 Gov.br (acesso.gov.br/roteiro-tecnico/iniciarintegracao.html) */}
-                    <div className="mt-3 bg-stone-50 p-3.5 rounded-xl border border-stone-200 space-y-3">
-                      <div className="flex flex-wrap items-center justify-between border-b border-stone-200 pb-2 gap-2">
-                        <span className="text-[10.5px] font-bold text-gray-800 uppercase flex items-center gap-1.5">
-                          <Key className="w-3.5 h-3.5 text-emerald-700" />
-                          Parâmetros de Integração OAuth2 / OIDC Gov.br (Roteiro Acesso.gov.br)
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={handleTestGovBrConnection}
-                            disabled={isTestingGovBrConn}
-                            className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] font-bold rounded-lg flex items-center gap-1.5 shadow-2xs transition cursor-pointer disabled:opacity-50"
-                          >
-                            <Wifi className={`w-3 h-3 ${isTestingGovBrConn ? 'animate-pulse' : ''}`} />
-                            {isTestingGovBrConn ? 'Testando Conexão...' : '⚡ Testar Conectividade OIDC'}
-                          </button>
-                          <a
-                            href="https://acesso.gov.br/roteiro-tecnico/iniciarintegracao.html"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[10px] text-emerald-700 font-bold hover:underline flex items-center gap-1 shrink-0"
-                          >
-                            Manual Oficial <ExternalLink className="w-3 h-3" />
-                          </a>
-                        </div>
-                      </div>
-
-                      {/* Painel de Resultados do Teste de Diagnóstico OIDC */}
-                      {govBrTestResult && (
-                        <div className={`p-3 rounded-xl text-xs border ${
-                          govBrTestResult.status === 'connected' 
-                            ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950' 
-                            : 'bg-rose-50 border-rose-200 text-rose-900'
-                        }`}>
-                          <div className="flex items-center justify-between font-bold mb-1.5">
-                            <span className="flex items-center gap-1.5 text-[11px]">
-                              {govBrTestResult.status === 'connected' ? (
-                                <>
-                                  <BadgeCheck className="w-4 h-4 text-emerald-600" />
-                                  <span>Servidores Gov.br Conectados com Sucesso!</span>
-                                </>
-                              ) : (
-                                <>
-                                  <AlertCircle className="w-4 h-4 text-rose-600" />
-                                  <span>Falha na Conexão com Gov.br</span>
-                                </>
-                              )}
-                            </span>
-                            {govBrTestResult.latencyMs && (
-                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-mono rounded-md">
-                                Latência: {govBrTestResult.latencyMs}ms • Ping OK
-                              </span>
-                            )}
-                          </div>
-
-                          {govBrTestResult.endpoints && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[10px] font-mono mt-2 bg-white p-2 rounded-lg border border-emerald-100">
-                              <div><strong>Authorization:</strong> {govBrTestResult.endpoints.authorization_endpoint}</div>
-                              <div><strong>Token Endpoint:</strong> {govBrTestResult.endpoints.token_endpoint}</div>
-                              <div><strong>UserInfo:</strong> {govBrTestResult.endpoints.userinfo_endpoint}</div>
-                              <div><strong>JWKS Certs:</strong> {govBrTestResult.endpoints.jwks_uri}</div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <label className="block text-[10.5px] font-semibold text-gray-700 mb-0.5">
-                            Client ID (Identificador do Serviço):
-                          </label>
-                          <input
-                            type="text"
-                            value={govBrClientId}
-                            onChange={(e) => setGovBrClientId(e.target.value)}
-                            placeholder="br.com.suaclinica.app"
-                            className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1 text-xs font-mono text-gray-900 focus:outline-none focus:border-emerald-700"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[10.5px] font-semibold text-gray-700 mb-0.5">
-                            Client Secret (Chave Secreta OAuth2):
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showGovBrSecret ? "text" : "password"}
-                              value={govBrClientSecret}
-                              onChange={(e) => setGovBrClientSecret(e.target.value)}
-                              placeholder="govbr_sec_..."
-                              className="w-full bg-white border border-stone-300 rounded-lg pl-2.5 pr-8 py-1 text-xs font-mono text-gray-900 focus:outline-none focus:border-emerald-700"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowGovBrSecret(!showGovBrSecret)}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-emerald-800"
-                            >
-                              {showGovBrSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                            </button>
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="flex items-center justify-between mb-0.5">
-                            <label className="text-[10.5px] font-semibold text-gray-700">
-                              URI de Redirecionamento (Callback URI):
-                            </label>
-                            <button
-                              type="button"
-                              onClick={handleCopyGovBrCallback}
-                              className="text-[9.5px] text-emerald-700 font-bold hover:underline flex items-center gap-1 cursor-pointer"
-                            >
-                              {copiedGovBrCallback ? <CheckCircle2 className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                              {copiedGovBrCallback ? 'Copiado!' : 'Usar URI Atual'}
-                            </button>
-                          </div>
-                          <input
-                            type="text"
-                            value={govBrRedirectUri}
-                            onChange={(e) => setGovBrRedirectUri(e.target.value)}
-                            placeholder="https://suaclinica.com.br/api/auth/govbr/callback"
-                            className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1 text-xs font-mono text-gray-900 focus:outline-none focus:border-emerald-700"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[10.5px] font-semibold text-gray-700 mb-0.5">
-                            Ambiente de Execução SSO:
-                          </label>
-                          <select
-                            value={govBrEnvironment}
-                            onChange={(e) => setGovBrEnvironment(e.target.value as 'staging' | 'production')}
-                            className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1 text-xs text-gray-900 font-medium focus:outline-none focus:border-emerald-700"
-                          >
-                            <option value="production">Produção (sso.acesso.gov.br)</option>
-                            <option value="staging">Homologação / Staging (sso.staging.acesso.gov.br)</option>
-                          </select>
-                        </div>
-
-                        <div className="sm:col-span-2">
-                          <label className="block text-[10.5px] font-semibold text-gray-700 mb-0.5">
-                            Escopos OIDC Solicitados (scope):
-                          </label>
-                          <input
-                            type="text"
-                            value={govBrScopes}
-                            onChange={(e) => setGovBrScopes(e.target.value)}
-                            placeholder="openid email phone profile govbr_confiabilidade"
-                            className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1 text-xs font-mono text-gray-900 focus:outline-none focus:border-emerald-700"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[10.5px] font-semibold text-gray-700 mb-0.5">
-                            Exigência Mínima do Selo de Confiabilidade:
-                          </label>
-                          <select
-                            value={govBrMinLevel}
-                            onChange={(e) => setGovBrMinLevel(e.target.value as any)}
-                            className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1 text-xs text-gray-900 font-medium focus:outline-none focus:border-emerald-700"
-                          >
-                            <option value="prata_ouro">Nível Prata ou Ouro (Exigido para Lei 14.063/2020)</option>
-                            <option value="ouro">Somente Nível Ouro</option>
-                            <option value="prata">Somente Nível Prata</option>
-                            <option value="bronze">Todos os Níveis (Bronze, Prata, Ouro)</option>
-                          </select>
-                        </div>
-
-                        <div className="sm:col-span-2">
-                          <label className="block text-[10.5px] font-semibold text-gray-700 mb-0.5">
-                            URL Base do Provedor de Identidade (Provider Endpoint):
-                          </label>
-                          <input
-                            type="text"
-                            value={govBrProviderUrl}
-                            onChange={(e) => setGovBrProviderUrl(e.target.value)}
-                            placeholder="https://sso.acesso.gov.br"
-                            className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1 text-xs font-mono text-gray-900 focus:outline-none focus:border-emerald-700"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* CARD DE COLETA DE INFORMAÇÕES PESSOAIS DA INTEGRAÇÃO GOV.BR */}
-                    <div className="mt-4 bg-gradient-to-br from-emerald-900 via-emerald-800 to-stone-900 text-white p-4 rounded-2xl shadow-md border border-emerald-700/50 space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-700/60 pb-2.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-xl bg-amber-400 text-emerald-950 flex items-center justify-center font-black text-sm shadow-xs">
-                            🇧🇷
-                          </div>
-                          <div>
-                            <h5 className="font-bold text-xs text-amber-300 tracking-tight flex items-center gap-1.5">
-                              Informações Pessoais de Integração Gov.br
-                            </h5>
-                            <p className="text-[10px] text-emerald-200">
-                              Coleta direta de dados de identidade OIDC (Nome, CPF, Selos de Confiabilidade)
-                            </p>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={handleCollectGovBrProfile}
-                          disabled={isCollectingGovBrProfile}
-                          className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-extrabold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                        >
-                          <RefreshCw className={`w-3.5 h-3.5 ${isCollectingGovBrProfile ? 'animate-spin' : ''}`} />
-                          {isCollectingGovBrProfile ? 'Coletando...' : '🔑 Coletar / Autenticar via Gov.br'}
-                        </button>
-                      </div>
-
-                      {/* Exibição dos Dados Pessoais Coletados */}
-                      {govBrConnectedProfile ? (
-                        <div className="bg-emerald-950/70 backdrop-blur-xs p-3 rounded-xl border border-emerald-600/40 space-y-2.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1">
-                              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                              Perfil OIDC Conectado & Validado
-                            </span>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-emerald-950 uppercase tracking-wide">
-                              Nível {govBrConnectedProfile.reliability_level.toUpperCase()}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                            <div>
-                              <span className="text-[10px] text-emerald-300 block">Nome Completo do Titular</span>
-                              <strong className="text-white text-xs">{govBrConnectedProfile.name}</strong>
-                            </div>
-
-                            <div>
-                              <span className="text-[10px] text-emerald-300 block">CPF Cadastrado e Verificado</span>
-                              <strong className="text-amber-200 font-mono text-xs">{govBrConnectedProfile.cpf}</strong>
-                            </div>
-
-                            <div>
-                              <span className="text-[10px] text-emerald-300 block">E-mail Cadastrado</span>
-                              <span className="text-stone-200 text-xs">{govBrConnectedProfile.email}</span>
-                            </div>
-
-                            <div>
-                              <span className="text-[10px] text-emerald-300 block">Telefone de Contato</span>
-                              <span className="text-stone-200 text-xs">{govBrConnectedProfile.phone_number || 'Não informado'}</span>
-                            </div>
-
-                            <div className="sm:col-span-2 bg-emerald-900/60 p-2 rounded-lg border border-emerald-700/50 text-[10.5px]">
-                              <span className="text-amber-300 font-semibold block mb-0.5">Selo de Confiabilidade / Nível da Conta:</span>
-                              <p className="text-emerald-100 leading-snug">{govBrConnectedProfile.reliability_description}</p>
-                            </div>
-                          </div>
-
-                          <div className="pt-1 flex items-center justify-between border-t border-emerald-800/80">
-                            <span className="text-[9.5px] text-emerald-300 font-mono">
-                              ID Único (sub): {govBrConnectedProfile.sub}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={handleImportGovBrToSigner}
-                              className="px-3 py-1 bg-white hover:bg-emerald-50 text-emerald-950 font-bold text-[10.5px] rounded-lg shadow-xs transition cursor-pointer flex items-center gap-1"
-                            >
-                              <UserCheck className="w-3.5 h-3.5 text-emerald-700" />
-                              Usar como Signatário da Clínica
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-4 bg-emerald-950/40 rounded-xl border border-dashed border-emerald-600/40">
-                          <p className="text-xs text-emerald-200">
-                            Nenhuma informação pessoal de integração Gov.br coletada nesta sessão.
-                          </p>
-                          <p className="text-[10px] text-emerald-300/80 mt-0.5">
-                            Clique em <strong>"Coletar / Autenticar via Gov.br"</strong> para testar o fluxo de consentimento OIDC.
-                          </p>
-                        </div>
-                      )}
+                    <div className="p-2 rounded-lg bg-stone-50 border border-stone-200 text-[11px] text-stone-700 leading-tight">
+                      ✓ Assinatura e Carimbo unificados em conjunto padronizado: carimbo por baixo com rotação de -12,5° e assinatura por cima.
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </div>
@@ -2556,7 +2013,7 @@ export const SettingsView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Document Footer: Figura com Assinatura, Selo Gov.br & Rodapé */}
+              {/* Document Footer: Figura com Assinatura, Carimbo & Rodapé */}
               <div className="relative z-10 border-t border-gray-300 pt-2 text-center space-y-2">
                 <DocumentSignatureFooter
                   customDentistName={dentistName}

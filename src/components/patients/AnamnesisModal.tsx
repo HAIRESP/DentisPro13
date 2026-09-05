@@ -5,6 +5,7 @@ import { Anamnesis, Patient, Gender } from '../../types';
 import { formatCPF } from '../../utils/formatters';
 import { formatPhoneWithDDI } from '../common/PhoneInputWithDDI';
 import { formatFullAddress } from '../common/AddressFields';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
   AlertTriangle, 
   Heart, 
@@ -2544,7 +2545,11 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={() => printDocumentWithTitle({
+                  docTitle: 'Ficha_Anamnese_Clinica',
+                  patientName: patient?.name,
+                  date: new Date()
+                })}
                 className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 border border-[#e5e5d1]"
               >
                 <Printer className="w-4 h-4 text-[#5a5a40]" /> Imprimir

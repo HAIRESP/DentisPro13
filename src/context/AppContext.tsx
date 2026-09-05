@@ -20,7 +20,6 @@ import {
   DentistCommissionRecord,
   InsuranceGuide,
   SavedClinicDocument,
-  GovBrProfile,
   CustomDocumentTemplate
 } from '../types';
 import { 
@@ -85,20 +84,6 @@ export interface ClinicInfo {
   showSignatureImage?: boolean;
   showStampImage?: boolean;
   signatureAlignment?: 'right' | 'center' | 'left';
-  signatureArrangement?: 'overlay' | 'side_by_side' | 'stacked';
-  enableGovBrSignature?: boolean;
-  govBrSignerName?: string;
-  govBrSignerCpf?: string;
-  govBrPassword?: string;
-  govBrCertificateType?: string;
-  govBrClientId?: string;
-  govBrClientSecret?: string;
-  govBrRedirectUri?: string;
-  govBrEnvironment?: 'staging' | 'production';
-  govBrScopes?: string;
-  govBrMinLevel?: 'bronze' | 'prata' | 'ouro' | 'prata_ouro';
-  govBrProviderUrl?: string;
-  govBrConnectedProfile?: GovBrProfile;
 }
 
 interface AppContextType {
@@ -215,7 +200,6 @@ interface AppContextType {
   savedClinicDocuments: SavedClinicDocument[];
   addSavedClinicDocument: (doc: Omit<SavedClinicDocument, 'id' | 'createdAt' | 'formattedDateStr' | 'status'>) => SavedClinicDocument;
   deleteSavedClinicDocument: (id: string) => void;
-  markDocumentGovBrSigned: (id: string) => void;
 
   // Custom Document Templates & Relational Variable Engine
   documentTemplates: CustomDocumentTemplate[];
@@ -456,32 +440,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showSignatureLine: true,
       showSignatureImage: true,
       showStampImage: true,
-      signatureAlignment: 'right',
-      signatureArrangement: 'overlay',
-      enableGovBrSignature: true,
-      govBrSignerName: 'Hugo Andres Iglesias Ricoy',
-      govBrSignerCpf: '879.750.253-72',
-      govBrPassword: 'GovBr2026!@',
-      govBrCertificateType: 'Assinatura Eletrônica Avançada Gov.br (Pessoa Física - Gratuita • Conta Prata/Ouro)',
-      govBrClientId: 'br.com.dentispro.app',
-      govBrClientSecret: 'govbr_sec_9876543210_oidc',
-      govBrRedirectUri: 'https://suaclinica.com.br/api/auth/govbr/callback',
-      govBrEnvironment: 'production',
-      govBrScopes: 'openid email phone profile govbr_confiabilidade',
-      govBrMinLevel: 'prata_ouro',
-      govBrProviderUrl: 'https://sso.acesso.gov.br',
-      govBrConnectedProfile: {
-        sub: '87975025372-govbr-oidc-sub',
-        name: 'Hugo Andres Iglesias Ricoy',
-        cpf: '879.750.253-72',
-        email: 'drhugoandres@gmail.com',
-        phone_number: '+55 (85) 98111-0826',
-        reliability_level: 'ouro',
-        reliability_description: 'Selo Biometria Facial (TSE) + Validação Bancária / OIDC Nível Ouro (Conta Ouro)',
-        connectedAt: new Date().toISOString(),
-        token_type: 'Bearer',
-        issuer: 'https://sso.acesso.gov.br'
-      }
+      signatureAlignment: 'right'
     };
     const loaded = loadInitial<ClinicInfo>(STORAGE_KEYS.CLINIC_INFO, defaultObj);
     if (loaded && loaded.name && loaded.name.trim().toUpperCase() === 'MARV') {
@@ -560,19 +519,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteSavedClinicDocument = (id: string) => {
     setSavedClinicDocuments(prev => prev.filter(d => d.id !== id));
-  };
-
-  const markDocumentGovBrSigned = (id: string) => {
-    setSavedClinicDocuments(prev => prev.map(d => {
-      if (d.id === id) {
-        return {
-          ...d,
-          status: 'assinado_govbr',
-          govBrSignedAt: new Date().toISOString()
-        };
-      }
-      return d;
-    }));
   };
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.CLINIC_INFO, JSON.stringify(clinicInfo)); }, [clinicInfo]);
 
@@ -1320,7 +1266,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         savedClinicDocuments,
         addSavedClinicDocument,
         deleteSavedClinicDocument,
-        markDocumentGovBrSigned,
         documentTemplates,
         updateDocumentTemplate,
         resetDocumentTemplates,

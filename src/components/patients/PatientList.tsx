@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Patient, Gender } from '../../types';
 import { formatCPF, isValidEmail, isValidDateStr } from '../../utils/formatters';
 import { CameraModal } from '../common/CameraModal';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
   Users, 
   Search, 
@@ -1044,7 +1045,11 @@ export const PatientList: React.FC = () => {
                           }
                           setActiveTab('documentos');
                           setTimeout(() => {
-                            window.print();
+                            printDocumentWithTitle({
+                              docTitle: 'Documento_Paciente',
+                              patientName: selectedPatient?.name,
+                              date: new Date()
+                            });
                           }, 300);
                         };
 
@@ -1412,7 +1417,11 @@ export const PatientList: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => window.print()}
+                    onClick={() => printDocumentWithTitle({
+                      docTitle: 'Ficha_Cadastro_Paciente',
+                      patientName: newName,
+                      date: new Date()
+                    })}
                     className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-2xl transition cursor-pointer flex items-center gap-1.5 border border-[#e5e5d1]"
                   >
                     <Printer className="w-4 h-4 text-[#5a5a40]" /> Imprimir
@@ -1527,7 +1536,11 @@ export const PatientList: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={() => printDocumentWithTitle({
+                    docTitle: 'Ficha_Convenio_Paciente',
+                    patientName: selectedPatient?.name,
+                    date: new Date()
+                  })}
                   className="px-3 py-2 text-xs font-bold text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-xl cursor-pointer flex items-center gap-1 border border-[#e5e5d1]"
                 >
                   <Printer className="w-4 h-4 text-[#5a5a40]" /> Imprimir
@@ -1786,7 +1799,11 @@ export const PatientList: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => window.print()}
+                    onClick={() => printDocumentWithTitle({
+                      docTitle: 'Ficha_Atualizacao_Paciente',
+                      patientName: editName,
+                      date: new Date()
+                    })}
                     className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-2xl transition cursor-pointer flex items-center gap-1.5 border border-[#e5e5d1]"
                   >
                     <Printer className="w-4 h-4 text-[#5a5a40]" /> Imprimir

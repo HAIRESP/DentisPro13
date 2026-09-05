@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
-import { GovBrSignatureWizardModal } from '../common/GovBrSignatureWizardModal';
 import { getPatientAgeAndBirthDate } from '../../utils/patientUtils';
 import { formatCPF, formatCNPJ, formatCEP } from '../../utils/formatters';
 import { 
@@ -30,7 +29,6 @@ import {
   ChevronRight,
   Filter,
   Plus,
-  Download,
   ExternalLink,
   Trash2,
   FolderOpen,
@@ -66,6 +64,7 @@ import {
 } from '../../data/labExamsCatalog';
 
 import { getThemeStyles } from '../../utils/themeUtils';
+import { printDocumentWithTitle, formatSafeFilename } from '../../utils/printUtils';
 
 export type DocumentCategory = 'receituario' | 'atestado' | 'declaracao' | 'termo' | 'solicitacao' | 'todos';
 
@@ -544,9 +543,8 @@ export const formatDocDateYYYYMMDD = (dateInput?: string | Date): string => {
   return `${year}/${month}/${day}`;
 };
 
-export const getDocumentPdfTitle = (docTitle: string, dateInput?: string | Date): string => {
-  const dateStr = formatDocDateYYYYMMDD(dateInput);
-  return `${docTitle} - ${dateStr}`;
+export const getDocumentPdfTitle = (docTitle: string, dateInput?: string | Date, patientName?: string): string => {
+  return formatSafeFilename(docTitle, patientName, dateInput);
 };
 
 export const REGION_NOTATIONS_LIST = [
@@ -585,7 +583,6 @@ export const DentalDocumentManager: React.FC = () => {
     savedClinicDocuments, 
     addSavedClinicDocument, 
     deleteSavedClinicDocument, 
-    markDocumentGovBrSigned,
     selectedPatientId: globalSelectedPatientId,
     layoutTheme,
     tussProcedures
@@ -609,24 +606,6 @@ export const DentalDocumentManager: React.FC = () => {
   const [showAllPatientsDocs, setShowAllPatientsDocs] = useState(false);
   const [selectedRecentPatient, setSelectedRecentPatient] = useState<{ id?: string; name: string } | null>(null);
   const [recentsSearchQuery, setRecentsSearchQuery] = useState('');
-
-  // Digital Signature Validity & Hash ITI Verification States
-  const [copiedHashToast, setCopiedHashToast] = useState<boolean>(false);
-  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState<boolean>(false);
-
-  const handleCopyDocumentHash = (hashStr?: string) => {
-    const codeToCopy = hashStr || 'A8F9-4B12-8C01-D9E3-2F45-6A78-90BC-4E11';
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(codeToCopy);
-    }
-    setCopiedHashToast(true);
-    setTimeout(() => setCopiedHashToast(false), 2200);
-  };
-
-  const handleVerifyHashOnGovernmentPortal = () => {
-    window.open('https://validar.iti.gov.br', '_blank', 'noopener,noreferrer');
-    setIsVerificationModalOpen(true);
-  };
 
   // Selected template & parameters modal state
   const [activeTemplate, setActiveTemplate] = useState<DocumentTemplate | null>(null);
@@ -735,7 +714,7 @@ export const DentalDocumentManager: React.FC = () => {
     templateId?: string;
     templateData?: Record<string, any>;
     cidCode?: string;
-  }, forGovBr: boolean = false): string => {
+  }): string => {
     const templateId = doc.templateId || doc.id || '';
     const isSpecialPrescription = templateId === 'receituario_controle_especial' || doc.title.toLowerCase().includes('controle especial');
     const isTomography = templateId === 'solicitacao_tomografia' || doc.title.toLowerCase().includes('tomografia');
@@ -760,9 +739,22 @@ export const DentalDocumentManager: React.FC = () => {
     const dentistName = doc.professionalName || effectiveDentistName;
     const dentistCro = effectiveDentistCro;
     const tData = doc.templateData || {};
-    const pdfDocTitle = getDocumentPdfTitle(doc.title, doc.formattedDateStr || docDate);
+    const pdfDocTitle = getDocumentPdfTitle(doc.title, doc.formattedDateStr || docDate, doc.patientName);
     const autoPrintScript = `
   <script>
+    // Armazena o título original da página
+    const tituloOriginal = document.title;
+
+    // Altera o título para o nome desejado logo antes de abrir a tela de impressão
+    window.addEventListener('beforeprint', function() {
+      document.title = "${pdfDocTitle}";
+    });
+
+    // Restaura o título original assim que o diálogo de impressão fecha
+    window.addEventListener('afterprint', function() {
+      document.title = tituloOriginal;
+    });
+
     function triggerAutoPrint() {
       try {
         window.focus();
@@ -800,34 +792,22 @@ export const DentalDocumentManager: React.FC = () => {
 
     const stampElementHtml = allowStamp ? (
       effectiveStampUrl ? `
-        <img src="${effectiveStampUrl}" style="height: 60px; max-width: 150px; object-fit: contain; border: 1px solid rgba(90,90,64,0.4); border-radius: 6px; padding: 2px; background: #fff;" alt="Carimbo" />
+        <img src="${effectiveStampUrl}" style="height: 60px; max-width: 150px; object-fit: contain; border: 1px solid rgba(203,213,225,0.7); border-radius: 6px; padding: 2px; background: transparent; mix-blend-mode: multiply;" alt="Carimbo" />
       ` : `
-        <div style="border: 2px dashed #5a5a40; color: #5a5a40; border-radius: 8px; padding: 4px 8px; background: #fffdf5; text-align: left; text-transform: uppercase; display: inline-flex; flex-direction: column; justify-content: center; min-width: 150px;">
-          <span style="font-weight: bold; font-size: 9.5px; display: block; line-height: 1.1; color: #2c3e2e;">${dentistName}</span>
-          <span style="font-size: 8.5px; font-family: monospace; display: block; line-height: 1.1; color: #555;">${dentistCro}</span>
-          <span style="font-size: 7.5px; color: #666; display: block;">Cirurgião-Dentista</span>
+        <div style="border: 1px dashed #cbd5e1; color: #64748b; border-radius: 8px; padding: 4px 8px; background: transparent; text-align: left; text-transform: uppercase; display: inline-flex; flex-direction: column; justify-content: center; min-width: 150px;">
+          <span style="font-weight: bold; font-size: 9.5px; display: block; line-height: 1.1; color: #334155;">${dentistName}</span>
+          <span style="font-size: 8.5px; font-family: monospace; display: block; line-height: 1.1; color: #64748b;">${dentistCro}</span>
+          <span style="font-size: 7.5px; color: #94a3b8; display: block;">Cirurgião-Dentista</span>
         </div>
       `
     ) : '';
 
     const signatureBlockHtml = `
       <div style="margin-top: 15px; width: 100%; display: flex; flex-direction: column; align-items: ${sigAlign === 'right' ? 'flex-end' : sigAlign === 'center' ? 'center' : 'flex-start'}; text-align: ${sigAlign}; margin-left: ${sigAlign === 'right' ? 'auto' : '0'};">
-        ${sigArrangement === 'side_by_side' ? `
-          <div style="display: flex; align-items: center; justify-content: ${sigAlign === 'right' ? 'flex-end' : sigAlign === 'center' ? 'center' : 'flex-start'}; gap: 14px; margin-bottom: 5px; margin-left: ${sigAlign === 'right' ? 'auto' : '0'};">
-            <div style="transform: rotate(-12.5deg); transform-origin: center center;">${stampElementHtml}</div>
-            ${sigElementHtml}
-          </div>
-        ` : sigArrangement === 'stacked' ? `
-          <div style="display: flex; flex-direction: column; align-items: ${sigAlign === 'right' ? 'flex-end' : sigAlign === 'center' ? 'center' : 'flex-start'}; gap: 8px; margin-bottom: 5px; margin-left: ${sigAlign === 'right' ? 'auto' : '0'};">
-            ${sigElementHtml}
-            <div style="transform: rotate(-12.5deg); transform-origin: center center; margin-top: 4px;">${stampElementHtml}</div>
-          </div>
-        ` : `
-          <div style="position: relative; width: 290px; min-height: 105px; margin-bottom: 5px; margin-left: ${sigAlign === 'right' ? 'auto' : sigAlign === 'center' ? 'auto' : '0'}; margin-right: ${sigAlign === 'center' ? 'auto' : '0'};">
-            ${allowStamp ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 0' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%) rotate(-12.5deg);' : 'left: 0'}; top: 1cm; z-index: 1; transform: rotate(-12.5deg); transform-origin: center center;">${stampElementHtml}</div>` : ''}
-            ${allowSig ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 20px' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%);' : 'left: 20px'}; top: 0; z-index: 2; pointer-events: none;">${sigElementHtml}</div>` : ''}
-          </div>
-        `}
+        <div style="position: relative; width: 280px; min-height: 95px; margin-bottom: 5px; margin-left: ${sigAlign === 'right' ? 'auto' : sigAlign === 'center' ? 'auto' : '0'}; margin-right: ${sigAlign === 'center' ? 'auto' : '0'};">
+          ${allowStamp ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 0' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%) rotate(-12.5deg);' : 'left: 0'}; top: 22px; z-index: 10; transform: ${sigAlign === 'center' ? 'translateX(-50%) rotate(-12.5deg)' : 'rotate(-12.5deg)'}; transform-origin: center center;">${stampElementHtml}</div>` : ''}
+          ${allowSig ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 18px' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%);' : 'left: 18px'}; top: 0; z-index: 20; pointer-events: none;">${sigElementHtml}</div>` : ''}
+        </div>
         ${(clinicInfo.showSignatureLine ?? true) ? `
           <div style="width: 250px; border-top: 1.5px solid #222; margin-top: 5px; padding-top: 4px; font-weight: bold; font-size: 11px; text-align: ${sigAlign}; margin-left: ${sigAlign === 'right' ? 'auto' : '0'};">
             ${clinicInfo.signatureLabel || `${dentistName} • ${dentistCro}`}
@@ -842,14 +822,7 @@ export const DentalDocumentManager: React.FC = () => {
       </div>
     ` : '';
 
-    const clinicFooterHtml = forGovBr ? `
-      <div style="margin-top: 25px; border-top: 1px solid #ccc; padding-top: 12px; font-size: 10.5px; text-align: center; color: #555;">
-        ${clinicInfo.footerText ? `<div style="text-align: center; margin-bottom: 8px; font-size: 10px; color: #444; font-weight: 500;">${clinicInfo.footerText}</div>` : ''}
-        <p style="font-weight: bold; margin: 0 0 4px;">${dentistName}</p>
-        <p style="margin: 0 0 6px;">Cirurgião-Dentista • ${dentistCro}</p>
-        <p style="font-size: 9.5px; color: #002776; margin: 0;">Documento preparado para assinatura digital oficial no portal Gov.br (www.gov.br/assinador)</p>
-      </div>
-    ` : `
+    const clinicFooterHtml = `
       <div style="margin-top: 20px; border-top: 1px solid #ebebe0; padding-top: 10px; font-size: 9.5px; color: #666;">
         ${clinicInfo.footerText ? `<div style="text-align: center; margin-bottom: 8px; font-size: 10px; color: #444; font-weight: 500;">${clinicInfo.footerText}</div>` : ''}
         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1018,9 +991,9 @@ export const DentalDocumentManager: React.FC = () => {
             <span style="font-size: 8.5px; font-weight: bold; background: #fafafa; border: 1px solid #ddd; padding: 1px 4px; border-radius: 3px; color: #666;">2ª Via Paciente</span>
           </div>
         </div>
-        <div style="margin: 4px 0; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
-          ${allowSig && effectiveSigUrl ? `<div style="display: flex; align-items: center; justify-content: center; transform: rotate(-1deg);"><img src="${effectiveSigUrl}" style="height: 32px; max-width: 130px; object-fit: contain;" alt="Assinatura" /></div>` : ''}
-          ${allowStamp && effectiveStampUrl ? `<div style="display: flex; align-items: center; justify-content: center; transform: rotate(-12.5deg); transform-origin: center center;"><img src="${effectiveStampUrl}" style="height: 30px; max-width: 110px; object-fit: contain; border: 1px solid #999; padding: 1px; background: #fff;" alt="Carimbo" /></div>` : ''}
+        <div style="margin: 4px 0; min-height: 56px; position: relative; width: 100%; display: flex; align-items: center; justify-content: center;">
+          ${allowStamp && effectiveStampUrl ? `<div style="position: absolute; z-index: 10; transform: rotate(-12.5deg); transform-origin: center center;"><img src="${effectiveStampUrl}" style="height: 32px; max-width: 115px; object-fit: contain; border: 1px solid rgba(203,213,225,0.7); padding: 1px; background: transparent; mix-blend-mode: multiply;" alt="Carimbo" /></div>` : ''}
+          ${allowSig && effectiveSigUrl ? `<div style="position: absolute; z-index: 20; pointer-events: none;"><img src="${effectiveSigUrl}" style="height: 36px; max-width: 140px; object-fit: contain; filter: contrast(125%); transform: rotate(-2deg);" alt="Assinatura" /></div>` : ''}
           ${(!allowStamp || !effectiveStampUrl) && (!allowSig || !effectiveSigUrl) ? `<span style="font-size: 9px; color: #888;">(Assinatura / Carimbo do Emitente)</span>` : ''}
         </div>
       </div>
@@ -2085,7 +2058,7 @@ export const DentalDocumentManager: React.FC = () => {
     const prevTitle = document.title;
     document.title = pdfDocumentTitle;
 
-    const htmlContent = buildDocumentPrintHtml(doc, false);
+    const htmlContent = buildDocumentPrintHtml(doc);
 
     const isInsideIframe = typeof window !== 'undefined' && window.self !== window.top;
     if (isInsideIframe) {
@@ -2171,46 +2144,6 @@ export const DentalDocumentManager: React.FC = () => {
     }
   };
 
-  // Helper function to download PDF/HTML and open Gov.br Assinador
-  const handleDownloadPdfForGovBr = (doc: {
-    id?: string;
-    title: string;
-    patientName: string;
-    professionalName?: string;
-    formattedDateStr?: string;
-    summary?: string;
-    templateId?: string;
-    templateData?: Record<string, any>;
-    cidCode?: string;
-  }, openGovBr: boolean = false) => {
-    const htmlContent = buildDocumentPrintHtml(doc, true);
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const dateFormatted = formatDocDateYYYYMMDD(doc.formattedDateStr || docDate).replace(/\//g, '-');
-    a.href = url;
-    a.download = `${doc.title.replace(/\s+/g, '_')}_${dateFormatted}_${doc.patientName.replace(/\s+/g, '_')}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    if (doc.id && !openGovBr) {
-      markDocumentGovBrSigned(doc.id);
-    }
-
-    if (openGovBr) {
-      setGovBrWizardDoc({
-        ...doc,
-        professionalName: doc.professionalName || effectiveDentistName,
-        professionalCro: effectiveDentistCro,
-        professionalCpf: activeProfessional?.cpf || clinicInfo.govBrSignerCpf || clinicInfo.cpf
-      });
-      setIsGovBrWizardOpen(true);
-      window.open('https://www.gov.br/governodigital/pt-br/assinador', '_blank');
-    }
-  };
-  
   // Parameters for Solicitação de Exames Laboratoriais e de Sangue
   const initialSelectedLabExams = (): Record<string, boolean> => {
     const map: Record<string, boolean> = {};
@@ -2825,16 +2758,6 @@ export const DentalDocumentManager: React.FC = () => {
   const [isTherapeuticGuideOpen, setIsTherapeuticGuideOpen] = useState(false);
   const [therapeuticGuideSearch, setTherapeuticGuideSearch] = useState('');
   const [isCidMatrixOpen, setIsCidMatrixOpen] = useState(false);
-  const [isGovBrWizardOpen, setIsGovBrWizardOpen] = useState(false);
-  const [govBrWizardDoc, setGovBrWizardDoc] = useState<{
-    id?: string;
-    title: string;
-    patientName: string;
-    professionalName?: string;
-    professionalCro?: string;
-    professionalCpf?: string;
-    summary?: string;
-  } | undefined>(undefined);
 
   // PAIO - Protocolo de Anestesia Intra-Oral State
   const [isPaioActive, setIsPaioActive] = useState<boolean>(true);
@@ -3598,123 +3521,117 @@ export const DentalDocumentManager: React.FC = () => {
 
   // Solução B: Impressão Nativa com suporte inteligente a Ambientes Iframe / Sandbox
   const handlePrintActiveDocument = () => {
-    const prevTitle = document.title;
-    if (activeTemplate) {
-      const pdfDocumentTitle = getDocumentPdfTitle(activeTemplate.title, formattedFormattedDate);
-      document.title = pdfDocumentTitle;
-    }
+    const docTitle = activeTemplate ? activeTemplate.title : 'Documento';
+    const pdfDocumentTitle = getDocumentPdfTitle(docTitle, formattedFormattedDate, patientDisplayName);
 
-    const isInsideIframe = typeof window !== 'undefined' && window.self !== window.top;
+    printDocumentWithTitle(pdfDocumentTitle, () => {
+      const isInsideIframe = typeof window !== 'undefined' && window.self !== window.top;
 
-    if (isInsideIframe && activeTemplate) {
-      // Quando o aplicativo está no preview/iframe do Google AI Studio ou Cloud Run,
-      // o Chrome bloqueia window.print() síncrono dentro do sandbox.
-      // Abrir um Blob HTML limpo com auto-print em nova aba desbloqueia a janela de impressão nativa!
-      const htmlContent = buildDocumentPrintHtml({
-        id: activeTemplate.id,
-        title: activeTemplate.title,
-        patientName: patientDisplayName,
-        professionalName: activeProfessional?.name || clinicInfo.dentistName,
-        formattedDateStr: formattedFormattedDate,
-        templateId: activeTemplate.id,
-        templateData: {
-          patientAge,
-          docDate,
-          docTime,
-          periodoStr,
-          rxPanoramicoOptions,
-          rxPanoramicoTextoCustomizado,
-          rxPanoramicoTeethInput,
-          rxPanoramicoFinalidade,
-          rxPanoramicoObservacoes,
-          rxPanoramicoIncluirConvenio,
-          rxPanoramicoConvenioNome,
-          rxPanoramicoConvenioNumero,
-          rxPanoramicoIndicarClinicas,
-          rxPanoramicoClinicas,
-          rxPanoramicoOutraClinica,
-          rxPeriapicalTipo,
-          rxPeriapicalTeethInput,
-          rxPeriapicalIndication,
-          rxPeriapicalNotes,
-          bloodExams,
-          prescriptionText: specialPrescriptionText,
-          receitaSimplesVias,
-          receitaSimplesUso,
-          receitaSimplesOrientacoes,
-          notificacaoBNumero,
-          notificacaoBUf,
-          notificacaoANumero,
-          notificacaoAUf,
-          afastamentoDias,
-          atendimentoType,
-          procedureDetail,
-          aptidaoFinalidade,
-          aptidaoObservacoes,
-          relatorioDocStage,
-          relatorioProcedimentoDesc,
-          relatorioComplementar,
-          tratamentoAndamentoEspecialidade,
-          tratamentoAndamentoFrequencia,
-          tratamentoAndamentoPrevisao,
-          tratamentoAndamentoObservacoes,
-          reciboValor,
-          reciboExtenso,
-          reciboReferente,
-          reciboFormaPagamento,
-          tomographyRegions: getSelectedTomographyRegions(),
-          tomographyIndications: getSelectedTomographyIndications(),
-          tomographyDelivery: getSelectedTomographyDelivery(),
-          tomographyFov,
-          tomographyNotes,
-          isPaioActive,
-          topicalAnesthetics,
-          paioAnesthesiaSites,
-          injectableTubetes,
-          paioTechnique,
-          paioBloodPressure,
-          paioHeartRate,
-          paioProcedure,
-          paioToothRegion,
-          paioComplications,
-          paioPostOpInstructions,
-          tcleImplanteRegiao,
-          tcleImplanteEnxerto,
-          tcleClareamentoTipo,
-          tcleOrtoTipo
-        }
-      }, false);
-      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-      const blobUrl = URL.createObjectURL(blob);
-      const printWin = window.open(blobUrl, '_blank');
-      if (printWin) {
-        setTimeout(() => {
-          document.title = prevTitle;
-          URL.revokeObjectURL(blobUrl);
-        }, 5000);
-        return;
-      }
-    }
-    
-    try {
-      window.print();
-    } catch (err) {
-      console.warn('Direct window.print encountered error, fallback to system window:', err);
-      if (activeTemplate) {
-        handlePrintSystemWindow({
+      if (isInsideIframe && activeTemplate) {
+        // Quando o aplicativo está no preview/iframe do Google AI Studio ou Cloud Run,
+        // o Chrome bloqueia window.print() síncrono dentro do sandbox.
+        // Abrir um Blob HTML limpo com auto-print em nova aba desbloqueia a janela de impressão nativa!
+        const htmlContent = buildDocumentPrintHtml({
           id: activeTemplate.id,
           title: activeTemplate.title,
           patientName: patientDisplayName,
           professionalName: activeProfessional?.name || clinicInfo.dentistName,
           formattedDateStr: formattedFormattedDate,
           templateId: activeTemplate.id,
+          templateData: {
+            patientAge,
+            docDate,
+            docTime,
+            periodoStr,
+            rxPanoramicoOptions,
+            rxPanoramicoTextoCustomizado,
+            rxPanoramicoTeethInput,
+            rxPanoramicoFinalidade,
+            rxPanoramicoObservacoes,
+            rxPanoramicoIncluirConvenio,
+            rxPanoramicoConvenioNome,
+            rxPanoramicoConvenioNumero,
+            rxPanoramicoIndicarClinicas,
+            rxPanoramicoClinicas,
+            rxPanoramicoOutraClinica,
+            rxPeriapicalTipo,
+            rxPeriapicalTeethInput,
+            rxPeriapicalIndication,
+            rxPeriapicalNotes,
+            bloodExams,
+            prescriptionText: specialPrescriptionText,
+            receitaSimplesVias,
+            receitaSimplesUso,
+            receitaSimplesOrientacoes,
+            notificacaoBNumero,
+            notificacaoBUf,
+            notificacaoANumero,
+            notificacaoAUf,
+            afastamentoDias,
+            atendimentoType,
+            procedureDetail,
+            aptidaoFinalidade,
+            aptidaoObservacoes,
+            relatorioDocStage,
+            relatorioProcedimentoDesc,
+            relatorioComplementar,
+            tratamentoAndamentoEspecialidade,
+            tratamentoAndamentoFrequencia,
+            tratamentoAndamentoPrevisao,
+            tratamentoAndamentoObservacoes,
+            reciboValor,
+            reciboExtenso,
+            reciboReferente,
+            reciboFormaPagamento,
+            tomographyRegions: getSelectedTomographyRegions(),
+            tomographyIndications: getSelectedTomographyIndications(),
+            tomographyDelivery: getSelectedTomographyDelivery(),
+            tomographyFov,
+            tomographyNotes,
+            isPaioActive,
+            topicalAnesthetics,
+            paioAnesthesiaSites,
+            injectableTubetes,
+            paioTechnique,
+            paioBloodPressure,
+            paioHeartRate,
+            paioProcedure,
+            paioToothRegion,
+            paioComplications,
+            paioPostOpInstructions,
+            tcleImplanteRegiao,
+            tcleImplanteEnxerto,
+            tcleClareamentoTipo,
+            tcleOrtoTipo
+          }
         });
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const blobUrl = URL.createObjectURL(blob);
+        const printWin = window.open(blobUrl, '_blank');
+        if (printWin) {
+          setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+          }, 5000);
+          return;
+        }
       }
-    } finally {
-      setTimeout(() => {
-        document.title = prevTitle;
-      }, 2500);
-    }
+      
+      try {
+        window.print();
+      } catch (err) {
+        console.warn('Direct window.print encountered error, fallback to system window:', err);
+        if (activeTemplate) {
+          handlePrintSystemWindow({
+            id: activeTemplate.id,
+            title: activeTemplate.title,
+            patientName: patientDisplayName,
+            professionalName: activeProfessional?.name || clinicInfo.dentistName,
+            formattedDateStr: formattedFormattedDate,
+            templateId: activeTemplate.id,
+          });
+        }
+      }
+    });
   };
 
   const getWhatsAppTargetUrl = () => {
@@ -3923,7 +3840,7 @@ export const DentalDocumentManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Arquivos Recentes & Assinatura Digital Gov.br - Acesso Rápido */}
+      {/* Arquivos Recentes - Acesso Rápido */}
       <div className={`${t.cardBg} border ${t.cardBorder} rounded-3xl p-5 md:p-6 shadow-xs space-y-4`}>
         <div className={`flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b ${t.cardBorder}`}>
           <div className="flex flex-col md:flex-row md:items-center gap-4 flex-wrap">
@@ -4283,16 +4200,9 @@ export const DentalDocumentManager: React.FC = () => {
                               </div>
 
                               <div className="shrink-0 text-right">
-                                {doc.status === 'assinado_govbr' ? (
-                                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 border border-emerald-300">
-                                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                                    Gov.br Assinado
-                                  </span>
-                                ) : (
-                                  <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-1 rounded-full">
-                                    Aguardando Assinatura
-                                  </span>
-                                )}
+                                <span className="bg-emerald-50 text-emerald-800 text-[10px] font-semibold px-2.5 py-1 rounded-full border border-emerald-200">
+                                  Salvo no Expediente
+                                </span>
                               </div>
                             </div>
 
@@ -4313,16 +4223,6 @@ export const DentalDocumentManager: React.FC = () => {
                               >
                                 <Printer className="w-3.5 h-3.5" />
                                 Imprimir
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleDownloadPdfForGovBr(doc, true)}
-                                className="flex-1 min-h-[38px] px-3 py-1.5 bg-[#002776] hover:bg-[#001f5c] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-2xs"
-                                title="Assinar digitalmente no Gov.br"
-                              >
-                                <ExternalLink className="w-3.5 h-3.5 text-[#ffdf00]" />
-                                Assinar Gov.br
                               </button>
 
                               <button
@@ -4607,9 +4507,9 @@ export const DentalDocumentManager: React.FC = () => {
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-stone-500">Assinatura Digital:</span>
+                      <span className="text-stone-500">Assinatura & Carimbo:</span>
                       <span className={`font-bold ${t.headingText}`}>
-                        {clinicInfo.enableGovBrSignature ? 'Gov.br Habilitado' : 'Padrão / CRM'}
+                        Unificados (-12,5°)
                       </span>
                     </div>
                   </div>
@@ -7581,19 +7481,6 @@ export const DentalDocumentManager: React.FC = () => {
       {/* RENDERED A4 DOCUMENT PREVIEW MODAL - FULL SCREEN */}
       {isRenderModalOpen && activeTemplate && (
         <div className="fixed inset-0 z-50 bg-stone-900/85 backdrop-blur-xs flex flex-col overflow-hidden p-0 print:p-0 print:static print:bg-white print:block">
-          {/* FLOATING QUICK RETURN BUTTON (STICKY VISIBLE AT ALL SCROLL POSITIONS) */}
-          <div className="fixed bottom-6 right-6 z-50 print:hidden flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setIsRenderModalOpen(false)}
-              className="px-4 py-2.5 bg-stone-900/95 hover:bg-stone-950 text-white font-bold text-xs rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95 cursor-pointer border border-white/20 ring-2 ring-stone-900/20"
-              title="Voltar para a edição ou lista de documentos"
-            >
-              <ArrowLeft className="w-4 h-4 text-amber-400" />
-              <span>Voltar</span>
-            </button>
-          </div>
-
           <div className="bg-white w-full h-full shadow-2xl overflow-hidden animate-fadeIn flex flex-col print:h-auto print:max-h-none print:shadow-none print:border-none print:w-full print:rounded-none relative">
             {/* Control Bar Top */}
             <div className="bg-[#2c3e2e] text-white p-3 md:p-4 flex flex-wrap items-center justify-between gap-3 shrink-0 print:hidden shadow-md">
@@ -7767,11 +7654,29 @@ export const DentalDocumentManager: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Assinatura e Carimbo do Dentista Emitente (Assinatura em cima, Carimbo embaixo) */}
-                          <div className="flex flex-col items-center justify-center my-1 space-y-1 w-full flex-1">
-                            {/* Assinatura Manual (Em cima) */}
+                          {/* Assinatura e Carimbo do Dentista Emitente (Unificados: carimbo por baixo a -12.5°, assinatura por cima) */}
+                          <div className="relative flex items-center justify-center my-1 w-full min-h-[48px] flex-1">
+                            {/* Carimbo Profissional (Por baixo da assinatura, rotacionado a 12,5° para a esquerda) */}
+                            {(clinicInfo.showStampImage ?? true) && (
+                              <div className="absolute z-10 flex items-center justify-center -rotate-[12.5deg]">
+                                {(activeProfessional?.stampImageUrl || clinicInfo.stampImageUrl) ? (
+                                  <img
+                                    src={activeProfessional?.stampImageUrl || clinicInfo.stampImageUrl}
+                                    alt="Carimbo"
+                                    className="h-8 max-w-[110px] object-contain border border-stone-200/90 rounded bg-transparent mix-blend-multiply p-0.5"
+                                  />
+                                ) : (
+                                  <div className="border border-dashed border-stone-300 rounded px-2 py-0.5 bg-transparent text-center uppercase text-[7.5px] leading-tight">
+                                    <span className="font-bold block text-stone-800">{activeProfessional?.name || clinicInfo.dentistName}</span>
+                                    <span className="block text-[7px] font-mono text-stone-600">{activeProfessional?.cro || clinicInfo.cro} • Cirurgião-Dentista</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Assinatura Manual (Por cima do carimbo) */}
                             {(clinicInfo.showSignatureImage ?? true) && (
-                              <div className="flex items-center justify-center -rotate-1 h-8">
+                              <div className="absolute z-20 pointer-events-none flex items-center justify-center -rotate-1 h-8">
                                 {(activeProfessional?.signatureImageUrl || clinicInfo.signatureImageUrl) ? (
                                   <img
                                     src={activeProfessional?.signatureImageUrl || clinicInfo.signatureImageUrl}
@@ -7784,24 +7689,6 @@ export const DentalDocumentManager: React.FC = () => {
                                       <path d="M 10 35 C 30 10, 45 50, 60 25 C 70 10, 80 40, 95 30 C 110 20, 115 45, 130 25 C 145 10, 160 50, 180 20 C 195 10, 210 35, 230 30" />
                                       <path d="M 30 45 C 70 48, 120 40, 200 42" strokeWidth="1.8" />
                                     </svg>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Carimbo Profissional (Embaixo) */}
-                            {(clinicInfo.showStampImage ?? true) && (
-                              <div className="flex items-center justify-center -rotate-[12.5deg]">
-                                {(activeProfessional?.stampImageUrl || clinicInfo.stampImageUrl) ? (
-                                  <img
-                                    src={activeProfessional?.stampImageUrl || clinicInfo.stampImageUrl}
-                                    alt="Carimbo"
-                                    className="h-8 max-w-[110px] object-contain border border-stone-400 rounded bg-white/95 p-0.5"
-                                  />
-                                ) : (
-                                  <div className="border border-dashed border-stone-600 rounded px-2 py-0.5 bg-amber-50/90 text-center uppercase text-[7.5px] leading-tight">
-                                    <span className="font-bold block text-stone-900">{activeProfessional?.name || clinicInfo.dentistName}</span>
-                                    <span className="block text-[7px] font-mono text-stone-700">{activeProfessional?.cro || clinicInfo.cro} • Cirurgião-Dentista</span>
                                   </div>
                                 )}
                               </div>
@@ -8927,89 +8814,6 @@ export const DentalDocumentManager: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL DE VALIDAÇÃO DE HASH NO PORTAL GOV.BR / ITI */}
-      {isVerificationModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-[28px] max-w-lg w-full p-6 shadow-2xl space-y-5 text-left text-xs font-sans animate-fadeIn">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 p-0.5 flex items-center justify-center text-white shadow-md">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                    Validação de Assinatura no Portal ITI / Gov.br
-                  </h3>
-                  <p className="text-[11px] text-slate-500">Instituto Nacional de Tecnologia da Informação</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsVerificationModalOpen(false)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                <h4 className="font-bold text-sm text-emerald-950">Assinatura Eletrônica Avançada / Qualificada VÁLIDA</h4>
-              </div>
-              <p className="text-xs text-emerald-900 leading-relaxed">
-                A hash SHA-256 informada foi verificada de acordo com o padrão oficial de conformidade do ITI (ICP-Brasil / Governo Federal - Lei 14.063/2020).
-              </p>
-            </div>
-
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5 text-slate-700 text-[11px]">
-              <div className="flex justify-between border-b border-slate-200 pb-1.5 font-semibold">
-                <span>Signatário Registrado:</span>
-                <span className="font-bold text-slate-900">{activeProfessional?.name || clinicInfo.dentistName}</span>
-              </div>
-              <div className="flex justify-between border-b border-slate-200 pb-1.5 font-semibold">
-                <span>Inscrição Profissional:</span>
-                <span className="font-bold text-slate-900">{activeProfessional?.cro || clinicInfo.cro}</span>
-              </div>
-              <div className="flex justify-between border-b border-slate-200 pb-1.5 font-semibold">
-                <span>Certificado Emissor:</span>
-                <span className="font-bold text-emerald-800">Gov.br (Conta Prata/Ouro - Pessoa Física)</span>
-              </div>
-              <div className="flex justify-between border-b border-slate-200 pb-1.5 font-semibold">
-                <span>Criptografia:</span>
-                <span className="font-mono text-slate-800">SHA-256 com Chave Privada RSA</span>
-              </div>
-              <div>
-                <span className="block text-slate-500 font-medium mb-0.5">Código Hash SHA-256 Verificado:</span>
-                <div className="font-mono text-[10.5px] bg-white p-2 rounded-xl border border-slate-300 text-slate-900 break-all select-all">
-                  A8F9-4B12-8C01-D9E3-2F45-6A78-90BC-4E11
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-3 pt-2">
-              <a
-                href="https://validar.iti.gov.br"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Acessar Portal Oficial ITI
-              </a>
-
-              <button
-                type="button"
-                onClick={() => setIsVerificationModalOpen(false)}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition cursor-pointer"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* MODAL 1: CALCULADORA CLÍNICO-ANESTÉSICA ODONTOLÓGICA */}
       {isAnestheticCalcOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 md:p-6 overflow-y-auto">
@@ -9361,13 +9165,6 @@ export const DentalDocumentManager: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* GOV.BR SIGNATURE WIZARD BROWSER MODAL */}
-      <GovBrSignatureWizardModal
-        isOpen={isGovBrWizardOpen}
-        onClose={() => setIsGovBrWizardOpen(false)}
-        documentData={govBrWizardDoc}
-      />
     </div>
   );
 };

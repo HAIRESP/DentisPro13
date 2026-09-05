@@ -5,6 +5,7 @@ import { REGION_LEGENDS, formatRegionDisplay } from '../../data/regionData';
 import { RegionSelector } from './RegionSelector';
 import { AutocompleteInput } from '../common/AutocompleteInput';
 import { SpecialtyInputSelector } from '../common/SpecialtyInputSelector';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
   X, 
   Search, 
@@ -296,7 +297,10 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
             </button>
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={() => printDocumentWithTitle({
+                docTitle: 'Tabela_TUSS_Procedimentos',
+                date: new Date()
+              })}
               className="px-3 py-1.5 rounded-lg bg-[#3d523f] hover:bg-[#4d6650] text-stone-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
               title="Imprimir"
             >

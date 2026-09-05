@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getPatientAgeAndBirthDate } from '../../utils/patientUtils';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { TreatmentPlan, TreatmentPlanItem, TUSSProcedure, CorrelationRule, ToothConditionType, RegionAggregationMode } from '../../types';
 import { TussManagerModal } from './TussManagerModal';
 import { RegionSelector } from './RegionSelector';
@@ -2427,7 +2428,11 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={() => printDocumentWithTitle({
+                    docTitle: 'Plano_de_Tratamento',
+                    patientName: patient?.name,
+                    date: activePrintPlan?.createdAt || new Date()
+                  })}
                   className={`px-4 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold rounded-xl flex items-center gap-2 shadow-2xs cursor-pointer transition`}
                 >
                   <Printer className="w-4 h-4" />
@@ -2631,7 +2636,11 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
 
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={() => printDocumentWithTitle({
+                  docTitle: 'Plano_de_Tratamento',
+                  patientName: patient?.name,
+                  date: activePrintPlan?.createdAt || new Date()
+                })}
                 className={`px-5 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-xl flex items-center gap-2 shadow-2xs cursor-pointer transition`}
               >
                 <Printer className="w-4 h-4" />

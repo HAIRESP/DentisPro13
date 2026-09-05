@@ -84,7 +84,7 @@ const MainContent: React.FC = () => {
         {activeTab === 'exame_clinico' && <ClinicalExamView />}
         {activeTab === 'odontograma' && <ClinicalExamView />}
         {activeTab === 'estoque' && <InventoryManager />}
-        {activeTab === 'financeiro' && <ReportsView />}
+        {activeTab === 'financeiro' && <FinancialReports />}
         {activeTab === 'documentos' && <DentalDocumentManager />}
         {activeTab === 'laudos' && <LaudosView />}
       </div>

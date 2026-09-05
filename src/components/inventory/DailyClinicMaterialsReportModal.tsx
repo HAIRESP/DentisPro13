@@ -6,6 +6,7 @@ import {
   ClinicUnit, 
   Professional 
 } from '../../types';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
   X, 
   Printer, 
@@ -328,7 +329,10 @@ export const DailyClinicMaterialsReportModal: React.FC<DailyClinicMaterialsRepor
 
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={() => printDocumentWithTitle({
+                docTitle: 'Requisitoria_Diaria_Materiais',
+                date: selectedDate || new Date()
+              })}
               className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center gap-1.5"
             >
               <Printer className="w-4 h-4" />

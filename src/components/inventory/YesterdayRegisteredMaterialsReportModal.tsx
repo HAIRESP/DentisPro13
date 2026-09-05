@@ -1,5 +1,6 @@
 import React from 'react';
 import { InventoryItem, ClinicUnit, Professional } from '../../types';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
   X, 
   Printer, 
@@ -63,7 +64,10 @@ export const YesterdayRegisteredMaterialsReportModal: React.FC<YesterdayRegister
   });
 
   const handlePrint = () => {
-    window.print();
+    printDocumentWithTitle({
+      docTitle: 'Relatorio_Entradas_Materiais_Ontem',
+      date: new Date()
+    });
   };
 
   return (

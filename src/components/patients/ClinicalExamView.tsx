@@ -4,6 +4,7 @@ import { Odontogram } from './Odontogram';
 import { PainEvaluationExamView } from './PainEvaluationExamView';
 import { ImageGalleryWithEditor } from '../common/ImageGalleryWithEditor';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
+import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
   Stethoscope, 
   Smile, 
@@ -194,7 +195,11 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
     handleSaveExam();
     setIsPrintModalOpen(true);
     setTimeout(() => {
-      window.print();
+      printDocumentWithTitle({
+        docTitle: 'Exame_Clinico_Odontologico',
+        patientName: currentPatient?.name,
+        date: new Date()
+      });
     }, 400);
   };
 

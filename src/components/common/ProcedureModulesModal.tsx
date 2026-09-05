@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { TUSSProcedure } from '../../types';
+import { printDocumentWithTitle, formatSafeFilename } from '../../utils/printUtils';
 import { 
   X, 
   FileText, 
@@ -122,6 +123,8 @@ export const ProcedureModulesModal: React.FC<ProcedureModulesModalProps> = ({
       </tr>
     `).join('');
 
+    const docTitle = formatSafeFilename(`Guia_Procedimento_${name}`);
+
     try {
       const printWindow = window.open('', '_blank');
       if (printWindow) {
@@ -129,7 +132,7 @@ export const ProcedureModulesModal: React.FC<ProcedureModulesModalProps> = ({
           <!DOCTYPE html>
           <html>
             <head>
-              <title>Guia de Procedimento - ${name}</title>
+              <title>${docTitle}</title>
               <style>
                 @media print {
                   body { padding: 0; }
@@ -148,6 +151,15 @@ export const ProcedureModulesModal: React.FC<ProcedureModulesModalProps> = ({
                 .signature-block { margin-top: 40px; text-align: center; page-break-inside: avoid; }
                 a { color: #5a5a40; text-decoration: none; font-weight: bold; }
               </style>
+              <script>
+                const tituloOriginal = document.title;
+                window.addEventListener('beforeprint', function() {
+                  document.title = "${docTitle}";
+                });
+                window.addEventListener('afterprint', function() {
+                  document.title = tituloOriginal;
+                });
+              </script>
             </head>
             <body>
               <div class="header">
@@ -233,7 +245,10 @@ export const ProcedureModulesModal: React.FC<ProcedureModulesModalProps> = ({
     }
 
     // Direct fallback for iframe/sandboxed popup block
-    window.print();
+    printDocumentWithTitle({
+      docTitle: `Guia_Procedimento_${name}`,
+      date: new Date()
+    });
   };
 
   return (
