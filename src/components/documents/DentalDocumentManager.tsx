@@ -4084,15 +4084,6 @@ export const DentalDocumentManager: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => setSelectedRecentPatient(null)}
-                            className={`px-3 py-2 ${t.btnSecondaryBg} ${t.btnSecondaryText} border ${t.cardBorder} text-xs font-bold rounded-xl flex items-center gap-1.5 hover:opacity-90 transition cursor-pointer`}
-                            title="Voltar para a lista de pacientes"
-                          >
-                            <ArrowLeft className="w-3.5 h-3.5" />
-                            Lista de Pacientes
-                          </button>
-                          <button
-                            type="button"
                             onClick={() => {
                               setSelectedRecentPatient(null);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4240,26 +4231,17 @@ export const DentalDocumentManager: React.FC = () => {
                     )}
 
                     {/* Bottom Navigation for Level 2 */}
-                    <div className="flex items-center justify-between gap-3 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedRecentPatient(null)}
-                        className={`px-4 py-2 ${t.btnSecondaryBg} ${t.btnSecondaryText} border ${t.cardBorder} text-xs font-bold rounded-xl flex items-center gap-2 hover:opacity-90 transition cursor-pointer`}
-                      >
-                        <ArrowLeft className="w-4 h-4" />
-                        Voltar para Pacientes Recentes
-                      </button>
-
+                    <div className="flex items-center justify-start gap-3 pt-2">
                       <button
                         type="button"
                         onClick={() => {
                           setSelectedRecentPatient(null);
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
-                        className={`px-4 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold rounded-xl flex items-center gap-2 transition cursor-pointer shadow-2xs`}
+                        className={`px-4 py-2 ${t.btnSecondaryBg} ${t.btnSecondaryText} border ${t.cardBorder} text-xs font-bold rounded-xl flex items-center gap-2 hover:opacity-90 transition cursor-pointer`}
                       >
-                        <Home className="w-4 h-4" />
-                        Ao Início
+                        <ArrowLeft className="w-4 h-4" />
+                        Voltar para Pacientes Recentes
                       </button>
                     </div>
                   </div>

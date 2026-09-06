@@ -1430,14 +1430,6 @@ export const PatientList: React.FC = () => {
 
                 <div className="flex items-center gap-2">
                   <button
-                    type="button"
-                    onClick={() => setIsNewPatientModalOpen(false)}
-                    className={`px-4 py-2 ${t.btnSecondaryBg} ${t.btnSecondaryText} font-bold text-xs rounded-2xl cursor-pointer`}
-                  >
-                    Cancelar
-                  </button>
-
-                  <button
                     type="submit"
                     className={`px-5 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-2xl shadow-xs cursor-pointer`}
                   >
@@ -1548,13 +1540,6 @@ export const PatientList: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddInsuranceModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-gray-500 hover:bg-stone-100 rounded-xl cursor-pointer"
-                >
-                  Cancelar
-                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -1811,14 +1796,6 @@ export const PatientList: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditPatientModalOpen(false)}
-                    className={`px-4 py-2 ${t.btnSecondaryBg} ${t.btnSecondaryText} font-bold text-xs rounded-2xl cursor-pointer`}
-                  >
-                    Cancelar
-                  </button>
-
                   <button
                     type="submit"
                     className={`px-5 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-2xl shadow-xs cursor-pointer flex items-center gap-1.5`}

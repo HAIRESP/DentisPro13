@@ -309,6 +309,13 @@ export const SettingsView: React.FC = () => {
         city: parts[0]?.trim() || found.city || '',
         state: found.state || parts[1]?.trim() || 'SP'
       });
+
+      if (found.signatureImageUrl !== undefined) {
+        setSignatureImageUrl(found.signatureImageUrl || '');
+      }
+      if (found.stampImageUrl !== undefined) {
+        setStampImageUrl(found.stampImageUrl || '');
+      }
     }
   };
 
@@ -531,6 +538,13 @@ export const SettingsView: React.FC = () => {
       showStampImage,
       signatureAlignment
     });
+
+    if (selectedDentistDropdownId) {
+      updateProfessional(selectedDentistDropdownId, {
+        signatureImageUrl,
+        stampImageUrl
+      });
+    }
 
     setLayoutSaved(true);
     setTimeout(() => setLayoutSaved(false), 2500);

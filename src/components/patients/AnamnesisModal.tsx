@@ -2558,13 +2558,6 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
 
             <div className="flex items-center gap-2">
               <button
-                type="button"
-                onClick={onClose}
-                className={`px-5 py-2.5 border ${t.cardBorder} text-xs font-semibold ${t.btnSecondaryText} ${t.btnSecondaryBg} rounded-xl transition cursor-pointer`}
-              >
-                Cancelar
-              </button>
-              <button
                 type="submit"
                 className={`px-6 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer`}
               >

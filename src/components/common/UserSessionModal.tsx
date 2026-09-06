@@ -543,14 +543,6 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
               </button>
             )}
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold rounded-xl transition cursor-pointer"
-          >
-            Concluir
-          </button>
         </div>
       </div>
     </div>

@@ -628,13 +628,6 @@ export const ImageGalleryWithEditor: React.FC<ImageGalleryWithEditorProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setEditingIndex(null)}
-                  className="px-4 py-2 bg-[#f0f0e8] hover:bg-[#e5e5d1] text-[#5a5a40] font-medium text-xs rounded-xl"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
                   onClick={saveEditedImage}
                   className="px-5 py-2 bg-[#5a5a40] hover:bg-[#4a4a35] text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5"
                 >
