@@ -33,7 +33,8 @@ import {
   CheckCircle,
   MapPin,
   Mail,
-  Globe
+  Globe,
+  SlidersHorizontal
 } from 'lucide-react';
 import { Patient, ClinicUnit, Professional, ClinicalEvolutionEntry, ToothCondition, TreatmentPlan } from '../../types';
 import { formatCPF, formatCEP } from '../../utils/formatters';
@@ -109,6 +110,38 @@ export const LaudosView: React.FC = () => {
 
   // Mode: Full Detailed Report (Default) or Summary
   const [viewMode, setViewMode] = useState<'completo' | 'resumido'>('completo');
+
+  // Seleção de tópicos do laudo para impressão (Controle granular solicitado pelo usuário)
+  const [selectedSectionsForPrint, setSelectedSectionsForPrint] = useState<{
+    anamnese: boolean;
+    exameClinico: boolean;
+    tratamentosRealizados: boolean;
+    planoTratamento: boolean;
+  }>({
+    anamnese: true,
+    exameClinico: true,
+    tratamentosRealizados: true,
+    planoTratamento: true,
+  });
+
+  // Customizações de Orientações Pós-Atendimento ao Paciente por sessão (id -> texto personalizado)
+  const [customPostCareMap, setCustomPostCareMap] = useState<Record<string, string>>({});
+
+  // Alternador de tópico para impressão
+  const handleTogglePrintSection = (sectionKey: 'anamnese' | 'exameClinico' | 'tratamentosRealizados' | 'planoTratamento') => {
+    setSelectedSectionsForPrint(prev => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey]
+    }));
+  };
+
+  // Atualizador das orientações pós-atendimento
+  const handleUpdatePostCare = (attendanceId: string, text: string) => {
+    setCustomPostCareMap(prev => ({
+      ...prev,
+      [attendanceId]: text
+    }));
+  };
 
   // Print selection state (Pre-selected true for each attendance ID)
   const [selectedAttendanceForPrint, setSelectedAttendanceForPrint] = useState<Record<string, boolean>>({});
@@ -525,7 +558,7 @@ export const LaudosView: React.FC = () => {
         odontogramConditions: patientOdonto.length > 0 ? patientOdonto : undefined,
         anamnesisHighlights: highlights,
         clinicalExamNotes: examNotes,
-        postCareGuidance: postCare,
+        postCareGuidance: customPostCareMap[`att-${dateKey}`] || postCare,
         initialSeverity
       });
     });
@@ -544,7 +577,8 @@ export const LaudosView: React.FC = () => {
     clinics, 
     activeClinicEntity, 
     activeProfessionalEntity, 
-    clinicInfo
+    clinicInfo,
+    customPostCareMap
   ]);
 
   // Filtered attendances based on search term, status filter, and period
@@ -680,13 +714,43 @@ export const LaudosView: React.FC = () => {
     text += `Endereço: ${addrStreet}${addrCep}\n`;
     text += `Convênio Odontológico: ${activePatient.healthInsurance || 'Particular'}\n\n`;
 
-    if (viewMode === 'completo') {
+    if (selectedSectionsForPrint.anamnese) {
       text += `ANAMNESE & HISTÓRICO CLÍNICO-SISTÊMICO:\n`;
       text += `Queixa Principal: ${activePatient.anamnesis?.chiefComplaint || 'Consulta de rotina / avaliação geral'}\n`;
       text += `Alergias: ${activePatient.anamnesis?.hasAllergies ? `Sim (${activePatient.anamnesis.allergyDetails || 'Presente'})` : 'Nenhuma alergia conhecida'}\n`;
       text += `Hipertensão: ${activePatient.anamnesis?.hasHypertension ? 'Sim' : 'Não'}\n`;
       text += `Diabetes: ${activePatient.anamnesis?.hasDiabetes ? 'Sim' : 'Não'}\n`;
       text += `Medicação Contínua: ${activePatient.anamnesis?.continuousMedication || 'Nenhum medicamento de uso contínuo'}\n\n`;
+    }
+
+    if (selectedSectionsForPrint.exameClinico) {
+      text += `EXAME CLÍNICO EXTRAORAL, INTRAORAL E PERIODONTAL:\n`;
+      text += `Índice de Higiene: ${patientExam?.oralHygiene || 'Adequado'}\n`;
+      text += `Oclusão: ${patientExam?.occlusion || 'Classe I de Angle'}\n\n`;
+    }
+
+    if (selectedSectionsForPrint.tratamentosRealizados) {
+      text += `TRATAMENTOS REALIZADOS:\n`;
+      if (consolidatedTreatments.length === 0) {
+        text += `Elementos avaliados apresentam-se hígidos.\n\n`;
+      } else {
+        consolidatedTreatments.forEach(t => {
+          text += `  - Dente ${t.toothNumber}: ${t.label}\n`;
+        });
+        text += `\n`;
+      }
+    }
+
+    if (selectedSectionsForPrint.planoTratamento) {
+      text += `PLANO DE TRATAMENTO:\n`;
+      if (consolidatedTreatmentNeeds.length === 0) {
+        text += `Nenhum procedimento pendente no momento.\n\n`;
+      } else {
+        consolidatedTreatmentNeeds.forEach(p => {
+          text += `  - ${p.toothNumber ? `Dente ${p.toothNumber}` : 'Arcada Geral'}: ${p.procedureName} (${p.specialty})\n`;
+        });
+        text += `\n`;
+      }
     }
 
     text += `HISTÓRICO CRONOLÓGICO DE ATENDIMENTOS:\n`;
@@ -788,7 +852,15 @@ export const LaudosView: React.FC = () => {
             <button
               type="button"
               id="btn-modo-laudo-completo"
-              onClick={() => setViewMode('completo')}
+              onClick={() => {
+                setViewMode('completo');
+                setSelectedSectionsForPrint({
+                  anamnese: true,
+                  exameClinico: true,
+                  tratamentosRealizados: true,
+                  planoTratamento: true,
+                });
+              }}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
                 viewMode === 'completo'
                   ? 'bg-[#4a4a35] text-white shadow-xs'
@@ -801,7 +873,15 @@ export const LaudosView: React.FC = () => {
             <button
               type="button"
               id="btn-modo-laudo-resumido"
-              onClick={() => setViewMode('resumido')}
+              onClick={() => {
+                setViewMode('resumido');
+                setSelectedSectionsForPrint({
+                  anamnese: false,
+                  exameClinico: false,
+                  tratamentosRealizados: false,
+                  planoTratamento: false,
+                });
+              }}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
                 viewMode === 'resumido'
                   ? 'bg-[#4a4a35] text-white shadow-xs'
@@ -1061,6 +1141,144 @@ export const LaudosView: React.FC = () => {
       </div>
 
       {/* 
+        2.5 SELEÇÃO DE TÓPICOS DO LAUDO PARA IMPRESSÃO (CONTROLE GRANULAR)
+        Permite selecionar seções individuais para impressão mesmo se não estiverem preenchidas ou não devam ser divulgadas
+      */}
+      {activePatient && (
+        <div className="max-w-4xl mx-auto bg-stone-50 border border-stone-200 rounded-2xl p-4 shadow-2xs space-y-3 print:hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200/80 pb-2">
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4 text-[#4a4a35]" />
+              <h3 className="text-xs font-bold text-stone-800 uppercase tracking-wider">
+                Seleção de Tópicos para Impressão do Laudo
+              </h3>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] text-stone-500 hidden sm:inline">
+                Marque ou desmarque tópicos a omitir da impressão
+              </span>
+              <div className="flex items-center gap-1.5 text-xs">
+                <button
+                  type="button"
+                  id="btn-selecionar-todos-topicos"
+                  onClick={() => setSelectedSectionsForPrint({ anamnese: true, exameClinico: true, tratamentosRealizados: true, planoTratamento: true })}
+                  className="text-[11px] font-bold text-[#4a4a35] hover:underline cursor-pointer"
+                >
+                  Marcar Todos
+                </button>
+                <span className="text-stone-300">|</span>
+                <button
+                  type="button"
+                  id="btn-desmarcar-todos-topicos"
+                  onClick={() => setSelectedSectionsForPrint({ anamnese: false, exameClinico: false, tratamentosRealizados: false, planoTratamento: false })}
+                  className="text-[11px] font-bold text-stone-500 hover:text-stone-800 hover:underline cursor-pointer"
+                >
+                  Desmarcar Todos
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 4 Caixas de Seleção dos Tópicos Solicitados */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+            
+            {/* Tópico 1: Anamnese & Histórico Clínico-Sistêmico Integral */}
+            <label className={`flex items-start gap-2.5 p-3 rounded-xl border transition cursor-pointer select-none ${
+              selectedSectionsForPrint.anamnese 
+                ? 'bg-white border-amber-300 shadow-2xs' 
+                : 'bg-stone-100/70 border-stone-200 opacity-60'
+            }`}>
+              <input
+                type="checkbox"
+                id="check-topico-anamnese"
+                checked={selectedSectionsForPrint.anamnese}
+                onChange={() => handleTogglePrintSection('anamnese')}
+                className="mt-0.5 w-4 h-4 rounded text-[#4a4a35] accent-[#4a4a35] cursor-pointer"
+              />
+              <div className="space-y-0.5 min-w-0">
+                <span className="text-xs font-bold text-stone-900 block leading-tight truncate">
+                  Anamnese Integral
+                </span>
+                <span className="text-[10px] text-stone-500 block">
+                  Histórico clínico e sistêmico
+                </span>
+              </div>
+            </label>
+
+            {/* Tópico 2: Exame Clínico Extraoral, Intraoral e Periodontal */}
+            <label className={`flex items-start gap-2.5 p-3 rounded-xl border transition cursor-pointer select-none ${
+              selectedSectionsForPrint.exameClinico 
+                ? 'bg-white border-blue-300 shadow-2xs' 
+                : 'bg-stone-100/70 border-stone-200 opacity-60'
+            }`}>
+              <input
+                type="checkbox"
+                id="check-topico-exame-clinico"
+                checked={selectedSectionsForPrint.exameClinico}
+                onChange={() => handleTogglePrintSection('exameClinico')}
+                className="mt-0.5 w-4 h-4 rounded text-[#4a4a35] accent-[#4a4a35] cursor-pointer"
+              />
+              <div className="space-y-0.5 min-w-0">
+                <span className="text-xs font-bold text-stone-900 block leading-tight truncate">
+                  Exame Clínico
+                </span>
+                <span className="text-[10px] text-stone-500 block">
+                  Extraoral, intraoral e periodonto
+                </span>
+              </div>
+            </label>
+
+            {/* Tópico 3: Tratamentos Realizados */}
+            <label className={`flex items-start gap-2.5 p-3 rounded-xl border transition cursor-pointer select-none ${
+              selectedSectionsForPrint.tratamentosRealizados 
+                ? 'bg-white border-emerald-300 shadow-2xs' 
+                : 'bg-stone-100/70 border-stone-200 opacity-60'
+            }`}>
+              <input
+                type="checkbox"
+                id="check-topico-tratamentos"
+                checked={selectedSectionsForPrint.tratamentosRealizados}
+                onChange={() => handleTogglePrintSection('tratamentosRealizados')}
+                className="mt-0.5 w-4 h-4 rounded text-[#4a4a35] accent-[#4a4a35] cursor-pointer"
+              />
+              <div className="space-y-0.5 min-w-0">
+                <span className="text-xs font-bold text-stone-900 block leading-tight truncate">
+                  Tratamentos Realizados
+                </span>
+                <span className="text-[10px] text-stone-500 block">
+                  Intervenções e dentes hígidos
+                </span>
+              </div>
+            </label>
+
+            {/* Tópico 4: Plano de Tratamento */}
+            <label className={`flex items-start gap-2.5 p-3 rounded-xl border transition cursor-pointer select-none ${
+              selectedSectionsForPrint.planoTratamento 
+                ? 'bg-white border-amber-300 shadow-2xs' 
+                : 'bg-stone-100/70 border-stone-200 opacity-60'
+            }`}>
+              <input
+                type="checkbox"
+                id="check-topico-plano"
+                checked={selectedSectionsForPrint.planoTratamento}
+                onChange={() => handleTogglePrintSection('planoTratamento')}
+                className="mt-0.5 w-4 h-4 rounded text-[#4a4a35] accent-[#4a4a35] cursor-pointer"
+              />
+              <div className="space-y-0.5 min-w-0">
+                <span className="text-xs font-bold text-stone-900 block leading-tight truncate">
+                  Plano de Tratamento
+                </span>
+                <span className="text-[10px] text-stone-500 block">
+                  Procedimentos propostos / TUSS
+                </span>
+              </div>
+            </label>
+
+          </div>
+        </div>
+      )}
+
+      {/* 
         3. ESTRUTURA SEQUENCIAL EM COLUNA ÚNICA (PADRÃO A4 TIMBRADO)
         max-w-4xl centralizado na tela com layout completo e profissional
       */}
@@ -1186,228 +1404,341 @@ export const LaudosView: React.FC = () => {
           </div>
 
           {/* 
-            SE FOR LAUDO COMPLETO: RENDERIZA ANAMNESE INTEGRAL, EXAME CLÍNICO E ODONTOGRAMA
+            SELEÇÃO DE TÓPICOS INDIVIDUAIS DO LAUDO PARA IMPRESSÃO:
+            1. Anamnese & Histórico Clínico-Sistêmico Integral
+            2. Exame Clínico Extraoral, Intraoral e Periodontal
+            3. Tratamentos Realizados
+            4. Plano de Tratamento
           */}
-          {viewMode === 'completo' && (
-            <>
-              {/* ANAMNESE & HISTÓRICO CLÍNICO-SISTÊMICO INTEGRAL */}
-              <div id="secao-anamnese" className="bg-amber-50/40 rounded-2xl p-4 sm:p-5 border border-amber-200/70 space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-amber-200">
-                  <h3 className="text-xs font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
-                    <HeartPulse className="w-4 h-4 text-amber-700" />
-                    Anamnese & Histórico Clínico-Sistêmico Integral
-                  </h3>
+
+          {/* TÓPICO 1: ANAMNESE & HISTÓRICO CLÍNICO-SISTÊMICO INTEGRAL */}
+          {selectedSectionsForPrint.anamnese ? (
+            <div id="secao-anamnese" className="bg-amber-50/40 rounded-2xl p-4 sm:p-5 border border-amber-200/70 space-y-3 print:border-amber-300">
+              <div className="flex items-center justify-between pb-2 border-b border-amber-200">
+                <h3 className="text-xs font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                  <HeartPulse className="w-4 h-4 text-amber-700" />
+                  Anamnese & Histórico Clínico-Sistêmico Integral
+                </h3>
+                <div className="flex items-center gap-2">
                   <span className="text-[10px] font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">
                     Triagem Sistêmica Completa
                   </span>
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none print:hidden bg-amber-100/80 hover:bg-amber-200/80 px-2 py-1 rounded-md text-[10px] font-bold text-amber-900 transition" title="Marcar/desmarcar para impressão">
+                    <input
+                      type="checkbox"
+                      checked={selectedSectionsForPrint.anamnese}
+                      onChange={() => handleTogglePrintSection('anamnese')}
+                      className="w-3.5 h-3.5 rounded text-[#4a4a35] accent-[#4a4a35] cursor-pointer"
+                    />
+                    <span>Imprimir</span>
+                  </label>
                 </div>
+              </div>
 
-                {/* Queixa Principal */}
-                <div className="bg-white/80 p-3 rounded-xl border border-amber-100 text-xs">
-                  <span className="font-bold text-stone-800 block mb-0.5">Queixa Principal & Motivo da Consulta:</span>
-                  <p className="text-stone-700 leading-relaxed">
-                    {activePatient.anamnesis?.chiefComplaint || 'Consulta para diagnóstico global, profilaxia e planejamento de reabilitação odontológica.'}
+              {/* Queixa Principal */}
+              <div className="bg-white/80 p-3 rounded-xl border border-amber-100 text-xs">
+                <span className="font-bold text-stone-800 block mb-0.5">Queixa Principal & Motivo da Consulta:</span>
+                <p className="text-stone-700 leading-relaxed">
+                  {activePatient.anamnesis?.chiefComplaint || 'Consulta para diagnóstico global, profilaxia e planejamento de reabilitação odontológica.'}
+                </p>
+              </div>
+
+              {/* Grid de Avaliação Sistêmica */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                
+                {/* Alergias */}
+                <div className={`p-2.5 rounded-xl border ${
+                  activePatient.anamnesis?.hasAllergies ? 'bg-red-50 border-red-200 text-red-900' : 'bg-white border-amber-100 text-stone-800'
+                }`}>
+                  <span className="font-bold block text-[11px]">Alergias Medicamentosas / Materiais:</span>
+                  <p className="mt-0.5">
+                    {activePatient.anamnesis?.hasAllergies 
+                      ? `Alérgico(a) a: ${activePatient.anamnesis.allergyDetails || 'Medicamentos ou látex'}`
+                      : 'Nenhuma alergia conhecida relatada pelo paciente.'}
                   </p>
                 </div>
 
-                {/* Grid de Avaliação Sistêmica */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-                  
-                  {/* Alergias */}
-                  <div className={`p-2.5 rounded-xl border ${
-                    activePatient.anamnesis?.hasAllergies ? 'bg-red-50 border-red-200 text-red-900' : 'bg-white border-amber-100 text-stone-800'
-                  }`}>
-                    <span className="font-bold block text-[11px]">Alergias Medicamentosas / Materiais:</span>
-                    <p className="mt-0.5">
-                      {activePatient.anamnesis?.hasAllergies 
-                        ? `Alérgico(a) a: ${activePatient.anamnesis.allergyDetails || 'Medicamentos ou látex'}`
-                        : 'Nenhuma alergia conhecida relatada pelo paciente.'}
-                    </p>
-                  </div>
+                {/* Condições Cardiovasculares & Pressão */}
+                <div className="p-2.5 rounded-xl bg-white border border-amber-100 text-stone-800">
+                  <span className="font-bold block text-[11px]">Sistema Cardiovascular:</span>
+                  <p className="mt-0.5">
+                    {activePatient.anamnesis?.hasHypertension ? 'Hipertensão Arterial Sistêmica diagnosticada' : 'Sem histórico de hipertensão'}.
+                    {activePatient.anamnesis?.hasHeartDisease ? ' Possui histórico cardiológico.' : ' Sem cardiopatias prévias.'}
+                  </p>
+                </div>
 
-                  {/* Condições Cardiovasculares & Pressão */}
-                  <div className="p-2.5 rounded-xl bg-white border border-amber-100 text-stone-800">
-                    <span className="font-bold block text-[11px]">Sistema Cardiovascular:</span>
-                    <p className="mt-0.5">
-                      {activePatient.anamnesis?.hasHypertension ? 'Hipertensão Arterial Sistêmica diagnosticada' : 'Sem histórico de hipertensão'}.
-                      {activePatient.anamnesis?.hasHeartDisease ? ' Possui histórico cardiológico.' : ' Sem cardiopatias prévias.'}
-                    </p>
-                  </div>
+                {/* Doenças Metabólicas & Endócrinas */}
+                <div className="p-2.5 rounded-xl bg-white border border-amber-100 text-stone-800">
+                  <span className="font-bold block text-[11px]">Metabolismo & Endócrino:</span>
+                  <p className="mt-0.5">
+                    {activePatient.anamnesis?.hasDiabetes ? `Diabetes Mellitus (${activePatient.anamnesis.diabetesType || 'Tipo 2'})` : 'Sem diagnóstico de diabetes'}.
+                    {activePatient.anamnesis?.hasThyroidDisorder ? ' Alteração tireoidiana.' : ''}
+                  </p>
+                </div>
 
-                  {/* Doenças Metabólicas & Endócrinas */}
-                  <div className="p-2.5 rounded-xl bg-white border border-amber-100 text-stone-800">
-                    <span className="font-bold block text-[11px]">Metabolismo & Endócrino:</span>
-                    <p className="mt-0.5">
-                      {activePatient.anamnesis?.hasDiabetes ? `Diabetes Mellitus (${activePatient.anamnesis.diabetesType || 'Tipo 2'})` : 'Sem diagnóstico de diabetes'}.
-                      {activePatient.anamnesis?.hasThyroidDisorder ? ' Alteração tireoidiana.' : ''}
-                    </p>
-                  </div>
+                {/* Coagulação & Cicatrização */}
+                <div className="p-2.5 rounded-xl bg-white border border-amber-100 text-stone-800">
+                  <span className="font-bold block text-[11px]">Coagulação & Hemorragia:</span>
+                  <p className="mt-0.5">
+                    {activePatient.anamnesis?.bleedingDisorder ? 'Histórico de sangramento excessivo / coagulopatia' : 'Padrão de coagulação e hemostasia normal'}.
+                    {activePatient.anamnesis?.usesAnticoagulants ? ' Faz uso regular de anticoagulante oral.' : ''}
+                  </p>
+                </div>
 
-                  {/* Coagulação & Cicatrização */}
-                  <div className="p-2.5 rounded-xl bg-white border border-amber-100 text-stone-800">
-                    <span className="font-bold block text-[11px]">Coagulação & Hemorragia:</span>
-                    <p className="mt-0.5">
-                      {activePatient.anamnesis?.bleedingDisorder ? 'Histórico de sangramento excessivo / coagulopatia' : 'Padrão de coagulação e hemostasia normal'}.
-                      {activePatient.anamnesis?.usesAnticoagulants ? ' Faz uso regular de anticoagulante oral.' : ''}
-                    </p>
-                  </div>
+                {/* Medicações de Uso Contínuo */}
+                <div className="p-2.5 rounded-xl bg-white border border-amber-100 text-stone-800">
+                  <span className="font-bold block text-[11px]">Medicamentos de Uso Contínuo:</span>
+                  <p className="mt-0.5 font-medium">
+                    {activePatient.anamnesis?.continuousMedication || 'Nenhum medicamento contínuo relatado.'}
+                  </p>
+                </div>
 
-                  {/* Medicações de Uso Contínuo */}
-                  <div className="p-2.5 rounded-xl bg-white border border-amber-100 text-stone-800">
-                    <span className="font-bold block text-[11px]">Medicamentos de Uso Contínuo:</span>
-                    <p className="mt-0.5 font-medium">
-                      {activePatient.anamnesis?.continuousMedication || 'Nenhum medicamento contínuo relatado.'}
-                    </p>
-                  </div>
-
-                  {/* Hábitos & DTM */}
-                  <div className="p-2.5 rounded-xl bg-white border border-amber-100 text-stone-800">
-                    <span className="font-bold block text-[11px]">Hábitos Orais & Articulação (ATM):</span>
-                    <p className="mt-0.5">
-                      {activePatient.anamnesis?.hasBruxism ? 'Bruxismo / apertamento dental presente' : 'Sem relato de bruxismo'}.
-                      {activePatient.anamnesis?.hasAtmPainOrClicking ? ' Estalos ou dor em ATM.' : ' ATM sem ruídos ou queixas.'}
-                    </p>
-                  </div>
+                {/* Hábitos & DTM */}
+                <div className="p-2.5 rounded-xl bg-white border border-amber-100 text-stone-800">
+                  <span className="font-bold block text-[11px]">Hábitos Orais & Articulação (ATM):</span>
+                  <p className="mt-0.5">
+                    {activePatient.anamnesis?.hasBruxism ? 'Bruxismo / apertamento dental presente' : 'Sem relato de bruxismo'}.
+                    {activePatient.anamnesis?.hasAtmPainOrClicking ? ' Estalos ou dor em ATM.' : ' ATM sem ruídos ou queixas.'}
+                  </p>
                 </div>
               </div>
+            </div>
+          ) : (
+            <div className="p-3 bg-stone-50/80 border border-dashed border-stone-300 rounded-xl flex items-center justify-between text-xs text-stone-500 print:hidden select-none">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span className="font-semibold text-stone-600">Tópico Ocultado da Impressão:</span>
+                <span className="text-stone-500">Anamnese & Histórico Clínico-Sistêmico Integral</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleTogglePrintSection('anamnese')}
+                className="text-xs font-bold text-[#4a4a35] hover:text-[#3d3d2c] hover:underline cursor-pointer"
+              >
+                + Incluir na Impressão
+              </button>
+            </div>
+          )}
 
-              {/* EXAME CLÍNICO EXTRAORAL E INTRAORAL */}
-              <div id="secao-exame-clinico" className="bg-blue-50/40 rounded-2xl p-4 sm:p-5 border border-blue-200/70 space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-blue-200">
-                  <h3 className="text-xs font-bold text-blue-950 uppercase tracking-wider flex items-center gap-1.5">
-                    <Stethoscope className="w-4 h-4 text-blue-700" />
-                    Exame Clínico Extraoral, Intraoral e Periodontal
-                  </h3>
+          {/* TÓPICO 2: EXAME CLÍNICO EXTRAORAL E INTRAORAL */}
+          {selectedSectionsForPrint.exameClinico ? (
+            <div id="secao-exame-clinico" className="bg-blue-50/40 rounded-2xl p-4 sm:p-5 border border-blue-200/70 space-y-3 print:border-blue-300">
+              <div className="flex items-center justify-between pb-2 border-b border-blue-200">
+                <h3 className="text-xs font-bold text-blue-950 uppercase tracking-wider flex items-center gap-1.5">
+                  <Stethoscope className="w-4 h-4 text-blue-700" />
+                  Exame Clínico Extraoral, Intraoral e Periodontal
+                </h3>
+                <div className="flex items-center gap-2">
                   <span className="text-[10px] font-semibold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-md">
                     Inspeção Tecidual Completa
                   </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  {/* Tecidos Moles */}
-                  <div className="bg-white p-3 rounded-xl border border-blue-100 space-y-1">
-                    <span className="font-bold text-blue-950 block text-[11px]">1. Tecidos Moles e Mucosas:</span>
-                    <p className="text-stone-700 leading-relaxed text-[11px]">
-                      Lábios, mucosa jugal, assoalho bucal, palato duro e mole e língua sem alterações patológicas, feridas ou lesões suspeitas detectadas.
-                    </p>
-                  </div>
-
-                  {/* Condição Periodontal */}
-                  <div className="bg-white p-3 rounded-xl border border-blue-100 space-y-1">
-                    <span className="font-bold text-blue-950 block text-[11px]">2. Periodontia e Higiene Oral:</span>
-                    <p className="text-stone-700 leading-relaxed text-[11px]">
-                      Índice de placa: {patientExam?.oralHygiene || 'Adequado'}. Sangramento à sondagem pontual. Ausência de bolsas periodontais profundas generalizadas.
-                    </p>
-                  </div>
-
-                  {/* Oclusão e Mastigação */}
-                  <div className="bg-white p-3 rounded-xl border border-blue-100 space-y-1">
-                    <span className="font-bold text-blue-950 block text-[11px]">3. Oclusão e Relação Intermaxilar:</span>
-                    <p className="text-stone-700 leading-relaxed text-[11px]">
-                      {patientExam?.occlusion ? `Relação oclusal: ${patientExam.occlusion}.` : 'Relação canina e molar Classe I de Angle.'} Guia canina funcional, sem interferências excêntricas graves.
-                    </p>
-                  </div>
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none print:hidden bg-blue-100/80 hover:bg-blue-200/80 px-2 py-1 rounded-md text-[10px] font-bold text-blue-900 transition" title="Marcar/desmarcar para impressão">
+                    <input
+                      type="checkbox"
+                      checked={selectedSectionsForPrint.exameClinico}
+                      onChange={() => handleTogglePrintSection('exameClinico')}
+                      className="w-3.5 h-3.5 rounded text-[#4a4a35] accent-[#4a4a35] cursor-pointer"
+                    />
+                    <span>Imprimir</span>
+                  </label>
                 </div>
               </div>
 
-              {/* TRATAMENTOS REALIZADOS */}
-              <div id="secao-tratamentos-realizados" className="bg-stone-50/80 rounded-2xl p-4 sm:p-5 border border-stone-200 space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-stone-200">
-                  <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <CheckCircle className="w-4 h-4 text-emerald-700" />
-                    Tratamentos Realizados
-                  </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                {/* Tecidos Moles */}
+                <div className="bg-white p-3 rounded-xl border border-blue-100 space-y-1">
+                  <span className="font-bold text-blue-950 block text-[11px]">1. Tecidos Moles e Mucosas:</span>
+                  <p className="text-stone-700 leading-relaxed text-[11px]">
+                    Lábios, mucosa jugal, assoalho bucal, palato duro e mole e língua sem alterações patológicas, feridas ou lesões suspeitas detectadas.
+                  </p>
+                </div>
+
+                {/* Condição Periodontal */}
+                <div className="bg-white p-3 rounded-xl border border-blue-100 space-y-1">
+                  <span className="font-bold text-blue-950 block text-[11px]">2. Periodontia e Higiene Oral:</span>
+                  <p className="text-stone-700 leading-relaxed text-[11px]">
+                    Índice de placa: {patientExam?.oralHygiene || 'Adequado'}. Sangramento à sondagem pontual. Ausência de bolsas periodontais profundas generalizadas.
+                  </p>
+                </div>
+
+                {/* Oclusão e Mastigação */}
+                <div className="bg-white p-3 rounded-xl border border-blue-100 space-y-1">
+                  <span className="font-bold text-blue-950 block text-[11px]">3. Oclusão e Relação Intermaxilar:</span>
+                  <p className="text-stone-700 leading-relaxed text-[11px]">
+                    {patientExam?.occlusion ? `Relação oclusal: ${patientExam.occlusion}.` : 'Relação canina e molar Classe I de Angle.'} Guia canina funcional, sem interferências excêntricas graves.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-3 bg-stone-50/80 border border-dashed border-stone-300 rounded-xl flex items-center justify-between text-xs text-stone-500 print:hidden select-none">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                <span className="font-semibold text-stone-600">Tópico Ocultado da Impressão:</span>
+                <span className="text-stone-500">Exame Clínico Extraoral, Intraoral e Periodontal</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleTogglePrintSection('exameClinico')}
+                className="text-xs font-bold text-[#4a4a35] hover:text-[#3d3d2c] hover:underline cursor-pointer"
+              >
+                + Incluir na Impressão
+              </button>
+            </div>
+          )}
+
+          {/* TÓPICO 3: TRATAMENTOS REALIZADOS */}
+          {selectedSectionsForPrint.tratamentosRealizados ? (
+            <div id="secao-tratamentos-realizados" className="bg-stone-50/80 rounded-2xl p-4 sm:p-5 border border-stone-200 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-stone-200">
+                <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <CheckCircle className="w-4 h-4 text-emerald-700" />
+                  Tratamentos Realizados
+                </h3>
+                <div className="flex items-center gap-2">
                   <span className="text-[10px] font-semibold text-stone-700 bg-white px-2.5 py-1 rounded-md border border-stone-200 shadow-2xs">
                     {lastInterventionDate ? `Última intervenção: ${lastInterventionDate}` : 'Última intervenção: Consulta Inicial'}
                   </span>
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none print:hidden bg-stone-200/80 hover:bg-stone-300/80 px-2 py-1 rounded-md text-[10px] font-bold text-stone-800 transition" title="Marcar/desmarcar para impressão">
+                    <input
+                      type="checkbox"
+                      checked={selectedSectionsForPrint.tratamentosRealizados}
+                      onChange={() => handleTogglePrintSection('tratamentosRealizados')}
+                      className="w-3.5 h-3.5 rounded text-[#4a4a35] accent-[#4a4a35] cursor-pointer"
+                    />
+                    <span>Imprimir</span>
+                  </label>
                 </div>
-
-                {consolidatedTreatments.length === 0 ? (
-                  <div className="p-3 bg-white rounded-xl border border-stone-200 text-xs text-stone-700">
-                    <p className="font-medium text-emerald-800 flex items-center gap-1.5">
-                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                      Todos os elementos dentários avaliados apresentam-se <strong>Hígidos (Íntegros)</strong>, sem alterações patológicas ativas no exame atual.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-[11px] text-stone-600 font-medium">
-                      Elementos dentários com intervenção ou histórico clínico registrado (Dente / Região e Condição):
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
-                      {consolidatedTreatments.map((finding) => (
-                        <div 
-                          key={finding.toothNumber} 
-                          className="bg-white p-2.5 rounded-xl border border-stone-200 flex items-center gap-2 shadow-2xs"
-                        >
-                          <span className="font-mono font-bold text-stone-900 text-xs shrink-0 min-w-[24px] text-center">
-                            {finding.toothNumber}
-                          </span>
-                          <span className="text-stone-300 select-none">•</span>
-                          <span className="text-xs font-semibold text-stone-800 truncate" title={finding.label}>
-                            {finding.label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* PLANO DE TRATAMENTO */}
-              <div id="secao-plano-integral" className="bg-stone-50/80 rounded-2xl p-4 sm:p-5 border border-stone-200 space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-stone-200">
-                  <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <ShieldAlert className="w-4 h-4 text-[#d4a373]" />
-                    Plano de Tratamento
-                  </h3>
+              {consolidatedTreatments.length === 0 ? (
+                <div className="p-3 bg-white rounded-xl border border-stone-200 text-xs text-stone-700">
+                  <p className="font-medium text-emerald-800 flex items-center gap-1.5">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    Todos os elementos dentários avaliados apresentam-se <strong>Hígidos (Íntegros)</strong>, sem alterações patológicas ativas no exame atual.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-[11px] text-stone-600 font-medium">
+                    Elementos dentários com intervenção ou histórico clínico registrado (Dente / Região e Condição):
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+                    {consolidatedTreatments.map((finding) => (
+                      <div 
+                        key={finding.toothNumber} 
+                        className="bg-white p-2.5 rounded-xl border border-stone-200 flex items-center gap-2 shadow-2xs"
+                      >
+                        <span className="font-mono font-bold text-stone-900 text-xs shrink-0 min-w-[24px] text-center">
+                          {finding.toothNumber}
+                        </span>
+                        <span className="text-stone-300 select-none">•</span>
+                        <span className="text-xs font-semibold text-stone-800 truncate" title={finding.label}>
+                          {finding.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="p-3 bg-stone-50/80 border border-dashed border-stone-300 rounded-xl flex items-center justify-between text-xs text-stone-500 print:hidden select-none">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span className="font-semibold text-stone-600">Tópico Ocultado da Impressão:</span>
+                <span className="text-stone-500">Tratamentos Realizados</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleTogglePrintSection('tratamentosRealizados')}
+                className="text-xs font-bold text-[#4a4a35] hover:text-[#3d3d2c] hover:underline cursor-pointer"
+              >
+                + Incluir na Impressão
+              </button>
+            </div>
+          )}
+
+          {/* TÓPICO 4: PLANO DE TRATAMENTO */}
+          {selectedSectionsForPrint.planoTratamento ? (
+            <div id="secao-plano-integral" className="bg-stone-50/80 rounded-2xl p-4 sm:p-5 border border-stone-200 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-stone-200">
+                <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldAlert className="w-4 h-4 text-[#d4a373]" />
+                  Plano de Tratamento
+                </h3>
+                <div className="flex items-center gap-2">
                   <span className="text-[10px] font-semibold text-stone-700 bg-white px-2.5 py-1 rounded-md border border-stone-200 shadow-2xs">
                     {consolidatedTreatmentNeeds.length} procedimento(s) planejado(s)
                   </span>
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none print:hidden bg-stone-200/80 hover:bg-stone-300/80 px-2 py-1 rounded-md text-[10px] font-bold text-stone-800 transition" title="Marcar/desmarcar para impressão">
+                    <input
+                      type="checkbox"
+                      checked={selectedSectionsForPrint.planoTratamento}
+                      onChange={() => handleTogglePrintSection('planoTratamento')}
+                      className="w-3.5 h-3.5 rounded text-[#4a4a35] accent-[#4a4a35] cursor-pointer"
+                    />
+                    <span>Imprimir</span>
+                  </label>
                 </div>
-
-                {consolidatedTreatmentNeeds.length > 0 ? (
-                  <div className="space-y-3">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border border-stone-200 rounded-xl overflow-hidden bg-white">
-                        <thead className="bg-stone-100/80 text-stone-700 font-bold border-b border-stone-200 text-[11px]">
-                          <tr>
-                            <th className="p-2.5 text-center w-28">Dente / Região</th>
-                            <th className="p-2.5">Código TUSS</th>
-                            <th className="p-2.5">Procedimento Clínico Proposto</th>
-                            <th className="p-2.5">Especialidade</th>
-                            <th className="p-2.5 text-right">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-stone-100 text-stone-800 text-[11px]">
-                          {consolidatedTreatmentNeeds.map((item, idx) => (
-                            <tr key={idx} className="hover:bg-stone-50/50">
-                              <td className="p-2.5 font-mono font-bold text-stone-900 whitespace-nowrap text-center">
-                                {item.toothNumber ? item.toothNumber : 'Arcada Geral'}
-                              </td>
-                              <td className="p-2.5 font-mono text-stone-500 whitespace-nowrap">{item.tussCode || '81000030'}</td>
-                              <td className="p-2.5 font-medium">{item.procedureName}</td>
-                              <td className="p-2.5 text-stone-500 whitespace-nowrap">{item.specialty}</td>
-                              <td className="p-2.5 text-right whitespace-nowrap">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                  item.status === 'concluido' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
-                                }`}>
-                                  {item.status === 'concluido' ? 'Executado' : 'Proposto'}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-3 bg-white rounded-xl border border-stone-200 text-xs text-stone-600">
-                    Nenhum procedimento pendente no momento. Procedimentos executados registrados na cronologia abaixo.
-                  </div>
-                )}
               </div>
-            </>
+
+              {consolidatedTreatmentNeeds.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border border-stone-200 rounded-xl overflow-hidden bg-white">
+                      <thead className="bg-stone-100/80 text-stone-700 font-bold border-b border-stone-200 text-[11px]">
+                        <tr>
+                          <th className="p-2.5 text-center w-28">Dente / Região</th>
+                          <th className="p-2.5">Código TUSS</th>
+                          <th className="p-2.5">Procedimento Clínico Proposto</th>
+                          <th className="p-2.5">Especialidade</th>
+                          <th className="p-2.5 text-right">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-100 text-stone-800 text-[11px]">
+                        {consolidatedTreatmentNeeds.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-stone-50/50">
+                            <td className="p-2.5 font-mono font-bold text-stone-900 whitespace-nowrap text-center">
+                              {item.toothNumber ? item.toothNumber : 'Arcada Geral'}
+                            </td>
+                            <td className="p-2.5 font-mono text-stone-500 whitespace-nowrap">{item.tussCode || '81000030'}</td>
+                            <td className="p-2.5 font-medium">{item.procedureName}</td>
+                            <td className="p-2.5 text-stone-500 whitespace-nowrap">{item.specialty}</td>
+                            <td className="p-2.5 text-right whitespace-nowrap">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                item.status === 'concluido' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
+                              }`}>
+                                {item.status === 'concluido' ? 'Executado' : 'Proposto'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-white rounded-xl border border-stone-200 text-xs text-stone-600">
+                  Nenhum procedimento pendente no momento. Procedimentos executados registrados na cronologia abaixo.
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="p-3 bg-stone-50/80 border border-dashed border-stone-300 rounded-xl flex items-center justify-between text-xs text-stone-500 print:hidden select-none">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span className="font-semibold text-stone-600">Tópico Ocultado da Impressão:</span>
+                <span className="text-stone-500">Plano de Tratamento</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleTogglePrintSection('planoTratamento')}
+                className="text-xs font-bold text-[#4a4a35] hover:text-[#3d3d2c] hover:underline cursor-pointer"
+              >
+                + Incluir na Impressão
+              </button>
+            </div>
           )}
 
           {/* CRONOLOGIA SEQUENCIAL DE ATENDIMENTOS (Com Caixa Pré-Selecionada para Impressão) */}
@@ -1439,6 +1770,7 @@ export const LaudosView: React.FC = () => {
                   onToggleSelectPrint={handleToggleSelectPrint}
                   severity={severities[attendance.id] || attendance.initialSeverity || 'baixo'}
                   onSeverityChange={handleSeverityChange}
+                  onUpdatePostCareGuidance={handleUpdatePostCare}
                 />
               ))
             )}

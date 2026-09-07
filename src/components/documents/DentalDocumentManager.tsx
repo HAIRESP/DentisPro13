@@ -3519,6 +3519,13 @@ export const DentalDocumentManager: React.FC = () => {
     return `${header}${bodyText}${footer}`;
   };
 
+  // Retorna diretamente para a tela principal de Produção de Declarações, Atestados & Solicitações
+  const handleReturnToDocumentsCatalog = () => {
+    setIsRenderModalOpen(false);
+    setActiveTemplate(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Solução B: Impressão Nativa com suporte inteligente a Ambientes Iframe / Sandbox
   const handlePrintActiveDocument = () => {
     const docTitle = activeTemplate ? activeTemplate.title : 'Documento';
@@ -7465,13 +7472,13 @@ export const DentalDocumentManager: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-stone-900/85 backdrop-blur-xs flex flex-col overflow-hidden p-0 print:p-0 print:static print:bg-white print:block">
           <div className="bg-white w-full h-full shadow-2xl overflow-hidden animate-fadeIn flex flex-col print:h-auto print:max-h-none print:shadow-none print:border-none print:w-full print:rounded-none relative">
             {/* Control Bar Top */}
-            <div className="bg-[#2c3e2e] text-white p-3 md:p-4 flex flex-wrap items-center justify-between gap-3 shrink-0 print:hidden shadow-md">
+            <div className="bg-[#2c3e2e] text-white p-3 md:p-4 flex flex-wrap items-center justify-between gap-3 shrink-0 print:hidden shadow-md sticky top-0 z-30">
               <div className="flex items-center gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setIsRenderModalOpen(false)}
+                  onClick={handleReturnToDocumentsCatalog}
                   className="px-3.5 py-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer active:scale-95 border border-white/20"
-                  title="Voltar para a edição ou lista de documentos"
+                  title="Voltar para Produção de Declarações, Atestados & Solicitações"
                 >
                   <ArrowLeft className="w-4 h-4 text-amber-400" />
                   <span>Voltar</span>
@@ -7492,7 +7499,7 @@ export const DentalDocumentManager: React.FC = () => {
                   type="button"
                   onClick={handlePrintActiveDocument}
                   className="px-3.5 py-2 bg-[#d4a373] hover:bg-[#c29363] text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
-                  title="Imprimir documento oficial ou salvar como PDF"
+                  title="Imprimir"
                 >
                   <Printer className="w-4 h-4" />
                   Imprimir
@@ -7503,7 +7510,7 @@ export const DentalDocumentManager: React.FC = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-3.5 py-2 bg-[#25d366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-                  title="Enviar documento completo via WhatsApp"
+                  title="Enviar no WhatsApp"
                 >
                   <Send className="w-4 h-4" />
                   Enviar no WhatsApp
@@ -7511,9 +7518,9 @@ export const DentalDocumentManager: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => setIsRenderModalOpen(false)}
+                  onClick={handleReturnToDocumentsCatalog}
                   className="p-2 text-white/70 hover:text-white rounded-xl hover:bg-white/10 transition cursor-pointer"
-                  title="Fechar visualização"
+                  title="Voltar para Produção de Declarações, Atestados & Solicitações"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -8574,39 +8581,6 @@ export const DentalDocumentManager: React.FC = () => {
                   </div>
                 )}
 
-              </div>
-
-              {/* Bottom Actions Bar (Hidden in Print) */}
-              <div className="w-full max-w-[760px] mt-4 mb-8 bg-white/95 backdrop-blur-xs border border-stone-200 rounded-2xl p-4 shadow-lg flex flex-wrap items-center justify-between gap-3 print:hidden">
-                <button
-                  type="button"
-                  onClick={() => setIsRenderModalOpen(false)}
-                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs rounded-xl flex items-center gap-2 shadow-xs transition cursor-pointer border border-stone-300 active:scale-95"
-                >
-                  <ArrowLeft className="w-4 h-4 text-[#5a5a40]" />
-                  <span>Voltar para Edição / Lista</span>
-                </button>
-
-                <div className="flex items-center gap-2">
-                  <a
-                    href={getWhatsAppTargetUrl()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2.5 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>Enviar no WhatsApp</span>
-                  </a>
-
-                  <button
-                    type="button"
-                    onClick={handlePrintActiveDocument}
-                    className="px-5 py-2.5 bg-amber-400 hover:bg-amber-500 text-stone-900 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer border border-amber-500/30 active:scale-95"
-                  >
-                    <Printer className="w-4 h-4 text-stone-900" />
-                    <span>Imprimir</span>
-                  </button>
-                </div>
               </div>
             </div>
           </div>

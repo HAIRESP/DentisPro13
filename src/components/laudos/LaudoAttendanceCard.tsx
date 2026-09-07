@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { 
   Calendar, 
   Clock, 
@@ -15,7 +15,9 @@ import {
   Info, 
   ShieldAlert, 
   ChevronRight, 
-  Printer 
+  Printer,
+  Edit3,
+  Check
 } from 'lucide-react';
 import { Appointment, ClinicalEvolutionEntry, Prescription, TreatmentPlan, ToothCondition } from '../../types';
 import {
@@ -61,6 +63,7 @@ interface LaudoAttendanceCardProps {
   onToggleSelectPrint: (id: string) => void;
   severity: SeverityLevel;
   onSeverityChange: (id: string, level: SeverityLevel) => void;
+  onUpdatePostCareGuidance?: (id: string, text: string) => void;
 }
 
 export const LaudoAttendanceCard: React.FC<LaudoAttendanceCardProps> = ({
@@ -68,8 +71,15 @@ export const LaudoAttendanceCard: React.FC<LaudoAttendanceCardProps> = ({
   isSelectedForPrint,
   onToggleSelectPrint,
   severity,
-  onSeverityChange
+  onSeverityChange,
+  onUpdatePostCareGuidance
 }) => {
+  const [isEditingPostCare, setIsEditingPostCare] = useState(false);
+  const [postCareDraft, setPostCareDraft] = useState(attendance.postCareGuidance || '');
+
+  useEffect(() => {
+    setPostCareDraft(attendance.postCareGuidance || '');
+  }, [attendance.postCareGuidance]);
   const dateFormatted = new Date(attendance.date + 'T12:00:00').toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
@@ -427,15 +437,67 @@ export const LaudoAttendanceCard: React.FC<LaudoAttendanceCardProps> = ({
         )}
 
         {/* ORIENTAÇÕES PÓS-ATENDIMENTO & RECOMENDAÇÕES */}
-        {attendance.postCareGuidance && (
-          <div className="bg-emerald-50/40 border border-emerald-200/80 rounded-xl p-3 space-y-1">
-            <h4 className="text-xs font-bold text-emerald-950 flex items-center gap-1.5 uppercase tracking-wide">
-              <Info className="w-3.5 h-3.5 text-emerald-700" />
-              Orientações Pós-Atendimento ao Paciente
-            </h4>
-            <p className="text-xs text-emerald-900 pl-5 leading-relaxed">
-              {attendance.postCareGuidance}
-            </p>
+        {(attendance.postCareGuidance || isEditingPostCare) && (
+          <div className="bg-emerald-50/40 border border-emerald-200/80 rounded-xl p-3 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-emerald-950 flex items-center gap-1.5 uppercase tracking-wide">
+                <Info className="w-3.5 h-3.5 text-emerald-700" />
+                Orientações Pós-Atendimento ao Paciente
+              </h4>
+              <button
+                type="button"
+                id={`btn-editar-pos-cuidado-${attendance.id}`}
+                onClick={() => {
+                  if (!isEditingPostCare) setPostCareDraft(attendance.postCareGuidance || '');
+                  setIsEditingPostCare(!isEditingPostCare);
+                }}
+                className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-emerald-100/60 transition print:hidden cursor-pointer"
+                title="Editar informações e recomendações pós-atendimento"
+              >
+                <Edit3 className="w-3 h-3" />
+                <span>{isEditingPostCare ? 'Cancelar' : 'Editar Orientações'}</span>
+              </button>
+            </div>
+
+            {isEditingPostCare ? (
+              <div className="space-y-2 pt-1 print:hidden">
+                <textarea
+                  id={`textarea-pos-cuidado-${attendance.id}`}
+                  value={postCareDraft}
+                  onChange={(e) => setPostCareDraft(e.target.value)}
+                  rows={3}
+                  className="w-full text-xs p-2.5 rounded-lg border border-emerald-300 bg-white text-stone-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans"
+                  placeholder="Digite as recomendações e orientações pós-atendimento para este paciente..."
+                />
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingPostCare(false);
+                      setPostCareDraft(attendance.postCareGuidance || '');
+                    }}
+                    className="px-2.5 py-1 text-stone-600 hover:text-stone-800 text-xs font-semibold rounded-lg hover:bg-emerald-100/50 transition cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingPostCare(false);
+                      onUpdatePostCareGuidance?.(attendance.id, postCareDraft);
+                    }}
+                    className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-lg shadow-2xs transition flex items-center gap-1 cursor-pointer active:scale-95"
+                  >
+                    <Check className="w-3 h-3" />
+                    <span>Salvar Orientações</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-emerald-900 pl-5 leading-relaxed">
+                {attendance.postCareGuidance}
+              </p>
+            )}
           </div>
         )}
 
