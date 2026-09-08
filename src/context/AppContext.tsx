@@ -293,7 +293,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeClinicId, setActiveClinicId] = useState<string>(() => loadInitial(STORAGE_KEYS.ACTIVE_CLINIC, 'todas'));
   const [layoutTheme, setLayoutTheme] = useState<string>(() => loadInitial(STORAGE_KEYS.LAYOUT_THEME, 'natural'));
 
-  const [patients, setPatients] = useState<Patient[]>(() => loadInitial(STORAGE_KEYS.PATIENTS, INITIAL_PATIENTS));
+  const [patients, setPatients] = useState<Patient[]>(() => {
+    const list = loadInitial<Patient[]>(STORAGE_KEYS.PATIENTS, INITIAL_PATIENTS);
+    return [...list].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
+  });
   const [appointments, setAppointments] = useState<Appointment[]>(() => loadInitial(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS));
   const [inventory, setInventory] = useState<InventoryItem[]>(() => {
     const loaded = loadInitial<InventoryItem[]>(STORAGE_KEYS.INVENTORY, INITIAL_INVENTORY);
@@ -408,7 +411,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
 
-    return result;
+    return result.sort((a, b) => a.description.localeCompare(b.description, 'pt-BR', { sensitivity: 'base' }));
   });
   const [priceTables, setPriceTables] = useState<PriceTable[]>(() => loadInitial(STORAGE_KEYS.PRICE_TABLES, DEFAULT_PRICE_TABLES));
   const [treatmentPlans, setTreatmentPlans] = useState<TreatmentPlan[]>(() => loadInitial(STORAGE_KEYS.TREATMENT_PLANS, INITIAL_TREATMENT_PLANS));
@@ -627,13 +630,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `pat-${Date.now()}`,
       createdAt: new Date().toISOString().split('T')[0]
     };
-    setPatients(prev => [newPatient, ...prev]);
+    setPatients(prev => [...prev, newPatient].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })));
     return newPatient;
   };
 
   // Update Patient
   const updatePatient = (id: string, updatedData: Partial<Patient>) => {
-    setPatients(prev => prev.map(p => p.id === id ? { ...p, ...updatedData } : p));
+    setPatients(prev => prev.map(p => p.id === id ? { ...p, ...updatedData } : p).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })));
   };
 
   // Delete Patient

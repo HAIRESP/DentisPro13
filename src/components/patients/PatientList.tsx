@@ -47,6 +47,7 @@ import { PatientFinancialsTab } from './PatientFinancialsTab';
 import { PatientAttendanceReportModal } from './PatientAttendanceReportModal';
 import { AddressFields, AddressData, formatFullAddress } from '../common/AddressFields';
 import { PhoneInputWithDDI, formatPhoneWithDDI } from '../common/PhoneInputWithDDI';
+import { DateInputWithPicker } from '../common/DateInputWithPicker';
 import { getThemeStyles } from '../../utils/themeUtils';
 
 export const PatientList: React.FC = () => {
@@ -239,15 +240,17 @@ export const PatientList: React.FC = () => {
   };
 
   // Filtered patients list
-  const filteredPatients = patients.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          p.cpf.includes(searchTerm) ||
-                          p.phone.includes(searchTerm);
-    const matchesInsurance = filterInsurance === 'todos' || 
-                             (filterInsurance === 'particular' && (!p.healthInsurance || p.healthInsurance === 'Particular')) ||
-                             (filterInsurance === 'convenio' && p.healthInsurance && p.healthInsurance !== 'Particular');
-    return matchesSearch && matchesInsurance;
-  });
+  const filteredPatients = patients
+    .filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            p.cpf.includes(searchTerm) ||
+                            p.phone.includes(searchTerm);
+      const matchesInsurance = filterInsurance === 'todos' || 
+                               (filterInsurance === 'particular' && (!p.healthInsurance || p.healthInsurance === 'Particular')) ||
+                               (filterInsurance === 'convenio' && p.healthInsurance && p.healthInsurance !== 'Particular');
+      return matchesSearch && matchesInsurance;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
 
   const selectedPatient = patients.find(p => p.id === selectedPatientId);
 
@@ -1192,12 +1195,11 @@ export const PatientList: React.FC = () => {
 
                 <div>
                   <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Data de Nascimento *</label>
-                  <input
-                    type="date"
+                  <DateInputWithPicker
                     required
                     value={newBirthDate}
-                    onChange={(e) => setNewBirthDate(e.target.value)}
-                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none`}
+                    onChange={(val) => setNewBirthDate(val)}
+                    className={`${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none`}
                   />
                 </div>
 
@@ -1612,12 +1614,11 @@ export const PatientList: React.FC = () => {
 
                 <div>
                   <label className={`block text-xs font-semibold ${t.modalMutedText} mb-1`}>Data de Nascimento *</label>
-                  <input
-                    type="date"
+                  <DateInputWithPicker
                     required
                     value={editBirthDate}
-                    onChange={(e) => setEditBirthDate(e.target.value)}
-                    className={`w-full ${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none`}
+                    onChange={(val) => setEditBirthDate(val)}
+                    className={`${t.inputBg} rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none`}
                   />
                 </div>
 

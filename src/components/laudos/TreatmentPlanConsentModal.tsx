@@ -5,6 +5,7 @@ import { Patient, TreatmentPlan, TreatmentConsentAttachment } from '../../types'
 import { formatCPF, formatPhone } from '../../utils/formatters';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
 import { printDocumentWithTitle } from '../../utils/printUtils';
+import { PAYMENT_CONDITIONS_CATEGORIES } from '../patients/TreatmentPlanManager';
 import {
   X,
   Printer,
@@ -421,11 +422,24 @@ export const TreatmentPlanConsentModal: React.FC<TreatmentPlanConsentModalProps>
                 <label className="block text-[11px] font-bold text-slate-600 mb-1">Forma de Pagamento:</label>
                 <input
                   type="text"
+                  list="consent-payment-options"
                   value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPaymentMethod(val);
+                    const matchTimes = val.match(/(\d+)x/i);
+                    if (matchTimes) {
+                      setInstallments(Math.max(1, parseInt(matchTimes[1], 10)));
+                    }
+                  }}
                   placeholder="Ex: Cartão de Crédito 6x sem juros"
                   className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-medium"
                 />
+                <datalist id="consent-payment-options">
+                  {PAYMENT_CONDITIONS_CATEGORIES.flatMap(c => c.options).map((opt, idx) => (
+                    <option key={idx} value={opt} />
+                  ))}
+                </datalist>
               </div>
 
               <div>

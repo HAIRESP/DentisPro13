@@ -429,7 +429,7 @@ const DEFAULT_PROCEDURE_SUGGESTIONS_MAP: Record<ToothConditionType, CorrelatedPr
   ]
 };
 
-const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
+const RAW_DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
   {
     id: 'rule-carie-1',
     conditionType: 'carie',
@@ -576,6 +576,72 @@ const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [
   }
 ];
 
+const DEFAULT_CORRELATION_RULES: CorrelationRule[] = [...RAW_DEFAULT_CORRELATION_RULES].sort((a, b) => a.procedureDescription.localeCompare(b.procedureDescription, 'pt-BR', { sensitivity: 'base' }));
+
+export const PAYMENT_CONDITIONS_CATEGORIES = [
+  {
+    category: 'À Vista com Desconto / Bonificação',
+    options: [
+      'À vista com 10% de desconto no PIX / Transferência Bancária',
+      'À vista com 10% de desconto em Dinheiro (Espécie)',
+      'À vista com 5% de desconto no PIX / Cartão de Débito',
+      'À vista no Cartão de Débito (valor integral)',
+    ]
+  },
+  {
+    category: 'Cartão de Crédito sem Juros',
+    options: [
+      'Cartão de Crédito 1x (À vista sem juros)',
+      'Cartão de Crédito em até 2x sem juros',
+      'Cartão de Crédito em até 3x sem juros',
+      'Cartão de Crédito em até 4x sem juros',
+      'Cartão de Crédito em até 5x sem juros',
+      'Cartão de Crédito em até 6x sem juros',
+      'Cartão de Crédito em até 8x sem juros',
+      'Cartão de Crédito em até 10x sem juros',
+      'Cartão de Crédito em até 12x sem juros',
+    ]
+  },
+  {
+    category: 'Cartão de Crédito Parcelado (com Juros da Operadora)',
+    options: [
+      'Cartão de Crédito em até 14x (com juros da operadora)',
+      'Cartão de Crédito em até 18x (com juros da operadora)',
+      'Cartão de Crédito em até 21x (com juros da operadora)',
+      'Cartão de Crédito em até 24x (com juros da operadora)',
+    ]
+  },
+  {
+    category: 'Entrada + Parcelamento no Cartão',
+    options: [
+      'Entrada de 20% no PIX/Débito + Saldo em até 4x no Cartão de Crédito',
+      'Entrada de 30% no PIX/Débito + Saldo em até 6x no Cartão de Crédito',
+      'Entrada de 40% no PIX/Débito + Saldo em até 8x no Cartão de Crédito',
+      'Entrada de 50% no PIX/Débito + Saldo em até 10x no Cartão de Crédito',
+      'Entrada de 50% no Início + 50% na Entrega / Conclusão dos Procedimentos',
+    ]
+  },
+  {
+    category: 'Boleto Bancário / Carnê / Financiamento Odontológico',
+    options: [
+      'Boleto Bancário em até 3x (aprovação cadastral prévia)',
+      'Boleto Bancário em até 6x (aprovação cadastral prévia)',
+      'Boleto Bancário / Carnê da Clínica em até 12x (Financiamento Odontológico)',
+      'Boleto Bancário / Carnê da Clínica em até 24x (Financiamento Odontológico)',
+      'Financiamento Odontológico Bancário em até 36x (crédito sujeito a análise)',
+    ]
+  },
+  {
+    category: 'Convênio, Coparticipação & Pagamento por Sessão',
+    options: [
+      'Pagamento por Procedimento Realizado (ao término de cada sessão clínica)',
+      'Convênio Odontológico (cobertura integral conforme plano contratado)',
+      'Coparticipação: Cobertura Convênio Odonto + Coparticipação Particular',
+      'Personalizado / Condições Especiais negociadas com a Recepção',
+    ]
+  }
+];
+
 export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ patientId }) => {
   const { 
     patients, 
@@ -612,7 +678,8 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
   // Correlation Rules State
   const [correlationRules, setCorrelationRules] = useState<CorrelationRule[]>(() => {
     const saved = localStorage.getItem('clinic_correlation_rules');
-    return saved ? JSON.parse(saved) : DEFAULT_CORRELATION_RULES;
+    const list: CorrelationRule[] = saved ? JSON.parse(saved) : DEFAULT_CORRELATION_RULES;
+    return [...list].sort((a, b) => (a.procedureDescription || '').localeCompare(b.procedureDescription || '', 'pt-BR', { sensitivity: 'base' }));
   });
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
   const [ruleSearchQuery, setRuleSearchQuery] = useState('');
@@ -1264,13 +1331,15 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
     return { total, finalVal, discount: total - finalVal };
   };
 
-  const filteredTussList = tussProcedures.filter(proc => {
-    const matchesSpecialty = selectedSpecialty === 'todas' || proc.specialty === selectedSpecialty;
-    const matchesSearch = proc.description.toLowerCase().includes(searchTuss.toLowerCase()) ||
-                          proc.code.includes(searchTuss) ||
-                          proc.specialty.toLowerCase().includes(searchTuss.toLowerCase());
-    return matchesSpecialty && matchesSearch;
-  });
+  const filteredTussList = tussProcedures
+    .filter(proc => {
+      const matchesSpecialty = selectedSpecialty === 'todas' || proc.specialty === selectedSpecialty;
+      const matchesSearch = proc.description.toLowerCase().includes(searchTuss.toLowerCase()) ||
+                            proc.code.includes(searchTuss) ||
+                            proc.specialty.toLowerCase().includes(searchTuss.toLowerCase());
+      return matchesSpecialty && matchesSearch;
+    })
+    .sort((a, b) => a.description.localeCompare(b.description, 'pt-BR', { sensitivity: 'base' }));
 
   return (
     <div className="space-y-6">
@@ -1896,14 +1965,112 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-[#5a5a40] mb-1">Condições de Pagamento / Parcelamento</label>
-              <input
-                type="text"
-                value={paymentConditions}
-                onChange={(e) => setPaymentConditions(e.target.value)}
-                className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3.5 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
-              />
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-[#5a5a40]">Condições de Pagamento / Parcelamento</label>
+                <span className="text-[10px] text-stone-500 italic">Selecione ou personalize</span>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <select
+                  value={
+                    PAYMENT_CONDITIONS_CATEGORIES.some(c => c.options.includes(paymentConditions))
+                      ? paymentConditions
+                      : ''
+                  }
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setPaymentConditions(e.target.value);
+                    }
+                  }}
+                  className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
+                >
+                  <option value="">-- Escolha uma Opção Pré-definida --</option>
+                  {PAYMENT_CONDITIONS_CATEGORIES.map((cat, catIdx) => (
+                    <optgroup key={catIdx} label={cat.category}>
+                      {cat.options.map((opt, optIdx) => (
+                        <option key={optIdx} value={opt}>{opt}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+
+                <input
+                  type="text"
+                  value={paymentConditions}
+                  onChange={(e) => setPaymentConditions(e.target.value)}
+                  placeholder="Ou digite termos personalizados..."
+                  className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3.5 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
+                />
+              </div>
+
+              {/* Botões Rápidos de 1-Clique */}
+              <div className="flex flex-wrap gap-1 items-center pt-0.5">
+                <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider mr-1">Rápidos:</span>
+                {[
+                  { label: 'PIX (-10%)', val: 'À vista com 10% de desconto no PIX / Transferência Bancária' },
+                  { label: 'Cartão 3x s/ juros', val: 'Cartão de Crédito em até 3x sem juros' },
+                  { label: 'Cartão 6x s/ juros', val: 'Cartão de Crédito em até 6x sem juros' },
+                  { label: 'Cartão 12x s/ juros', val: 'Cartão de Crédito em até 12x sem juros' },
+                  { label: 'Entrada 30% + 6x', val: 'Entrada de 30% no PIX/Débito + Saldo em até 6x no Cartão de Crédito' },
+                  { label: '50% Início + 50% Conclusão', val: 'Entrada de 50% no Início + 50% na Entrega / Conclusão dos Procedimentos' },
+                  { label: 'Boleto 12x', val: 'Boleto Bancário / Carnê da Clínica em até 12x (Financiamento Odontológico)' },
+                  { label: 'Por Sessão', val: 'Pagamento por Procedimento Realizado (ao término de cada sessão clínica)' }
+                ].map((chip, chipIdx) => (
+                  <button
+                    key={chipIdx}
+                    type="button"
+                    onClick={() => setPaymentConditions(chip.val)}
+                    className={`px-2 py-0.5 rounded-lg text-[10px] font-medium border transition cursor-pointer ${
+                      paymentConditions === chip.val
+                        ? 'bg-[#5a5a40] text-white border-[#5a5a40] font-bold'
+                        : 'bg-[#fbfbf9] text-[#5a5a40] border-[#e5e5d1] hover:bg-[#f0f0e8]'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Simulação em tempo real do parcelamento quando houver procedimentos */}
+              {items.length > 0 && (() => {
+                const total = items.reduce((acc, curr) => acc + (curr.finalCost || 0), 0);
+                if (total <= 0) return null;
+
+                const matchTimes = paymentConditions.match(/(\d+)x/i);
+                const matchEntrada = paymentConditions.match(/entrada de (\d+)%/i);
+
+                let calcNote = '';
+                if (paymentConditions.includes('10% de desconto')) {
+                  const discounted = total * 0.9;
+                  const saved = total * 0.1;
+                  calcNote = `Valor com 10% OFF: R$ ${discounted.toFixed(2)} (Economia de R$ ${saved.toFixed(2)})`;
+                } else if (paymentConditions.includes('5% de desconto')) {
+                  const discounted = total * 0.95;
+                  const saved = total * 0.05;
+                  calcNote = `Valor com 5% OFF: R$ ${discounted.toFixed(2)} (Economia de R$ ${saved.toFixed(2)})`;
+                } else if (matchEntrada && matchTimes) {
+                  const perc = parseInt(matchEntrada[1], 10);
+                  const inst = parseInt(matchTimes[1], 10);
+                  const entradaVal = total * (perc / 100);
+                  const saldoVal = total - entradaVal;
+                  const parcelaVal = saldoVal / inst;
+                  calcNote = `Entrada: R$ ${entradaVal.toFixed(2)} (${perc}%) + ${inst}x de R$ ${parcelaVal.toFixed(2)}`;
+                } else if (matchTimes) {
+                  const inst = parseInt(matchTimes[1], 10);
+                  const parcelaVal = total / inst;
+                  calcNote = `${inst}x de R$ ${parcelaVal.toFixed(2)} no cartão`;
+                }
+
+                if (!calcNote) return null;
+
+                return (
+                  <div className="p-1.5 px-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 font-semibold flex items-center gap-1.5">
+                    <span className="text-emerald-700">✓ Simulação Financeira:</span>
+                    <span>{calcNote}</span>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -3005,6 +3172,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                           (rule.aggregationMode && rule.aggregationMode.toLowerCase().includes(q))
                         );
                       })
+                      .sort((a, b) => (a.procedureDescription || '').localeCompare(b.procedureDescription || '', 'pt-BR', { sensitivity: 'base' }))
                       .map(rule => {
                         const regionDisplay = rule.regionCode 
                           ? formatRegionDisplay(rule.regionCode)

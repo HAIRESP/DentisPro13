@@ -112,23 +112,27 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
 
   const specialties = Array.from(new Set(tussProcedures.map(p => p.specialty)));
 
-  const filteredProcedures = tussProcedures.filter(proc => {
-    const matchesSearch = proc.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          proc.code.includes(searchTerm) ||
-                          (proc.tissCode && proc.tissCode.includes(searchTerm)) ||
-                          (proc.subgroup && proc.subgroup.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                          (proc.odontoGrouping && proc.odontoGrouping.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                          (proc.faces && proc.faces.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                          (proc.defaultRegion && proc.defaultRegion.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                          (proc.requiredMaterials && proc.requiredMaterials.some(m => m.materialName.toLowerCase().includes(searchTerm.toLowerCase())));
-    const matchesSpec = specialtyFilter === 'todas' || proc.specialty === specialtyFilter;
-    return matchesSearch && matchesSpec;
-  });
+  const filteredProcedures = tussProcedures
+    .filter(proc => {
+      const matchesSearch = proc.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            proc.code.includes(searchTerm) ||
+                            (proc.tissCode && proc.tissCode.includes(searchTerm)) ||
+                            (proc.subgroup && proc.subgroup.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                            (proc.odontoGrouping && proc.odontoGrouping.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                            (proc.faces && proc.faces.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                            (proc.defaultRegion && proc.defaultRegion.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                            (proc.requiredMaterials && proc.requiredMaterials.some(m => m.materialName.toLowerCase().includes(searchTerm.toLowerCase())));
+      const matchesSpec = specialtyFilter === 'todas' || proc.specialty === specialtyFilter;
+      return matchesSearch && matchesSpec;
+    })
+    .sort((a, b) => a.description.localeCompare(b.description, 'pt-BR', { sensitivity: 'base' }));
 
-  const filteredPatients = patients.filter(p => 
-    p.name.toLowerCase().includes(patientSearch.toLowerCase()) || 
-    p.phone.includes(patientSearch)
-  );
+  const filteredPatients = patients
+    .filter(p => 
+      p.name.toLowerCase().includes(patientSearch.toLowerCase()) || 
+      p.phone.includes(patientSearch)
+    )
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
 
   const handleStartEdit = (proc: TUSSProcedure) => {
     setEditingCode(proc.code);

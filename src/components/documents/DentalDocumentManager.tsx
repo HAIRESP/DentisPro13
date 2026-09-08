@@ -2343,6 +2343,7 @@ export const DentalDocumentManager: React.FC = () => {
 
   const [tomographyIndications, setTomographyIndications] = useState({
     implantes: true,
+    implantesZigomaticos: false,
     dentesInclusos: true,
     volumeOsseo: true,
     endodontia: false,
@@ -2391,6 +2392,7 @@ export const DentalDocumentManager: React.FC = () => {
 
   const TOMOGRAPHY_INDICATION_LABELS: Record<string, string> = {
     implantes: 'Planejamento e avaliação para Implantes Dentários / Guia Cirúrgico',
+    implantesZigomaticos: 'Planejamento e avaliação para Implantes Zigomáticos / Guia Cirúrgico',
     dentesInclusos: 'Pesquisa e localização de Dentes Inclusos / Impactados e relação com estruturas nobres (Nervo Alveolar / Seio Maxilar)',
     volumeOsseo: 'Avaliação tridimensional da espessura, altura e qualidade do Rebordo Ósseo Residual (Enxerto / Levantamento de Seio)',
     endodontia: 'Avaliação Endodôntica: pesquisa de fratura radicular, perfurações, canais acessórios e reabsorções',

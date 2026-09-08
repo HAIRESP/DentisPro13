@@ -619,13 +619,15 @@ export const ProcedureProtocolManager: React.FC = () => {
   const specialties = Array.from(new Set(tussProcedures.map(p => p.specialty)));
 
   // Filtered procedures list
-  const filteredProcedures = tussProcedures.filter(p => {
-    const matchesSearch = p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          p.code.includes(searchQuery) ||
-                          p.specialty.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSpecialty = selectedSpecialtyFilter === 'todas' || p.specialty === selectedSpecialtyFilter;
-    return matchesSearch && matchesSpecialty;
-  });
+  const filteredProcedures = tussProcedures
+    .filter(p => {
+      const matchesSearch = p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            p.code.includes(searchQuery) ||
+                            p.specialty.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSpecialty = selectedSpecialtyFilter === 'todas' || p.specialty === selectedSpecialtyFilter;
+      return matchesSearch && matchesSpecialty;
+    })
+    .sort((a, b) => a.description.localeCompare(b.description, 'pt-BR', { sensitivity: 'base' }));
 
   // Filtered region legends for the grid
   const displayedRegionLegends = regionCategoryFilter === 'todos' 
