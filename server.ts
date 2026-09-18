@@ -338,6 +338,50 @@ Diretrizes para resposta:
     });
   });
 
+  // --- ENDPOINTS DE BANCO DE DADOS SQL RELACIONAL (TABELA TUSS COM CHAVE PRIMÁRIA) ---
+  app.get("/api/sql/tuss-schema", (req, res) => {
+    try {
+      const sqlFilePath = path.resolve(process.cwd(), "src", "db", "tuss_schema.sql");
+      let ddl = "";
+      if (fs.existsSync(sqlFilePath)) {
+        ddl = fs.readFileSync(sqlFilePath, "utf-8");
+      }
+      return res.json({
+        success: true,
+        database: "PostgreSQL / ANSI SQL Relational Standard",
+        primaryElement: {
+          tableName: "tuss_procedures",
+          primaryKey: "id (SERIAL PRIMARY KEY)",
+          businessKey: "code (VARCHAR(50) UNIQUE)",
+          mainAttribute: "description (TEXT NOT NULL) - O Procedimento Odontológico"
+        },
+        relatedTables: [
+          { tableName: "price_tables", primaryKey: "id (SERIAL PRIMARY KEY)", description: "Convênios e Planos de Saúde" },
+          { tableName: "procedure_prices", primaryKey: "id (SERIAL PRIMARY KEY)", foreignKeys: ["procedure_id -> tuss_procedures.id", "price_table_id -> price_tables.id"], description: "Preços acordados por procedimento e convênio" },
+          { tableName: "correlation_rules", primaryKey: "id (SERIAL PRIMARY KEY)", foreignKeys: ["procedure_id -> tuss_procedures.id"], description: "Regras de correlação entre odontograma e procedimentos" }
+        ],
+        ddl
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: "Falha ao carregar esquema SQL: " + err.message });
+    }
+  });
+
+  app.get("/api/sql/tuss-export", (req, res) => {
+    try {
+      const sqlFilePath = path.resolve(process.cwd(), "src", "db", "tuss_schema.sql");
+      if (fs.existsSync(sqlFilePath)) {
+        const ddl = fs.readFileSync(sqlFilePath, "utf-8");
+        res.setHeader("Content-Type", "application/sql");
+        res.setHeader("Content-Disposition", 'attachment; filename="dentispro_tuss_schema.sql"');
+        return res.send(ddl);
+      }
+      return res.status(404).json({ error: "Arquivo tuss_schema.sql não encontrado." });
+    } catch (err: any) {
+      return res.status(500).json({ error: "Falha ao exportar script SQL: " + err.message });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

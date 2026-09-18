@@ -666,13 +666,24 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            type="button"
-            className="p-2 text-gray-400 hover:text-gray-700 rounded-full transition cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              type="button"
+              className={`px-3.5 py-1.5 border ${t.cardBorder} text-xs font-bold ${t.btnSecondaryText} ${t.btnSecondaryBg} rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs`}
+              title="Voltar para a ficha do paciente"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#5a5a40]" />
+              <span>Voltar</span>
+            </button>
+            <button
+              onClick={onClose}
+              type="button"
+              className="p-2 text-gray-400 hover:text-gray-700 rounded-full transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* IDENTIFICAÇÃO CADASTRAL DO PACIENTE (Header Card Solicitado) */}

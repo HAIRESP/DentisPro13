@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
 import { Appointment, WhatsAppTemplate } from '../../types';
-import { MessageSquare, ExternalLink, Copy, Check, X, Send, Sparkles } from 'lucide-react';
+import { MessageSquare, ExternalLink, Copy, Check, X, Send, Sparkles, ArrowLeft } from 'lucide-react';
 
 interface WhatsAppModalProps {
   appointment: Appointment | null;
@@ -93,12 +93,23 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({ appointment, onClo
               <p className={`text-xs ${t.modalMutedText}`}>Paciente: <strong className={t.modalText}>{appointment.patientName}</strong> ({appointment.patientPhone})</p>
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className={`p-1.5 ${t.modalMutedText} hover:opacity-100 rounded-xl`}
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              type="button"
+              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer border border-stone-200"
+              title="Voltar"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#5a5a40]" />
+              <span>Voltar</span>
+            </button>
+            <button 
+              onClick={onClose}
+              className={`p-1.5 ${t.modalMutedText} hover:opacity-100 rounded-xl`}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Modal Body */}
@@ -163,10 +174,12 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({ appointment, onClo
         {/* Modal Footer */}
         <div className="p-4 bg-[#fbfbf9] border-t border-[#e5e5d1] flex items-center justify-between gap-3">
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-2.5 rounded-2xl text-xs font-medium text-gray-500 hover:text-[#2c2c2c] hover:bg-[#f0f0e8] transition"
+            className="px-4 py-2.5 rounded-2xl text-xs font-bold text-gray-700 hover:text-[#2c2c2c] hover:bg-[#f0f0e8] transition flex items-center gap-1.5 border border-[#e5e5d1] bg-white cursor-pointer"
           >
-            Cancelar
+            <ArrowLeft className="w-4 h-4 text-[#5a5a40]" />
+            <span>Voltar</span>
           </button>
           
           <button

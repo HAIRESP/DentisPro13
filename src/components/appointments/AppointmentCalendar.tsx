@@ -195,8 +195,8 @@ export const AppointmentCalendar: React.FC = () => {
 
     return matchesView && matchesSearch && matchesStatus && matchesClinic && matchesDentist;
   }).sort((a, b) => {
-    if (a.date !== b.date) return a.date.localeCompare(b.date);
-    return a.time.localeCompare(b.time);
+    if (b.date !== a.date) return b.date.localeCompare(a.date);
+    return (b.time || '').localeCompare(a.time || '');
   });
 
   const handleCreateAppointment = (e: React.FormEvent) => {

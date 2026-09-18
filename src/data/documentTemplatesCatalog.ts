@@ -224,23 +224,54 @@ O presente documento é válido como comprovante de presença para o período ac
 {{DATA_ATUAL}}`
   },
   {
-    id: 'receituario_simples',
-    category: 'receita',
-    title: 'Receituário Terapêutico Odontológico',
-    subtitle: 'Prescrição de analgésicos, anti-inflamatórios e antibióticos de uso comum',
-    description: 'Formulário padrão para prescrição de medicamentos orais com instruções detalhadas.',
-    templateText: `RECEITUÁRIO ODONTOLÓGICO
+    id: 'orientacoes_pos_operatorias',
+    category: 'declaracao',
+    title: 'Guia de Orientações Pós-Operatórias',
+    subtitle: 'Recomendações e cuidados para cicatrização e recuperação do paciente',
+    description: 'Instruções de repouso, alimentação, compressas de gelo e higiene pós-cirúrgica.',
+    templateText: `RECOMENDAÇÕES E ORIENTAÇÕES PÓS-OPERATÓRIAS
 
-Paciente: {{NOME_PACIENTE}}
-CPF: {{CPF_PACIENTE}}
+Prezado(a) {{NOME_PACIENTE}}, para garantir uma recuperação tranquila e segura após a realização do procedimento {{NOME_PROCEDIMENTO}}, siga atentamente as instruções abaixo:
 
-USO INTERNO (VIA ORAL):
+1. REPOUSO E CUIDADOS INICIAIS (PRIMEIRAS 24 HORAS):
+- Aplique bolsa de gelo na face (lado operado) por 20 minutos com intervalos de 10 minutos nas primeiras 24 horas.
+- Mantenha repouso físico e evite exposição ao sol e ambientes quentes.
+- NÃO faça bochechos, não cuspa e não use canudo para ingerir líquidos (o vácuo estimula o sangramento).
 
-1) {{NOME_MEDICAMENTO}}
+2. ALIMENTAÇÃO:
+- Nas primeiras 24 a 48 horas, consuma apenas alimentos frios, líquidos ou pastosos (sopas frias, açaí, sorvetes, iogurtes, sucos).
+- Evite alimentos duros, quentes, crocantes ou temperados/ácidos.
 
-Orientações e Recomendações:
-- Respeitar rigorosamente os horários e a duração total do tratamento prescrito.
-- Em caso de reações alérgicas, suspenda o uso e entre em contato imediatamente com a clínica: {{TELEFONE_CLINICA}}.
+3. HIGIENIZAÇÃO BUCAL:
+- Mantenha a escovação suave dos dentes, sem tocar com força no local operado ou nos pontos de sutura.
+
+4. MEDICAÇÃO:
+- Tome os medicamentos prescritos rigorosamente nos horários e dosagens indicados.
+
+Em caso de dúvidas ou urgências, entre em contato: {{TELEFONE_CLINICA}} — {{NOME_CLINICA}}
+
+{{DATA_ATUAL}}`
+  },
+  {
+    id: 'laudo_odontologico',
+    category: 'solicitacao',
+    title: 'Laudo Técnico e Justificativa Clínica',
+    subtitle: 'Parecer para convênios, auditoria e perícia odontológica',
+    description: 'Documento fundamentado para auditoria e aprovação de procedimentos em planos de saúde.',
+    templateText: `LAUDO TÉCNICO ODONTOLÓGICO
+
+Ao Departamento de Regulação / Auditoria do Convênio {{CONVENIO_PACIENTE}}
+
+Paciente: {{NOME_PACIENTE}} | Carteira: {{CARTEIRA_CONVENIO}} | CPF: {{CPF_PACIENTE}}
+
+Apresento o parecer técnico-odontológico informando que, após minuciosa avaliação clínica e análise de exames complementares de imagem, constatou-se a necessidade imperiosa da realização do procedimento: {{NOME_PROCEDIMENTO}}.
+
+Diagnóstico Nosológico (CID-10): {{CID_CODIGO_E_DESCRICAO}}
+
+JUSTIFICATIVA CLÍNICA:
+O elemento dental supracitado apresenta comprometimento que justifica o tratamento indicado para sanar o quadro sintomático, eliminar foco infeccioso/doloroso e restabelecer a integridade estomatognática, prevenção de perdas ósseas e saúde bucal do paciente.
+
+Coloco-me à disposição para eventuais esclarecimentos técnicos adicionais.
 
 {{DATA_ATUAL}}`
   },
@@ -269,44 +300,23 @@ PRESCRIÇÃO:
 {{DATA_ATUAL}}`
   },
   {
-    id: 'laudo_odontologico',
-    category: 'solicitacao',
-    title: 'Laudo Técnico e Justificativa Clínica',
-    subtitle: 'Parecer para convênios, auditoria e perícia odontológica',
-    description: 'Documento fundamentado para auditoria e aprovação de procedimentos em planos de saúde.',
-    templateText: `LAUDO TÉCNICO ODONTOLÓGICO
+    id: 'receituario_simples',
+    category: 'receita',
+    title: 'Receituário Terapêutico Odontológico',
+    subtitle: 'Prescrição de analgésicos, anti-inflamatórios e antibióticos de uso comum',
+    description: 'Formulário padrão para prescrição de medicamentos orais com instruções detalhadas.',
+    templateText: `RECEITUÁRIO ODONTOLÓGICO
 
-Ao Departamento de Regulação / Auditoria do Convênio {{CONVENIO_PACIENTE}}
+Paciente: {{NOME_PACIENTE}}
+CPF: {{CPF_PACIENTE}}
 
-Paciente: {{NOME_PACIENTE}} | Carteira: {{CARTEIRA_CONVENIO}} | CPF: {{CPF_PACIENTE}}
+USO INTERNO (VIA ORAL):
 
-Apresento o parecer técnico-odontológico informando que, após minuciosa avaliação clínica e análise de exames complementares de imagem, constatou-se a necessidade imperiosa da realização do procedimento: {{NOME_PROCEDIMENTO}}.
+1) {{NOME_MEDICAMENTO}}
 
-Diagnóstico Nosológico (CID-10): {{CID_CODIGO_E_DESCRICAO}}
-
-JUSTIFICATIVA CLÍNICA:
-O elemento dental supracitado apresenta comprometimento que justifica o tratamento indicado para sanar o quadro sintomático, eliminar foco infeccioso/doloroso e restabelecer a integridade estomatognática, prevenção de perdas ósseas e saúde bucal do paciente.
-
-Coloco-me à disposição para eventuais esclarecimentos técnicos adicionais.
-
-{{DATA_ATUAL}}`
-  },
-  {
-    id: 'termo_consentimento_tcle',
-    category: 'declaracao',
-    title: 'Termo de Consentimento Livre e Esclarecido (TCLE)',
-    subtitle: 'Autorização formal do paciente para execução de procedimentos odontológicos',
-    description: 'Termo de responsabilidade e ciência das etapas clínicas, riscos e pós-operatório.',
-    templateText: `TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO (TCLE)
-
-Eu, {{NOME_PACIENTE}}, portador(a) do CPF nº {{CPF_PACIENTE}}, residente em {{ENDERECO_PACIENTE}}, declaro que fui devidamente informado(a) e esclarecido(a) pelo(a) cirurgião-dentista {{NOME_DENTISTA}} ({{CRO_DENTISTA}}) sobre o diagnóstico, objetivos, benefícios, riscos potenciais e alternativas do procedimento odontológico: {{NOME_PROCEDIMENTO}}.
-
-Declaro ainda que:
-1. Tive a oportunidade de fazer todas as perguntas necessárias e recebi respostas claras e compreensíveis.
-2. Fui orientado(a) sobre a importância de seguir as recomendações pré e pós-operatórias para o sucesso do tratamento.
-3. Compreendo que a odontologia é uma ciência que busca os melhores resultados, estando os procedimentos sujeitos a variações biológicas individuais.
-
-Diante do exposto, autorizo livremente a realização do tratamento na clínica {{NOME_CLINICA}}.
+Orientações e Recomendações:
+- Respeitar rigorosamente os horários e a duração total do tratamento prescrito.
+- Em caso de reações alérgicas, suspenda o uso e entre em contato imediatamente com a clínica: {{TELEFONE_CLINICA}}.
 
 {{DATA_ATUAL}}`
   },
@@ -332,31 +342,21 @@ Planejamento pré-operatório para {{NOME_PROCEDIMENTO}} (CID-10: {{CID_CODIGO_E
 {{DATA_ATUAL}}`
   },
   {
-    id: 'orientacoes_pos_operatorias',
+    id: 'termo_consentimento_tcle',
     category: 'declaracao',
-    title: 'Guia de Orientações Pós-Operatórias',
-    subtitle: 'Recomendações e cuidados para cicatrização e recuperação do paciente',
-    description: 'Instruções de repouso, alimentação, compressas de gelo e higiene pós-cirúrgica.',
-    templateText: `RECOMENDAÇÕES E ORIENTAÇÕES PÓS-OPERATÓRIAS
+    title: 'Termo de Consentimento Livre e Esclarecido (TCLE)',
+    subtitle: 'Autorização formal do paciente para execução de procedimentos odontológicos',
+    description: 'Termo de responsabilidade e ciência das etapas clínicas, riscos e pós-operatório.',
+    templateText: `TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO (TCLE)
 
-Prezado(a) {{NOME_PACIENTE}}, para garantir uma recuperação tranquila e segura após a realização do procedimento {{NOME_PROCEDIMENTO}}, siga atentamente as instruções abaixo:
+Eu, {{NOME_PACIENTE}}, portador(a) do CPF nº {{CPF_PACIENTE}}, residente em {{ENDERECO_PACIENTE}}, declaro que fui devidamente informado(a) e esclarecido(a) pelo(a) cirurgião-dentista {{NOME_DENTISTA}} ({{CRO_DENTISTA}}) sobre o diagnóstico, objetivos, benefícios, riscos potenciais e alternativas do procedimento odontológico: {{NOME_PROCEDIMENTO}}.
 
-1. REPOUSO E CUIDADOS INICIAIS (PRIMEIRAS 24 HORAS):
-- Aplique bolsa de gelo na face (lado operado) por 20 minutos com intervalos de 10 minutos nas primeiras 24 horas.
-- Mantenha repouso físico e evite exposição ao sol e ambientes quentes.
-- NÃO faça bochechos, não cuspa e não use canudo para ingerir líquidos (o vácuo estimula o sangramento).
+Declaro ainda que:
+1. Tive a oportunidade de fazer todas as perguntas necessárias e recebi respostas claras e compreensíveis.
+2. Fui orientado(a) sobre a importância de seguir as recomendações pré e pós-operatórias para o sucesso do tratamento.
+3. Compreendo que a odontologia é uma ciência que busca os melhores resultados, estando os procedimentos sujeitos a variações biológicas individuais.
 
-2. ALIMENTAÇÃO:
-- Nas primeiras 24 a 48 horas, consuma apenas alimentos frios, líquidos ou pastosos (sopas frias, açaí, sorvetes, iogurtes, sucos).
-- Evite alimentos duros, quentes, crocantes ou temperados/ácidos.
-
-3. HIGIENIZAÇÃO BUCAL:
-- Mantenha a escovação suave dos dentes, sem tocar com força no local operado ou nos pontos de sutura.
-
-4. MEDICAÇÃO:
-- Tome os medicamentos prescritos rigorosamente nos horários e dosagens indicados.
-
-Em caso de dúvidas ou urgências, entre em contato: {{TELEFONE_CLINICA}} — {{NOME_CLINICA}}
+Diante do exposto, autorizo livremente a realização do tratamento na clínica {{NOME_CLINICA}}.
 
 {{DATA_ATUAL}}`
   }

@@ -238,6 +238,15 @@ export const TreatmentPlanConsentModal: React.FC<TreatmentPlanConsentModalProps>
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={onClose}
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer border border-slate-200 shadow-2xs"
+              title="Voltar para a tela anterior"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#5a5a40]" />
+              <span>Voltar</span>
+            </button>
+            <button
+              type="button"
               onClick={() => printDocumentWithTitle({
                 docTitle: 'Laudo_Aceite_Plano_Tratamento',
                 patientName: patient?.name,
@@ -650,9 +659,11 @@ export const TreatmentPlanConsentModal: React.FC<TreatmentPlanConsentModalProps>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 border border-slate-200"
+            title="Voltar para a tela anterior"
           >
-            Fechar
+            <ArrowLeft className="w-4 h-4 text-[#5a5a40]" />
+            <span>Voltar</span>
           </button>
 
           <div className="flex items-center gap-2">

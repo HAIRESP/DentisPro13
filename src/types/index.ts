@@ -276,6 +276,8 @@ export type ToothConditionType =
 
 export type RegionAggregationMode = 'dente' | 'hemiarco' | 'sextante' | 'arcada' | 'ambas_arcadas' | 'face';
 
+export type CorrelationScopeType = 'face' | 'dente' | 'area' | 'regiao';
+
 export interface CorrelationRule {
   id: string;
   conditionType: ToothConditionType;
@@ -287,7 +289,13 @@ export interface CorrelationRule {
   suggestedCost?: number;
   regionCode?: string;
   aggregationMode?: RegionAggregationMode;
-  priceTableId?: string;
+  priceTableId?: string; // id da tabela / convênio (ex: 'particular', 'convenio1', 'convenio2')
+  scopeType?: CorrelationScopeType; // 'face' | 'dente' | 'area' | 'regiao'
+  applicableFaces?: ToothSurface[]; // e.g. ['oclusal', 'mesial', 'distal', 'vestibular', 'lingual']
+  applicableTeeth?: number[]; // e.g. [18, 28, 38, 48] ou lista numérica de dentes
+  teethGroup?: 'todos' | 'anteriores' | 'posteriores' | 'molares' | 'pre_molares' | 'incisivos_caninos' | 'deciduos' | 'sisos' | 'personalizado';
+  applicableRegions?: string[]; // e.g. ['HASD', 'HASE', 'HAID', 'HAIE', 'S1', 'S2', 'AS', 'AI', 'ASAI']
+  notes?: string;
 }
 
 export interface ToothCondition {
@@ -491,8 +499,8 @@ export interface ProcedureMaterialRequirement {
 }
 
 export interface TUSSProcedure {
-  id?: string; // ID interno único
-  code: string; // TUSS code e.g. "81000030"
+  id?: string | number; // Chave Primária SQL (Primary Key - id serial/inteiro autoincremental)
+  code: string; // TUSS code e.g. "81000030" (Chave Única de Negócio ANS)
   tissCode?: string; // Código TISS correspondente
   description: string;
   faces?: string; // e.g. "Mesial / Distal", "Oclusal", "M / D / O", etc.
@@ -506,6 +514,7 @@ export interface TUSSProcedure {
   fullDescription: string; // Comprehensive procedural description for patient reports & PDF
 
   // Diretrizes Técnicas TUSS (Dente, Faces, Região Anatômica)
+  scopeType?: 'face' | 'dente' | 'area'; // Tipo de escopo TUSS (por face, por dente ou por área/região)
   requiresToothNumber?: boolean; // Exige indicação do dente exato (FDI 11-48 / 51-85)
   toothFacesCount?: '1_face' | '2_faces' | '3_faces' | '4_ou_mais_faces' | 'nao_aplica'; // Faces TUSS
   anatomicalScope?: 'dente' | 'intra_oral' | 'extra_oral' | 'buco_maxilo_facial' | 'arcada_sextante'; // Região anatômica da intervenção TUSS

@@ -14,7 +14,10 @@ export const OFFICIAL_ANS_TUSS_PROCEDURES: TUSSProcedure[] = [
   ...TUSS_PROCEDURES_SURGERY,
   ...TUSS_PROCEDURES_CLINICAL,
   ...TUSS_PROCEDURES_PROSTHETICS_ORTHO
-];
+].map((proc, index) => ({
+  id: index + 1, // CHAVE PRIMÁRIA SQL (PRIMARY KEY AUTO_INCREMENT)
+  ...proc
+}));
 
 /**
  * Total de procedimentos catalogados com conformidade ANS/TUSS

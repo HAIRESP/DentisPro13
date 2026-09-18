@@ -166,6 +166,84 @@ export const medications = pgTable('medications', {
   createdAt: timestamp('created_at').defaultNow()
 });
 
+// 11. Procedimentos TUSS (Elemento Principal do Banco de Dados TUSS com Chave Primária)
+export const tussProcedures = pgTable('tuss_procedures', {
+  id: serial('id').primaryKey(), // CHAVE PRIMÁRIA (Padrão SQL Relacional)
+  code: varchar('code', { length: 50 }).notNull().unique(), // Código TUSS/ANS único
+  tissCode: varchar('tiss_code', { length: 50 }), // Código TISS correspondente
+  description: text('description').notNull(), // NOME/DESCRIÇÃO DO PROCEDIMENTO (ELEMENTO PRINCIPAL)
+  fullDescription: text('full_description'), // Detalhamento técnico completo
+  specialty: varchar('specialty', { length: 150 }).notNull(), // Especialidade Odontológica
+  category: varchar('category', { length: 100 }), // Categoria clínica
+  faces: varchar('faces', { length: 100 }), // Faces afetadas
+  scopeType: varchar('scope_type', { length: 50 }).default('dente'), // 'face' | 'dente' | 'area'
+  anatomicalScope: varchar('anatomical_scope', { length: 100 }), // Escopo anatômico
+  toothFacesCount: varchar('tooth_faces_count', { length: 50 }), // '1_face' | '2_faces' | '3_faces' | '4_ou_mais_faces'
+  defaultRegion: varchar('default_region', { length: 50 }), // Região padrão
+  suggestedCost: numeric('suggested_cost', { precision: 10, scale: 2 }).default('0.00').notNull(), // Custo sugerido particular
+  rolAns: boolean('rol_ans').default(false), // Cobertura obrigatória pelo Rol da ANS
+  ansRolCurrent: boolean('ans_rol_current').default(true),
+  odontoGrouping: varchar('odonto_grouping', { length: 150 }), // Agrupamento Odontológico ANS
+  subgroup: varchar('subgroup', { length: 150 }), // Subgrupo da Tabela 22 ANS
+  requiredMaterials: jsonb('required_materials').default([]), // Insumos necessários vinculados
+  images: jsonb('images').default([]), // Imagens ilustrativas
+  videos: jsonb('videos').default([]), // Vídeos demonstrativos
+  active: boolean('active').default(true), // Status de ativação
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
+// 12. Tabelas de Preço & Convênios (Entidade Relacional)
+export const priceTables = pgTable('price_tables', {
+  id: serial('id').primaryKey(), // CHAVE PRIMÁRIA
+  code: varchar('code', { length: 50 }).notNull().unique(), // Código identificador ('particular', 'amil', 'bradesco', etc.)
+  name: varchar('name', { length: 255 }).notNull(), // Nome de exibição
+  description: text('description'),
+  isDefault: boolean('is_default').default(false),
+  discountPercent: numeric('discount_percent', { precision: 5, scale: 2 }).default('0.00'),
+  ansRegistration: varchar('ans_registration', { length: 50 }), // Registro ANS da operadora
+  cnpj: varchar('cnpj', { length: 30 }),
+  active: boolean('active').default(true),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
+// 13. Preços por Procedimento e Convênio (Tabela Relacional - Junção N:N com Chave Primária e Chaves Estrangeiras)
+export const procedurePrices = pgTable('procedure_prices', {
+  id: serial('id').primaryKey(), // CHAVE PRIMÁRIA
+  procedureId: integer('procedure_id').references(() => tussProcedures.id, { onDelete: 'cascade' }).notNull(), // FK referenciando o Procedimento (Elemento Principal)
+  priceTableId: integer('price_table_id').references(() => priceTables.id, { onDelete: 'cascade' }).notNull(), // FK referenciando a Tabela de Preço/Convênio
+  price: numeric('price', { precision: 10, scale: 2 }).notNull(), // Valor acordado na tabela
+  coPayment: numeric('co_payment', { precision: 10, scale: 2 }).default('0.00'), // Coparticipação do paciente se houver
+  authorized: boolean('authorized').default(true), // Procedimento autorizado para a tabela
+  coverageNotes: text('coverage_notes'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
+// 14. Regras de Correlação Odontograma -> Procedimento (Chave Primária com FK referenciando o Procedimento)
+export const correlationRulesTable = pgTable('correlation_rules', {
+  id: serial('id').primaryKey(), // CHAVE PRIMÁRIA
+  procedureId: integer('procedure_id').references(() => tussProcedures.id, { onDelete: 'cascade' }), // FK referenciando o Procedimento (Elemento Principal)
+  procedureDescription: text('procedure_description').notNull(), // Descrição do procedimento
+  tussCode: varchar('tuss_code', { length: 50 }), // Código TUSS
+  conditionType: varchar('condition_type', { length: 50 }).notNull(), // Achado clínico ('carie', 'canal', etc.)
+  priceTableId: integer('price_table_id').references(() => priceTables.id, { onDelete: 'set null' }), // FK para convênio
+  scopeType: varchar('scope_type', { length: 50 }).default('dente'), // 'face' | 'dente' | 'area'
+  minSurfaces: integer('min_surfaces').default(0),
+  maxSurfaces: integer('max_surfaces').default(5),
+  applicableFaces: jsonb('applicable_faces').default([]), // ['oclusal', 'mesial', etc.]
+  teethGroup: varchar('teeth_group', { length: 50 }).default('todos'), // 'todos', 'molares', 'sisos', etc.
+  applicableTeeth: jsonb('applicable_teeth').default([]), // [18, 28, etc.]
+  aggregationMode: varchar('aggregation_mode', { length: 50 }).default('dente'), // 'hemiarco', 'sextante', etc.
+  applicableRegions: jsonb('applicable_regions').default([]), // ['HASD', 'S1', 'AS', etc.]
+  regionCode: varchar('region_code', { length: 50 }),
+  suggestedCost: numeric('suggested_cost', { precision: 10, scale: 2 }),
+  specialty: varchar('specialty', { length: 150 }),
+  notes: text('notes'),
+  active: boolean('active').default(true),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
 // Relationships
 export const usersRelations = relations(users, () => ({}));
 
@@ -188,5 +266,38 @@ export const appointmentsRelations = relations(appointments, ({ one }) => ({
   professional: one(professionals, {
     fields: [appointments.professionalId],
     references: [professionals.id]
+  })
+}));
+
+// Relações do Banco de Dados TUSS com Procedimento como Elemento Principal
+export const tussProceduresRelations = relations(tussProcedures, ({ many }) => ({
+  prices: many(procedurePrices),
+  correlationRules: many(correlationRulesTable)
+}));
+
+export const priceTablesRelations = relations(priceTables, ({ many }) => ({
+  procedurePrices: many(procedurePrices),
+  correlationRules: many(correlationRulesTable)
+}));
+
+export const procedurePricesRelations = relations(procedurePrices, ({ one }) => ({
+  procedure: one(tussProcedures, {
+    fields: [procedurePrices.procedureId],
+    references: [tussProcedures.id]
+  }),
+  priceTable: one(priceTables, {
+    fields: [procedurePrices.priceTableId],
+    references: [priceTables.id]
+  })
+}));
+
+export const correlationRulesTableRelations = relations(correlationRulesTable, ({ one }) => ({
+  procedure: one(tussProcedures, {
+    fields: [correlationRulesTable.procedureId],
+    references: [tussProcedures.id]
+  }),
+  priceTable: one(priceTables, {
+    fields: [correlationRulesTable.priceTableId],
+    references: [priceTables.id]
   })
 }));

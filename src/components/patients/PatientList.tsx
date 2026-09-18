@@ -354,7 +354,9 @@ export const PatientList: React.FC = () => {
   };
 
   // Filter patient appointments and documents
-  const patientAppointments = appointments.filter(a => a.patientId === selectedPatientId);
+  const patientAppointments = appointments
+    .filter(a => a.patientId === selectedPatientId)
+    .sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`));
   const patientPrescriptions = prescriptions.filter(r => r.patientId === selectedPatientId);
   const patientDocs = savedClinicDocuments ? savedClinicDocuments.filter(doc => 
     doc.patientId === selectedPatientId || 

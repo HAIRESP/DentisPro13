@@ -21,7 +21,8 @@ import {
   Mail,
   Phone,
   CheckSquare,
-  Square
+  Square,
+  ArrowLeft
 } from 'lucide-react';
 
 interface ProcedureModulesModalProps {
@@ -280,6 +281,15 @@ export const ProcedureModulesModal: React.FC<ProcedureModulesModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 border border-[#e5e5d1] shadow-2xs"
+              title="Voltar para a tela anterior"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#5a5a40]" />
+              <span>Voltar</span>
+            </button>
             <button
               type="button"
               onClick={() => setShowPrintOptions(!showPrintOptions)}
@@ -573,18 +583,19 @@ export const ProcedureModulesModal: React.FC<ProcedureModulesModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 border border-[#e5e5d1]"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#5a5a40]" />
+              <span>Voltar</span>
+            </button>
+            <button
+              type="button"
               onClick={() => handleExecutePrint(false)}
               className="px-4 py-2 bg-[#f4f4ec] hover:bg-[#e5e5d1] text-[#5a5a40] text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 border border-[#e5e5d1]"
             >
               <Printer className="w-3.5 h-3.5 text-[#d4a373]" />
               Imprimir Selecionados
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2 bg-[#5a5a40] hover:bg-[#4a4a38] text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-2xs"
-            >
-              Fechar
             </button>
           </div>
         </div>

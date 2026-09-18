@@ -129,6 +129,45 @@ export const INITIAL_PATIENTS: Patient[] = [
     ]
   },
   {
+    id: 'pat-6',
+    name: 'Beatriz Mendonça Rocha',
+    cpf: '678.901.234-55',
+    rg: '45.678.901-2',
+    birthDate: '2000-03-18',
+    gender: 'feminino',
+    phone: '5511932109876',
+    email: 'beatriz.rocha@email.com',
+    profession: 'Arquiteta & Designer',
+    ethnicity: 'branca',
+    preferredClinicId: 'cli-2',
+    preferredClinicName: 'DentisPro - Unidade Jardins',
+    preferredDentistName: 'Dra. Camila Alves',
+    address: {
+      street: 'Rua Oscar Freire',
+      number: '950',
+      neighborhood: 'Cerqueira César',
+      city: 'São Paulo',
+      state: 'SP',
+      cep: '01426-001'
+    },
+    healthInsurance: 'Particular',
+    anamnesis: {
+      hasAllergies: true,
+      allergyDetails: 'Alergia alimentar a camarão e frutos do mar',
+      hasHeartDisease: false,
+      hasDiabetes: false,
+      hasHypertension: false,
+      bleedingDisorder: false,
+      isPregnant: false,
+      hasBruxism: true,
+      orthodonticTreatment: true,
+      notes: 'Queixa principal: apinhamento anteroinferior e estética do sorriso. Tratamento planejado com alinhadores ortodônticos invisíveis e clareamento dental supervisionado.'
+    },
+    status: 'ativo',
+    createdAt: '2025-02-10',
+    photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+  },
+  {
     id: 'pat-2',
     name: 'Carlos Eduardo Oliveira',
     cpf: '234.567.890-11',
@@ -160,6 +199,115 @@ export const INITIAL_PATIENTS: Patient[] = [
     },
     status: 'ativo',
     createdAt: '2025-02-01'
+  },
+  {
+    id: 'pat-7',
+    name: 'Fernando Henrique Silveira',
+    cpf: '789.012.345-66',
+    rg: '56.789.012-3',
+    birthDate: '1988-09-10',
+    gender: 'masculino',
+    phone: '5511921098765',
+    email: 'fh.silveira@email.com',
+    profession: 'Engenheiro de Software',
+    ethnicity: 'parda',
+    preferredClinicId: 'cli-3',
+    preferredClinicName: 'DentisPro - Unidade Vila Mariana / Sul',
+    preferredDentistName: 'Dr. Roberto Fonseca',
+    address: {
+      street: 'Rua Bela Cintra',
+      number: '1450',
+      neighborhood: 'Consolação',
+      city: 'São Paulo',
+      state: 'SP',
+      cep: '01415-001'
+    },
+    healthInsurance: 'SulAmérica Odonto',
+    insuranceNumber: '99887711',
+    anamnesis: {
+      hasAllergies: true,
+      allergyDetails: 'ALERGIA GRAVE A DIPIRONA E SULFAS (Contraindicação absoluta de Dipirona/Novalgina)',
+      hasHeartDisease: false,
+      hasDiabetes: false,
+      hasHypertension: false,
+      bleedingDisorder: false,
+      isPregnant: false,
+      notes: 'Urgência odontológica com dor aguda pulsátil no dente 46 (molar inferior direito). Diagnóstico de pulpite irreversível sintomática. Necessidade de tratamento endodôntico, pino de fibra e coroa em Zircônia.'
+    },
+    status: 'ativo',
+    createdAt: '2025-02-25',
+    photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'pat-8',
+    name: 'Juliana Martins Pereira',
+    cpf: '890.123.456-77',
+    rg: '67.890.123-4',
+    birthDate: '2003-12-05',
+    gender: 'feminino',
+    phone: '5511910987654',
+    email: 'juliana.martins@email.com',
+    profession: 'Estudante Universitária',
+    ethnicity: 'branca',
+    preferredClinicId: 'cli-4',
+    preferredClinicName: 'DentisPro - Unidade Tatuapé / Zona Leste',
+    preferredDentistName: 'Dr. Roberto Fonseca',
+    address: {
+      street: 'Av. Brigadeiro Luís Antônio',
+      number: '3100',
+      neighborhood: 'Jardim Paulista',
+      city: 'São Paulo',
+      state: 'SP',
+      cep: '01402-000'
+    },
+    healthInsurance: 'Porto Seguro Odontológico',
+    insuranceNumber: '55443322',
+    anamnesis: {
+      hasAllergies: false,
+      hasHeartDisease: false,
+      hasDiabetes: false,
+      hasHypertension: false,
+      bleedingDisorder: false,
+      isPregnant: false,
+      hasFaceOrAtmPainLastMonth: true,
+      painEvaScore: 5,
+      notes: 'Avaliação para exodontia cirúrgica dos terceiros molares inclusos (sisos 18, 28, 38 e 48). Histórico recente de pericoronarite no dente 38 tratado com bochechos antissépticos.'
+    },
+    status: 'ativo',
+    createdAt: '2025-03-05',
+    photoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'pat-4',
+    name: 'Lucas Ferreira Gabriel (Infantil)',
+    cpf: '456.789.012-33',
+    birthDate: '2018-04-12',
+    gender: 'masculino',
+    phone: '5511954321098',
+    email: 'mae.lucas@email.com',
+    preferredClinicId: 'cli-1',
+    preferredClinicName: 'DentisPro - Unidade Centro / Paulista',
+    preferredDentistName: 'Dra. Juliana Costa',
+    address: {
+      street: 'Rua Vergueiro',
+      number: '2000',
+      neighborhood: 'Paraíso',
+      city: 'São Paulo',
+      state: 'SP',
+      cep: '04102-000'
+    },
+    healthInsurance: 'Bradesco Dental',
+    anamnesis: {
+      hasAllergies: false,
+      hasHeartDisease: false,
+      hasDiabetes: false,
+      hasHypertension: false,
+      isPregnant: false,
+      bleedingDisorder: false,
+      notes: 'Odontopediatria. Paciente em fase de dentição decídua e mista.'
+    },
+    status: 'ativo',
+    createdAt: '2025-03-01'
   },
   {
     id: 'pat-3',
@@ -195,36 +343,43 @@ export const INITIAL_PATIENTS: Patient[] = [
     createdAt: '2025-02-15'
   },
   {
-    id: 'pat-4',
-    name: 'Lucas Ferreira Gabriel (Infantil)',
-    cpf: '456.789.012-33',
-    birthDate: '2018-04-12',
+    id: 'pat-5',
+    name: 'Roberto Albuquerque Prado',
+    cpf: '567.890.123-44',
+    rg: '34.567.890-1',
+    birthDate: '1964-07-22',
     gender: 'masculino',
-    phone: '5511954321098',
-    email: 'mae.lucas@email.com',
-    preferredClinicId: 'cli-1',
-    preferredClinicName: 'DentisPro - Unidade Centro / Paulista',
-    preferredDentistName: 'Dra. Juliana Costa',
+    phone: '5511943210987',
+    email: 'roberto.prado@email.com',
+    profession: 'Engenheiro Civil Aposentado',
+    ethnicity: 'branca',
+    preferredClinicId: 'cli-marv',
+    preferredClinicName: 'Clínica MARV',
+    preferredDentistName: 'Dr. Hugo Andres Iglesias Ricoy',
     address: {
-      street: 'Rua Vergueiro',
-      number: '2000',
-      neighborhood: 'Paraíso',
+      street: 'Alameda Santos',
+      number: '1200',
+      neighborhood: 'Cerqueira César',
       city: 'São Paulo',
       state: 'SP',
-      cep: '04102-000'
+      cep: '01418-100'
     },
     healthInsurance: 'Bradesco Dental',
+    insuranceNumber: '77665544',
     anamnesis: {
       hasAllergies: false,
-      hasHeartDisease: false,
+      hasHeartDisease: true,
       hasDiabetes: false,
-      hasHypertension: false,
+      hasHypertension: true,
       isPregnant: false,
+      continuousMedication: 'AAS 100mg (antiagregante), Enalapril 20mg',
       bleedingDisorder: false,
-      notes: 'Odontopediatria. Paciente em fase de dentição decídua e mista.'
+      usesDentalProsthesis: true,
+      notes: 'Cardiopata controlado (stent coronário há 3 anos). Monitorar pressão. Avaliar hemostasia com cardiologista antes de cirurgias ósseas. Planejamento de implantes osteointegráveis nos dentes 14 e 15.'
     },
     status: 'ativo',
-    createdAt: '2025-03-01'
+    createdAt: '2025-01-20',
+    photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80'
   }
 ];
 
@@ -296,6 +451,70 @@ export const INITIAL_APPOINTMENTS: Appointment[] = [
     status: 'agendado',
     value: 180,
     notes: 'Odontopediatria. Trazer brinde infantil ao final.'
+  },
+  {
+    id: 'apt-5',
+    patientId: 'pat-5',
+    patientName: 'Roberto Albuquerque Prado',
+    patientPhone: '5511943210987',
+    dentistName: 'Dr. Hugo Andres Iglesias Ricoy (CRO/CE 5925)',
+    clinicId: 'cli-marv',
+    clinicName: 'Clínica MARV',
+    date: today,
+    time: '11:00',
+    durationMinutes: 60,
+    procedure: 'Avaliação Tomográfica & Planejamento de Implantes (14 e 15)',
+    status: 'confirmado',
+    value: 350,
+    notes: 'Trazer exames laboratoriais (coagulograma) e laudo tomográfico.'
+  },
+  {
+    id: 'apt-6',
+    patientId: 'pat-6',
+    patientName: 'Beatriz Mendonça Rocha',
+    patientPhone: '5511932109876',
+    dentistName: 'Dra. Camila Alves (CRO/SP 654321)',
+    clinicId: 'cli-2',
+    clinicName: 'DentisPro - Unidade Jardins',
+    date: today,
+    time: '15:00',
+    durationMinutes: 45,
+    procedure: 'Manutenção Ortodôntica & Entrega de Alinhadores',
+    status: 'confirmado',
+    value: 320,
+    notes: 'Troca da série de alinhadores transparentes 03 e 04.'
+  },
+  {
+    id: 'apt-7',
+    patientId: 'pat-7',
+    patientName: 'Fernando Henrique Silveira',
+    patientPhone: '5511921098765',
+    dentistName: 'Dr. Roberto Fonseca (CRO/SP 789012)',
+    clinicId: 'cli-3',
+    clinicName: 'DentisPro - Unidade Vila Mariana / Sul',
+    date: today,
+    time: '17:00',
+    durationMinutes: 60,
+    procedure: 'Endodontia Molar (Canal Dente 46 - Sessão 2)',
+    status: 'agendado',
+    value: 680,
+    notes: 'Alergia a Dipirona. Instrumentação rotatória e obturação termoplastificada.'
+  },
+  {
+    id: 'apt-8',
+    patientId: 'pat-8',
+    patientName: 'Juliana Martins Pereira',
+    patientPhone: '5511910987654',
+    dentistName: 'Dr. Roberto Fonseca (CRO/SP 789012)',
+    clinicId: 'cli-4',
+    clinicName: 'DentisPro - Unidade Tatuapé / Zona Leste',
+    date: today,
+    time: '08:30',
+    durationMinutes: 90,
+    procedure: 'Exodontia Cirúrgica de Dente Incluso (Sisos 38 e 48)',
+    status: 'confirmado',
+    value: 900,
+    notes: 'Paciente em jejum relativo. Medicação pré-operatória administrada na clínica.'
   }
 ];
 
@@ -625,7 +844,72 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
 ];
 
 
-export const INITIAL_FINANCIAL: FinancialTransaction[] = [];
+export const INITIAL_FINANCIAL: FinancialTransaction[] = [
+  {
+    id: 'fin-1',
+    type: 'receita',
+    category: 'Atendimento',
+    description: 'Restauração Resina (Dente 26) - Ana Silva Santos',
+    amount: 320,
+    date: today,
+    patientId: 'pat-1',
+    clinicId: 'cli-marv',
+    clinicName: 'Clínica MARV',
+    paymentMethod: 'pix',
+    status: 'pago'
+  },
+  {
+    id: 'fin-2',
+    type: 'receita',
+    category: 'Atendimento',
+    description: 'Raspagem e Profilaxia - Carlos Eduardo Oliveira',
+    amount: 250,
+    date: today,
+    patientId: 'pat-2',
+    clinicId: 'cli-2',
+    clinicName: 'DentisPro - Unidade Jardins',
+    paymentMethod: 'cartao_credito',
+    status: 'pago'
+  },
+  {
+    id: 'fin-3',
+    type: 'receita',
+    category: 'Atendimento',
+    description: 'Planejamento Cirúrgico & Tomografia - Roberto Albuquerque Prado',
+    amount: 350,
+    date: today,
+    patientId: 'pat-5',
+    clinicId: 'cli-marv',
+    clinicName: 'Clínica MARV',
+    paymentMethod: 'cartao_debito',
+    status: 'pago'
+  },
+  {
+    id: 'fin-4',
+    type: 'receita',
+    category: 'Atendimento',
+    description: 'Manutenção Ortodôntica & Alinhadores - Beatriz Mendonça Rocha',
+    amount: 320,
+    date: today,
+    patientId: 'pat-6',
+    clinicId: 'cli-2',
+    clinicName: 'DentisPro - Unidade Jardins',
+    paymentMethod: 'pix',
+    status: 'pago'
+  },
+  {
+    id: 'fin-5',
+    type: 'despesa',
+    category: 'Material',
+    description: 'Reposição de Resinas Z350 XT e Adesivo Universal - Dental Cremer',
+    amount: 450,
+    date: today,
+    clinicId: 'cli-marv',
+    clinicName: 'Clínica MARV',
+    paymentMethod: 'boleto',
+    status: 'pago'
+  }
+];
 
 export const WHATSAPP_TEMPLATES: WhatsAppTemplate[] = [
   {
@@ -676,6 +960,82 @@ export const INITIAL_PRESCRIPTIONS: Prescription[] = [
         dosage: 'Solução Bucal',
         quantity: '1 frasco (250ml)',
         instructions: 'Bochechar 15ml puro durante 1 minuto, 2 vezes ao dia, 30 min após escovação por 5 dias.',
+        interval: '12/12h',
+        duration: '5 dias'
+      }
+    ]
+  },
+  {
+    id: 'presc-2',
+    patientId: 'pat-7',
+    patientName: 'Fernando Henrique Silveira',
+    patientCpf: '789.012.345-66',
+    date: today,
+    dentistName: 'Dr. Roberto Fonseca',
+    dentistCro: 'CRO/SP 789012',
+    clinicName: 'DentisPro - Unidade Vila Mariana / Sul',
+    type: 'simples',
+    observations: 'ATENÇÃO: Paciente com alergia grave a DIPIRONA e SULFAS. Prescrição adaptada.',
+    medications: [
+      {
+        name: 'Amoxicilina 500mg',
+        dosage: 'Cápsula',
+        quantity: '1 caixa (21 cápsulas)',
+        instructions: 'Tomar 1 cápsula de 8 em 8 horas rigorosamente por 7 dias.',
+        interval: '8/8h',
+        duration: '7 dias'
+      },
+      {
+        name: 'Ibuprofeno 600mg',
+        dosage: 'Comprimido',
+        quantity: '1 caixa (10 comprimidos)',
+        instructions: 'Tomar 1 comprimido de 8 em 8 horas durante 3 dias após as refeições.',
+        interval: '8/8h',
+        duration: '3 dias'
+      }
+    ]
+  },
+  {
+    id: 'presc-3',
+    patientId: 'pat-8',
+    patientName: 'Juliana Martins Pereira',
+    patientCpf: '890.123.456-77',
+    date: today,
+    dentistName: 'Dr. Roberto Fonseca',
+    dentistCro: 'CRO/SP 789012',
+    clinicName: 'DentisPro - Unidade Tatuapé / Zona Leste',
+    type: 'simples',
+    observations: 'Protocolo cirúrgico pré e pós-operatório para extração de terceiros molares inclusos.',
+    medications: [
+      {
+        name: 'Dexametasona 4mg',
+        dosage: 'Comprimido',
+        quantity: '1 caixa (10 comprimidos)',
+        instructions: 'Tomar 1 comprimido (4mg) 1 hora antes do procedimento cirúrgico.',
+        interval: 'Dose única prévia',
+        duration: '1 dia'
+      },
+      {
+        name: 'Nimesulida 100mg',
+        dosage: 'Comprimido',
+        quantity: '1 caixa (12 comprimidos)',
+        instructions: 'Tomar 1 comprimido de 12 em 12 horas por 3 dias.',
+        interval: '12/12h',
+        duration: '3 dias'
+      },
+      {
+        name: 'Paracetamol 750mg',
+        dosage: 'Comprimido',
+        quantity: '1 caixa (20 comprimidos)',
+        instructions: 'Tomar 1 comprimido a cada 6 horas somente se houver dor moderada.',
+        interval: '6/6h se dor',
+        duration: '3 dias'
+      },
+      {
+        name: 'Clorexidina 0,12%',
+        dosage: 'Solução Bucal',
+        quantity: '1 frasco (250mL)',
+        instructions: 'Bochechos suaves por 1 minuto a cada 12 horas a partir de 24h após a cirurgia por 5 dias.',
         interval: '12/12h',
         duration: '5 dias'
       }
@@ -740,6 +1100,60 @@ export const INITIAL_ODONTOGRAM_DATA: Record<string, ToothCondition[]> = {
     { toothNumber: 26, surfaces: { oclusal: 'carie', mesial: 'carie' }, wholeToothCondition: 'carie' },
     { toothNumber: 36, wholeToothCondition: 'endodontia_satisfatoria' },
     { toothNumber: 46, surfaces: { oclusal: 'restauracao_insatisfatoria' } }
+  ],
+  'pat-2': [
+    { toothNumber: 11, wholeToothCondition: 'sio' },
+    { toothNumber: 31, surfaces: { lingual: 'calculo_supragengival' }, wholeToothCondition: 'calculo_supragengival' },
+    { toothNumber: 41, surfaces: { lingual: 'calculo_supragengival' }, wholeToothCondition: 'calculo_supragengival' },
+    { toothNumber: 46, surfaces: { oclusal: 'restauracao' } },
+    { toothNumber: 47, surfaces: { oclusal: 'carie' }, wholeToothCondition: 'carie' }
+  ],
+  'pat-3': [
+    { toothNumber: 14, surfaces: { oclusal: 'restauracao' } },
+    { toothNumber: 24, surfaces: { oclusal: 'restauracao' } },
+    { toothNumber: 36, surfaces: { oclusal: 'restauracao' } },
+    { toothNumber: 11, wholeToothCondition: 'sio' },
+    { toothNumber: 21, wholeToothCondition: 'sio' }
+  ],
+  'pat-4': [
+    { toothNumber: 54, surfaces: { oclusal: 'carie' }, wholeToothCondition: 'carie' },
+    { toothNumber: 55, surfaces: { oclusal: 'restauracao' } },
+    { toothNumber: 65, surfaces: { oclusal: 'restauracao' } },
+    { toothNumber: 75, surfaces: { oclusal: 'restauracao' } },
+    { toothNumber: 85, surfaces: { oclusal: 'carie' }, wholeToothCondition: 'carie' }
+  ],
+  'pat-5': [
+    { toothNumber: 14, wholeToothCondition: 'ausente' },
+    { toothNumber: 15, wholeToothCondition: 'ausente' },
+    { toothNumber: 24, wholeToothCondition: 'protese' },
+    { toothNumber: 25, wholeToothCondition: 'protese' },
+    { toothNumber: 26, wholeToothCondition: 'protese' },
+    { toothNumber: 36, wholeToothCondition: 'implante' },
+    { toothNumber: 46, wholeToothCondition: 'protese' }
+  ],
+  'pat-6': [
+    { toothNumber: 11, surfaces: { vestibular: 'restauracao' } },
+    { toothNumber: 21, surfaces: { vestibular: 'restauracao' } },
+    { toothNumber: 31, wholeToothCondition: 'girovertido' },
+    { toothNumber: 32, wholeToothCondition: 'girovertido' },
+    { toothNumber: 41, wholeToothCondition: 'girovertido' },
+    { toothNumber: 42, wholeToothCondition: 'girovertido' },
+    { toothNumber: 36, surfaces: { oclusal: 'restauracao' } },
+    { toothNumber: 46, surfaces: { oclusal: 'restauracao' } }
+  ],
+  'pat-7': [
+    { toothNumber: 46, surfaces: { oclusal: 'carie', distal: 'carie' }, wholeToothCondition: 'endodontia_insatisfatoria' },
+    { toothNumber: 37, surfaces: { oclusal: 'restauracao' } },
+    { toothNumber: 16, surfaces: { oclusal: 'restauracao', mesial: 'restauracao' } },
+    { toothNumber: 26, surfaces: { oclusal: 'restauracao' } }
+  ],
+  'pat-8': [
+    { toothNumber: 18, wholeToothCondition: 'extracao_indicada' },
+    { toothNumber: 28, wholeToothCondition: 'extracao_indicada' },
+    { toothNumber: 38, wholeToothCondition: 'extracao_indicada' },
+    { toothNumber: 48, wholeToothCondition: 'extracao_indicada' },
+    { toothNumber: 37, surfaces: { oclusal: 'restauracao' } },
+    { toothNumber: 47, surfaces: { oclusal: 'restauracao' } }
   ]
 };
 
@@ -781,11 +1195,102 @@ export const INITIAL_CLINICAL_EVOLUTION: ClinicalEvolutionEntry[] = [
     description: 'Sessão inicial de instrumentação periodontal nos sextantes inferiores. Anestesia infiltrativa tópica. Remoção de cálculo subgengival com curetas Gracey 11/12 e 13/14. Irrigação com soro fisiológico e aplicação de clorexidina tópica.',
     cost: 250,
     status: 'concluido'
+  },
+  {
+    id: 'evo-4',
+    patientId: 'pat-3',
+    date: today,
+    dentistName: 'Dr. Roberto Fonseca',
+    clinicName: 'DentisPro - Unidade Vila Mariana / Sul',
+    toothNumber: 11,
+    procedure: 'Profilaxia Suave e Moldagem para Clareamento Supervisionado',
+    description: 'Profilaxia suave com pasta profilática sem agentes abrasivos fortes (paciente gestante no 2º trimestre). Tomada de cor inicial escala VITA (A3). Moldagem das arcadas superior e inferior com silicone de condensação para confecção de moldeiras individuais.',
+    cost: 650,
+    status: 'concluido'
+  },
+  {
+    id: 'evo-5',
+    patientId: 'pat-4',
+    date: today,
+    dentistName: 'Dra. Juliana Costa',
+    clinicName: 'DentisPro - Unidade Centro / Paulista',
+    toothNumber: 65,
+    procedure: 'Profilaxia Infantil e Aplicação de Selante Fotopolimerizável',
+    description: 'Condicionamento comportamental lúdico (Diga-Mostre-Faça). Remoção de placa bacteriana com taça de borracha e pasta Tutti-Frutti. Isolamento relativo com roletes de algodão. Condicionamento ácido por 15s na oclusal do 65 e 75. Aplicação de selante resinoso fotopolimerizado por 20s.',
+    cost: 180,
+    status: 'concluido'
+  },
+  {
+    id: 'evo-6',
+    patientId: 'pat-5',
+    date: today,
+    dentistName: 'Dr. Hugo Andres Iglesias Ricoy',
+    clinicName: 'Clínica MARV',
+    toothNumber: 14,
+    procedure: 'Avaliação Tomográfica & Planejamento Virtual de Implantes (14 e 15)',
+    description: 'Análise detalhada de CBCT (Tomografia Computadorizada de Feixe Cônico) da maxila superior direita. Altura óssea remanescente de 11.2mm no dente 14 e 9.8mm no dente 15 (assoalho do seio maxilar íntegro). Planejamento de implantes cone morse 3.75 x 10mm. Coagulograma dentro dos padrões aceitáveis.',
+    cost: 350,
+    status: 'concluido'
+  },
+  {
+    id: 'evo-7',
+    patientId: 'pat-6',
+    date: today,
+    dentistName: 'Dra. Camila Alves',
+    clinicName: 'DentisPro - Unidade Jardins',
+    toothNumber: 31,
+    procedure: 'Instalação de Attachments e Entrega dos Alinhadores 01 a 03',
+    description: 'Condicionamento ácido do esmalte vestibular dos dentes 14, 13, 23, 34 e 44 com template guia. Aplicação de resina composta fluida para confecção dos attachments estéticos. Checagem de retenção dos alinhadores ortodônticos. Entrega das 3 primeiras fases e chewies de assentamento.',
+    cost: 320,
+    status: 'concluido'
+  },
+  {
+    id: 'evo-8',
+    patientId: 'pat-7',
+    date: today,
+    dentistName: 'Dr. Roberto Fonseca',
+    clinicName: 'DentisPro - Unidade Vila Mariana / Sul',
+    toothNumber: 46,
+    procedure: 'Urgência Endodôntica: Abertura e Instrumentação Rotatória Dente 46',
+    description: 'Anestesia por bloqueio do nervo alveolar inferior direito com Mepivacaína 2% 1:100.000. Isolamento absoluto com grampo 205. Abertura coronária e remoção de polpa coronária inflamada. Odontometria eletrônica foraminal dos canais MV (21mm), ML (21mm), DV (20mm) e DL (20.5mm). Instrumentação até lima #25.04. Curativo com hidróxido de cálcio.',
+    cost: 680,
+    status: 'concluido'
+  },
+  {
+    id: 'evo-9',
+    patientId: 'pat-8',
+    date: today,
+    dentistName: 'Dr. Roberto Fonseca',
+    clinicName: 'DentisPro - Unidade Tatuapé / Zona Leste',
+    toothNumber: 38,
+    procedure: 'Exodontia Cirúrgica dos Terceiros Molares Inclusos (38 e 48)',
+    description: 'Anestesia troncular do nervo alveolar inferior e lingual bilateral. Incisão intrasulcular com alívio relaxante na linha oblíqua externa. Descolamento mucoperiosteal total. Osteotomia vestibular com broca 702 sob irrigação abundante com soro fisiológico 0,9%. Odontossecção da coroa e raízes. Curetagem e sutura oclusal com fio seda 3-0.',
+    cost: 900,
+    status: 'concluido'
   }
 ];
 
 export const DEFAULT_PRICE_TABLES: PriceTable[] = [
   { id: 'particular', name: 'Particular', description: 'Tabela Padrão Atendimento Particular', isDefault: true },
+  { id: 'amil-dental', name: 'Amil Dental', description: 'Tabela Praticada Convênio Amil Dental' },
+  { id: 'bradesco-dental', name: 'Bradesco Dental', description: 'Tabela Praticada Bradesco Saúde Dental' },
+  { id: 'odontoprev', name: 'OdontoPrev', description: 'Tabela Praticada Rede OdontoPrev Nacional' },
+  { id: 'sulamerica-odonto', name: 'SulAmérica Odonto', description: 'Tabela Praticada SulAmérica Odontológico' },
+  { id: 'unimed-odonto', name: 'Unimed Odonto', description: 'Tabela Praticada Sistema Unimed Odonto' },
+  { id: 'porto-seguro-odonto', name: 'Porto Seguro Odontológico', description: 'Tabela Praticada Porto Seguro Saúde & Odonto' },
+  { id: 'metlife-dental', name: 'MetLife Dental', description: 'Tabela Praticada MetLife Dental Care' },
+  { id: 'interodonto', name: 'Interodonto (NotreDame Intermédica)', description: 'Tabela GNDI / Interodonto' },
+  { id: 'hapvida-odonto', name: 'Hapvida Odonto', description: 'Tabela Praticada Rede Hapvida / Notredame' },
+  { id: 'dental-uni', name: 'Dental Uni', description: 'Tabela Praticada Cooperativa Odontológica Dental Uni' },
+  { id: 'inpao-dental', name: 'INPAO Dental', description: 'Tabela Praticada INPAO Dental' },
+  { id: 'primavida', name: 'PrimaVida Dental', description: 'Tabela Praticada PrimaVida Odontologia de Grupo' },
+  { id: 'care-plus', name: 'Care Plus Dental', description: 'Tabela Praticada Care Plus Dental Max' },
+  { id: 'bb-dental', name: 'BB Dental (Brasildental)', description: 'Tabela Praticada BB Dental / Banco do Brasil' },
+  { id: 'caixa-seguradora-odonto', name: 'Caixa Seguradora Odonto', description: 'Tabela Praticada Caixa Seguros Odontológico' },
+  { id: 'golden-cross-odonto', name: 'Golden Cross Odonto', description: 'Tabela Praticada Golden Cross Odontologia' },
+  { id: 'prodent', name: 'Prodent', description: 'Tabela Praticada Prodent Assistência Odontológica' },
+  { id: 'allianz-odonto', name: 'Allianz Odonto', description: 'Tabela Praticada Allianz Saúde Dental' },
+  { id: 'sao-cristovao-dental', name: 'São Cristóvão Dental', description: 'Tabela Praticada Grupo São Cristóvão Saúde' },
   { id: 'convenio1', name: 'Convênio 1 (Bradesco / Amil)', description: 'Tabela Praticada para Convênio Nível 1' },
   { id: 'convenio2', name: 'Convênio 2 (Unimed / SulAmérica)', description: 'Tabela Praticada para Convênio Nível 2' },
 ];
@@ -806,9 +1311,12 @@ export const INITIAL_TREATMENT_PLANS: TreatmentPlan[] = [
     items: [
       {
         id: 'item-1',
+        tussCode: '85100049',
         procedureName: 'Restauração Resina Fotopolimerizável 2 Faces',
         specialty: 'Dentística Restauradora',
         toothNumber: 26,
+        toothSurface: 'M/O',
+        regionCode: 'Dente 26',
         cost: 320,
         finalCost: 320,
         status: 'concluido',
@@ -817,8 +1325,10 @@ export const INITIAL_TREATMENT_PLANS: TreatmentPlan[] = [
       },
       {
         id: 'item-2',
+        tussCode: '85100197',
         procedureName: 'Profilaxia e Raspagem Supragengival',
         specialty: 'Periodontia',
+        regionCode: 'ASAI',
         cost: 220,
         finalCost: 200,
         status: 'concluido',
@@ -827,9 +1337,12 @@ export const INITIAL_TREATMENT_PLANS: TreatmentPlan[] = [
       },
       {
         id: 'item-3',
+        tussCode: '85100049',
         procedureName: 'Substituição de Restauração Insatisfatória',
         specialty: 'Dentística Restauradora',
         toothNumber: 46,
+        toothSurface: 'O/D',
+        regionCode: 'Dente 46',
         cost: 300,
         finalCost: 300,
         status: 'pendente',
@@ -842,15 +1355,343 @@ export const INITIAL_TREATMENT_PLANS: TreatmentPlan[] = [
     finalValue: 820,
     consentAccepted: true,
     consentAcceptedAt: today
+  },
+  {
+    id: 'plan-pat2',
+    patientId: 'pat-2',
+    patientName: 'Carlos Eduardo Oliveira',
+    title: 'Tratamento Periodontal & Controle de Biofilme',
+    date: today,
+    dentistName: 'Dra. Camila Alves',
+    clinicId: 'cli-2',
+    clinicName: 'DentisPro - Unidade Jardins',
+    status: 'aprovado',
+    items: [
+      {
+        id: 'item-p2-1',
+        tussCode: '85100200',
+        procedureName: 'Raspagem e Alisamento Subgengival por Sextante',
+        specialty: 'Periodontia',
+        toothNumber: 46,
+        regionCode: 'S4',
+        regionDescription: 'Sextante 4 (Inferior Posterior Direito)',
+        cost: 250,
+        finalCost: 250,
+        status: 'concluido',
+        selectedForPlan: true,
+        notes: 'Sessão 1 nos sextantes inferiores.'
+      },
+      {
+        id: 'item-p2-2',
+        tussCode: '85100197',
+        procedureName: 'Profilaxia e Polimento Coronário a Jato de Bicarbonato',
+        specialty: 'Periodontia',
+        regionCode: 'ASAI',
+        cost: 180,
+        finalCost: 180,
+        status: 'pendente',
+        selectedForPlan: true
+      }
+    ],
+    totalValue: 430,
+    discountValue: 0,
+    finalValue: 430,
+    consentAccepted: true,
+    consentAcceptedAt: today
+  },
+  {
+    id: 'plan-pat3',
+    patientId: 'pat-3',
+    patientName: 'Mariana Costa Lima',
+    title: 'Clareamento Dental Supervisionado & Profilaxia',
+    date: today,
+    dentistName: 'Dr. Roberto Fonseca',
+    clinicId: 'cli-3',
+    clinicName: 'DentisPro - Unidade Vila Mariana / Sul',
+    status: 'aprovado',
+    items: [
+      {
+        id: 'item-p3-1',
+        procedureName: 'Clareamento Dentário Caseiro Supervisionado com Moldeiras',
+        specialty: 'Dentística Restauradora',
+        cost: 650,
+        finalCost: 600,
+        status: 'concluido',
+        selectedForPlan: true,
+        notes: 'Gel Peróxido de Carbamida 10% suave.'
+      }
+    ],
+    totalValue: 650,
+    discountValue: 50,
+    finalValue: 600,
+    consentAccepted: true,
+    consentAcceptedAt: today
+  },
+  {
+    id: 'plan-pat4',
+    patientId: 'pat-4',
+    patientName: 'Lucas Ferreira Gabriel (Infantil)',
+    title: 'Prevenção Odontopediátrica e Selamento de Fissuras',
+    date: today,
+    dentistName: 'Dra. Juliana Costa',
+    clinicId: 'cli-1',
+    clinicName: 'DentisPro - Unidade Centro / Paulista',
+    status: 'aprovado',
+    items: [
+      {
+        id: 'item-p4-1',
+        procedureName: 'Aplicação Tópica de Flúor e Selante Fotopolimerizável',
+        specialty: 'Odontopediatria',
+        toothNumber: 65,
+        cost: 180,
+        finalCost: 180,
+        status: 'concluido',
+        selectedForPlan: true
+      }
+    ],
+    totalValue: 180,
+    discountValue: 0,
+    finalValue: 180,
+    consentAccepted: true,
+    consentAcceptedAt: today
+  },
+  {
+    id: 'plan-pat5',
+    patientId: 'pat-5',
+    patientName: 'Roberto Albuquerque Prado',
+    title: 'Reabilitação com Implantes Osseointegrados Dentes 14 e 15',
+    date: today,
+    dentistName: 'Dr. Hugo Andres Iglesias Ricoy',
+    clinicId: 'cli-marv',
+    clinicName: 'Clínica MARV',
+    status: 'aprovado',
+    items: [
+      {
+        id: 'item-p5-1',
+        procedureName: 'Instalação Cirúrgica de Implante Dentário Osteointegrável (Dente 14)',
+        specialty: 'Implantodontia',
+        toothNumber: 14,
+        cost: 1800,
+        finalCost: 1650,
+        status: 'pendente',
+        selectedForPlan: true,
+        notes: 'Implante Cone Morse Titânio Grau 4.'
+      },
+      {
+        id: 'item-p5-2',
+        procedureName: 'Instalação Cirúrgica de Implante Dentário Osteointegrável (Dente 15)',
+        specialty: 'Implantodontia',
+        toothNumber: 15,
+        cost: 1800,
+        finalCost: 1650,
+        status: 'pendente',
+        selectedForPlan: true
+      },
+      {
+        id: 'item-p5-3',
+        procedureName: 'Tomografia Cone Beam & Guia Cirúrgico Prototipado',
+        specialty: 'Radiologia Odontológica',
+        cost: 500,
+        finalCost: 450,
+        status: 'concluido',
+        selectedForPlan: true
+      }
+    ],
+    totalValue: 4100,
+    discountValue: 350,
+    finalValue: 3750,
+    consentAccepted: true,
+    consentAcceptedAt: today
+  },
+  {
+    id: 'plan-pat6',
+    patientId: 'pat-6',
+    patientName: 'Beatriz Mendonça Rocha',
+    title: 'Tratamento Ortodôntico Estético com Alinhadores Invisíveis',
+    date: today,
+    dentistName: 'Dra. Camila Alves',
+    clinicId: 'cli-2',
+    clinicName: 'DentisPro - Unidade Jardins',
+    status: 'aprovado',
+    items: [
+      {
+        id: 'item-p6-1',
+        procedureName: 'Tratamento com Alinhadores Ortodônticos Invisíveis (Fase Completa)',
+        specialty: 'Ortodontia',
+        cost: 6500,
+        finalCost: 6000,
+        status: 'pendente',
+        selectedForPlan: true,
+        notes: 'Kit de 18 pares de alinhadores com trocas quinzenais.'
+      },
+      {
+        id: 'item-p6-2',
+        procedureName: 'Manutenção e Instalação de Attachments',
+        specialty: 'Ortodontia',
+        cost: 320,
+        finalCost: 320,
+        status: 'concluido',
+        selectedForPlan: true
+      }
+    ],
+    totalValue: 6820,
+    discountValue: 500,
+    finalValue: 6320,
+    consentAccepted: true,
+    consentAcceptedAt: today
+  },
+  {
+    id: 'plan-pat7',
+    patientId: 'pat-7',
+    patientName: 'Fernando Henrique Silveira',
+    title: 'Tratamento de Canal Molar (46), Pino de Fibra e Coroa em Zircônia',
+    date: today,
+    dentistName: 'Dr. Roberto Fonseca',
+    clinicId: 'cli-3',
+    clinicName: 'DentisPro - Unidade Vila Mariana / Sul',
+    status: 'aprovado',
+    items: [
+      {
+        id: 'item-p7-1',
+        procedureName: 'Tratamento Endodôntico de Dente com Mais de Três Condutos (Dente 46)',
+        specialty: 'Endodontia',
+        toothNumber: 46,
+        cost: 950,
+        finalCost: 900,
+        status: 'concluido',
+        selectedForPlan: true
+      },
+      {
+        id: 'item-p7-2',
+        procedureName: 'Núcleo / Pino de Fibra de Vidro Cimentado',
+        specialty: 'Prótese Dentária',
+        toothNumber: 46,
+        cost: 450,
+        finalCost: 400,
+        status: 'pendente',
+        selectedForPlan: true
+      },
+      {
+        id: 'item-p7-3',
+        procedureName: 'Coroa Total em Zircônia Pura Translúcida',
+        specialty: 'Prótese Dentária',
+        toothNumber: 46,
+        cost: 1600,
+        finalCost: 1500,
+        status: 'pendente',
+        selectedForPlan: true
+      }
+    ],
+    totalValue: 3000,
+    discountValue: 200,
+    finalValue: 2800,
+    consentAccepted: true,
+    consentAcceptedAt: today
+  },
+  {
+    id: 'plan-pat8',
+    patientId: 'pat-8',
+    patientName: 'Juliana Martins Pereira',
+    title: 'Exodontia Cirúrgica Múltipla de Terceiros Molares Inclusos (Sisos)',
+    date: today,
+    dentistName: 'Dr. Roberto Fonseca',
+    clinicId: 'cli-4',
+    clinicName: 'DentisPro - Unidade Tatuapé / Zona Leste',
+    status: 'aprovado',
+    items: [
+      {
+        id: 'item-p8-1',
+        procedureName: 'Exodontia de Dente Incluso / Impactado (Dente 38)',
+        specialty: 'Cirurgia e Traumatologia Bucomaxilofacial',
+        toothNumber: 38,
+        cost: 500,
+        finalCost: 450,
+        status: 'concluido',
+        selectedForPlan: true
+      },
+      {
+        id: 'item-p8-2',
+        procedureName: 'Exodontia de Dente Incluso / Impactado (Dente 48)',
+        specialty: 'Cirurgia e Traumatologia Bucomaxilofacial',
+        toothNumber: 48,
+        cost: 500,
+        finalCost: 450,
+        status: 'concluido',
+        selectedForPlan: true
+      }
+    ],
+    totalValue: 1000,
+    discountValue: 100,
+    finalValue: 900,
+    consentAccepted: true,
+    consentAcceptedAt: today
   }
 ];
 
-export const INITIAL_PATIENT_PAYMENTS: PatientPayment[] = [];
+export const INITIAL_PATIENT_PAYMENTS: PatientPayment[] = [
+  {
+    id: 'pay-1',
+    patientId: 'pat-1',
+    patientName: 'Ana Silva Santos',
+    date: today,
+    amount: 320,
+    paymentMethod: 'pix',
+    description: 'Pagamento Parcial Plano Restaurador (Dente 26)',
+    treatmentPlanId: 'plan-pat1',
+    treatmentPlanTitle: 'Plano Restaurador Integral & Manutenção Periodontal',
+    receiptNumber: 'REC-2026-001',
+    clinicId: 'cli-marv',
+    clinicName: 'Clínica MARV'
+  },
+  {
+    id: 'pay-2',
+    patientId: 'pat-2',
+    patientName: 'Carlos Eduardo Oliveira',
+    date: today,
+    amount: 250,
+    paymentMethod: 'cartao_credito',
+    description: 'Sessão Periodontal Inicial (Dente 46)',
+    treatmentPlanId: 'plan-pat2',
+    treatmentPlanTitle: 'Tratamento Periodontal & Controle de Biofilme',
+    receiptNumber: 'REC-2026-002',
+    clinicId: 'cli-2',
+    clinicName: 'DentisPro - Unidade Jardins'
+  },
+  {
+    id: 'pay-3',
+    patientId: 'pat-5',
+    patientName: 'Roberto Albuquerque Prado',
+    date: today,
+    amount: 350,
+    paymentMethod: 'cartao_debito',
+    description: 'Tomografia e Guia de Planejamento de Implantes',
+    treatmentPlanId: 'plan-pat5',
+    treatmentPlanTitle: 'Reabilitação com Implantes Osseointegrados Dentes 14 e 15',
+    receiptNumber: 'REC-2026-003',
+    clinicId: 'cli-marv',
+    clinicName: 'Clínica MARV'
+  },
+  {
+    id: 'pay-4',
+    patientId: 'pat-6',
+    patientName: 'Beatriz Mendonça Rocha',
+    date: today,
+    amount: 320,
+    paymentMethod: 'pix',
+    description: 'Instalação de Attachments e Entrega Alinhadores',
+    treatmentPlanId: 'plan-pat6',
+    treatmentPlanTitle: 'Tratamento Ortodôntico Estético com Alinhadores Invisíveis',
+    receiptNumber: 'REC-2026-004',
+    clinicId: 'cli-2',
+    clinicName: 'DentisPro - Unidade Jardins'
+  }
+];
 
 export const INITIAL_COMMISSIONS: DentistCommissionRecord[] = [];
 
 export const INITIAL_INSURANCE_GUIDES: InsuranceGuide[] = [];
 
 export const INITIAL_SAVED_DOCUMENTS: SavedClinicDocument[] = [];
+
 
 

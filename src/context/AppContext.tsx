@@ -295,9 +295,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [patients, setPatients] = useState<Patient[]>(() => {
     const list = loadInitial<Patient[]>(STORAGE_KEYS.PATIENTS, INITIAL_PATIENTS);
-    return [...list].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
+    const existingIds = new Set(list.map(p => p.id));
+    const missing = INITIAL_PATIENTS.filter(p => !existingIds.has(p.id));
+    const merged = missing.length > 0 ? [...list, ...missing] : list;
+    return merged.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
   });
-  const [appointments, setAppointments] = useState<Appointment[]>(() => loadInitial(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS));
+  const [appointments, setAppointments] = useState<Appointment[]>(() => {
+    const list = loadInitial<Appointment[]>(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS);
+    const existingIds = new Set(list.map(a => a.id));
+    const missing = INITIAL_APPOINTMENTS.filter(a => !existingIds.has(a.id));
+    const merged = missing.length > 0 ? [...list, ...missing] : list;
+    return merged.sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`));
+  });
   const [inventory, setInventory] = useState<InventoryItem[]>(() => {
     const loaded = loadInitial<InventoryItem[]>(STORAGE_KEYS.INVENTORY, INITIAL_INVENTORY);
     const seenNames = new Set<string>();
@@ -370,11 +379,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     INITIAL_INVENTORY.forEach(processItem);
     return clean.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
   });
-  const [financials, setFinancials] = useState<FinancialTransaction[]>(() => loadInitial(STORAGE_KEYS.FINANCIAL, INITIAL_FINANCIAL));
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>(() => loadInitial(STORAGE_KEYS.PRESCRIPTIONS, INITIAL_PRESCRIPTIONS));
-  const [odontograms, setOdontograms] = useState<Record<string, ToothCondition[]>>(() => loadInitial(STORAGE_KEYS.ODONTOGRAMS, INITIAL_ODONTOGRAM_DATA));
+  const [financials, setFinancials] = useState<FinancialTransaction[]>(() => {
+    const list = loadInitial<FinancialTransaction[]>(STORAGE_KEYS.FINANCIAL, INITIAL_FINANCIAL);
+    const existingIds = new Set(list.map(f => f.id));
+    const missing = INITIAL_FINANCIAL.filter(f => !existingIds.has(f.id));
+    const merged = missing.length > 0 ? [...list, ...missing] : list;
+    return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  });
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>(() => {
+    const list = loadInitial<Prescription[]>(STORAGE_KEYS.PRESCRIPTIONS, INITIAL_PRESCRIPTIONS);
+    const existingIds = new Set(list.map(p => p.id));
+    const missing = INITIAL_PRESCRIPTIONS.filter(p => !existingIds.has(p.id));
+    const merged = missing.length > 0 ? [...list, ...missing] : list;
+    return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  });
+  const [odontograms, setOdontograms] = useState<Record<string, ToothCondition[]>>(() => {
+    const loaded = loadInitial<Record<string, ToothCondition[]>>(STORAGE_KEYS.ODONTOGRAMS, INITIAL_ODONTOGRAM_DATA);
+    return { ...INITIAL_ODONTOGRAM_DATA, ...loaded };
+  });
   const [odontogramSnapshots, setOdontogramSnapshots] = useState<Record<string, OdontogramSnapshot[]>>(() => loadInitial(STORAGE_KEYS.ODONTOGRAM_SNAPSHOTS, INITIAL_ODONTOGRAM_SNAPSHOTS));
-  const [clinicalEvolutions, setClinicalEvolutions] = useState<ClinicalEvolutionEntry[]>(() => loadInitial(STORAGE_KEYS.EVOLUTIONS, INITIAL_CLINICAL_EVOLUTION));
+  const [clinicalEvolutions, setClinicalEvolutions] = useState<ClinicalEvolutionEntry[]>(() => {
+    const list = loadInitial<ClinicalEvolutionEntry[]>(STORAGE_KEYS.EVOLUTIONS, INITIAL_CLINICAL_EVOLUTION);
+    const existingIds = new Set(list.map(e => e.id));
+    const missing = INITIAL_CLINICAL_EVOLUTION.filter(e => !existingIds.has(e.id));
+    const merged = missing.length > 0 ? [...list, ...missing] : list;
+    return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  });
   const [clinicalExams, setClinicalExams] = useState<Record<string, ClinicalExam>>(() => loadInitial(STORAGE_KEYS.CLINICAL_EXAMS, {}));
   const [tussProcedures, setTussProcedures] = useState<TUSSProcedure[]>(() => {
     const loaded = loadInitial<TUSSProcedure[]>(STORAGE_KEYS.TUSS_PROCEDURES, INITIAL_TUSS_PROCEDURES);
@@ -413,12 +443,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     return result.sort((a, b) => a.description.localeCompare(b.description, 'pt-BR', { sensitivity: 'base' }));
   });
-  const [priceTables, setPriceTables] = useState<PriceTable[]>(() => loadInitial(STORAGE_KEYS.PRICE_TABLES, DEFAULT_PRICE_TABLES));
-  const [treatmentPlans, setTreatmentPlans] = useState<TreatmentPlan[]>(() => loadInitial(STORAGE_KEYS.TREATMENT_PLANS, INITIAL_TREATMENT_PLANS));
-  const [patientPayments, setPatientPayments] = useState<PatientPayment[]>(() => loadInitial(STORAGE_KEYS.PATIENT_PAYMENTS, INITIAL_PATIENT_PAYMENTS));
+  const [priceTables, setPriceTables] = useState<PriceTable[]>(() => {
+    const loaded = loadInitial<PriceTable[]>(STORAGE_KEYS.PRICE_TABLES, DEFAULT_PRICE_TABLES);
+    const existingIds = new Set(loaded.map(t => t.id));
+    const missing = DEFAULT_PRICE_TABLES.filter(t => !existingIds.has(t.id));
+    const merged = missing.length > 0 ? [...loaded, ...missing] : loaded;
+    return [...merged].sort((a, b) => {
+      if (a.isDefault) return -1;
+      if (b.isDefault) return 1;
+      return (a.name || '').localeCompare(b.name || '', 'pt-BR');
+    });
+  });
+  const [treatmentPlans, setTreatmentPlans] = useState<TreatmentPlan[]>(() => {
+    const list = loadInitial<TreatmentPlan[]>(STORAGE_KEYS.TREATMENT_PLANS, INITIAL_TREATMENT_PLANS);
+    const existingIds = new Set(list.map(p => p.id));
+    const missing = INITIAL_TREATMENT_PLANS.filter(p => !existingIds.has(p.id));
+    const merged = missing.length > 0 ? [...list, ...missing] : list;
+    return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  });
+  const [patientPayments, setPatientPayments] = useState<PatientPayment[]>(() => {
+    const list = loadInitial<PatientPayment[]>(STORAGE_KEYS.PATIENT_PAYMENTS, INITIAL_PATIENT_PAYMENTS);
+    const existingIds = new Set(list.map(p => p.id));
+    const missing = INITIAL_PATIENT_PAYMENTS.filter(p => !existingIds.has(p.id));
+    const merged = missing.length > 0 ? [...list, ...missing] : list;
+    return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  });
   const [commissions, setCommissions] = useState<DentistCommissionRecord[]>(() => loadInitial(STORAGE_KEYS.COMMISSIONS, INITIAL_COMMISSIONS));
   const [insuranceGuides, setInsuranceGuides] = useState<InsuranceGuide[]>(() => loadInitial(STORAGE_KEYS.INSURANCE_GUIDES, INITIAL_INSURANCE_GUIDES));
-  const [savedClinicDocuments, setSavedClinicDocuments] = useState<SavedClinicDocument[]>(() => loadInitial(STORAGE_KEYS.SAVED_DOCUMENTS, INITIAL_SAVED_DOCUMENTS));
+  const [savedClinicDocuments, setSavedClinicDocuments] = useState<SavedClinicDocument[]>(() => {
+    const loaded = loadInitial<SavedClinicDocument[]>(STORAGE_KEYS.SAVED_DOCUMENTS, INITIAL_SAVED_DOCUMENTS);
+    return [...loaded].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  });
   
   const [clinicInfo, setClinicInfo] = useState<ClinicInfo>(() => {
     const defaultObj: ClinicInfo = {
@@ -452,9 +507,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return loaded;
   });
 
-  const [documentTemplates, setDocumentTemplates] = useState<CustomDocumentTemplate[]>(() => 
-    loadInitial(STORAGE_KEYS.DOCUMENT_TEMPLATES, INITIAL_DOCUMENT_TEMPLATES)
-  );
+  const [documentTemplates, setDocumentTemplates] = useState<CustomDocumentTemplate[]>(() => {
+    const loaded = loadInitial<CustomDocumentTemplate[]>(STORAGE_KEYS.DOCUMENT_TEMPLATES, INITIAL_DOCUMENT_TEMPLATES);
+    return [...loaded].sort((a, b) => (a.title || '').localeCompare(b.title || '', 'pt-BR', { sensitivity: 'base' }));
+  });
 
   const updateDocumentTemplate = (id: string, templateText: string, fieldReplacements?: Record<string, string>) => {
     setDocumentTemplates(prev => prev.map(tpl => {
@@ -471,7 +527,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const resetDocumentTemplates = () => {
-    setDocumentTemplates(INITIAL_DOCUMENT_TEMPLATES);
+    setDocumentTemplates([...INITIAL_DOCUMENT_TEMPLATES].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR', { sensitivity: 'base' })));
   };
 
   // Sync to localStorage
@@ -651,7 +707,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...aptData,
       id: `apt-${Date.now()}`
     };
-    setAppointments(prev => [newApt, ...prev]);
+    setAppointments(prev => [newApt, ...prev].sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`)));
 
     // Automatically log financial entry if value > 0
     if (newApt.value > 0) {
@@ -765,7 +821,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...tData,
       id: `fin-${Date.now()}`
     };
-    setFinancials(prev => [newTransaction, ...prev]);
+    setFinancials(prev => [newTransaction, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };
 
   // Delete Financial Transaction
@@ -779,7 +835,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...rxData,
       id: `rx-${Date.now()}`
     };
-    setPrescriptions(prev => [newRx, ...prev]);
+    setPrescriptions(prev => [newRx, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     return newRx;
   };
 
@@ -857,7 +913,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...evoData,
       id: `evo-${Date.now()}`
     };
-    setClinicalEvolutions(prev => [newEvo, ...prev]);
+    setClinicalEvolutions(prev => [newEvo, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
 
     // Sync any evolution photos into the patient's central media database
     if (newEvo.images && newEvo.images.length > 0) {
@@ -873,7 +929,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateClinicalEvolution = (id: string, updatedData: Partial<ClinicalEvolutionEntry>) => {
-    setClinicalEvolutions(prev => prev.map(evo => evo.id === id ? { ...evo, ...updatedData } : evo));
+    setClinicalEvolutions(prev => prev.map(evo => evo.id === id ? { ...evo, ...updatedData } : evo).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };
 
   const deleteClinicalEvolution = (id: string) => {
@@ -886,12 +942,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...planData,
       id: `plan-${Date.now()}`
     };
-    setTreatmentPlans(prev => [newPlan, ...prev]);
+    setTreatmentPlans(prev => [newPlan, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     return newPlan;
   };
 
   const updateTreatmentPlan = (id: string, updatedData: Partial<TreatmentPlan>) => {
-    setTreatmentPlans(prev => prev.map(plan => plan.id === id ? { ...plan, ...updatedData } : plan));
+    setTreatmentPlans(prev => prev.map(plan => plan.id === id ? { ...plan, ...updatedData } : plan).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };
 
   const deleteTreatmentPlan = (id: string) => {
@@ -920,12 +976,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...profData,
       id: `prof-${Date.now()}`
     };
-    setProfessionals(prev => [...prev, newProf]);
+    setProfessionals(prev => [...prev, newProf].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
     return newProf;
   };
 
   const updateProfessional = (id: string, updated: Partial<Professional>) => {
-    setProfessionals(prev => prev.map(p => p.id === id ? { ...p, ...updated } : p));
+    setProfessionals(prev => prev.map(p => p.id === id ? { ...p, ...updated } : p).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
   };
 
   const deleteProfessional = (id: string) => {
@@ -948,12 +1004,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...clinicData,
       id: `cli-${Date.now()}`
     };
-    setClinics(prev => [...prev, newClinic]);
+    setClinics(prev => [...prev, newClinic].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
     return newClinic;
   };
 
   const updateClinic = (id: string, updated: Partial<ClinicUnit>) => {
-    setClinics(prev => prev.map(c => c.id === id ? { ...c, ...updated } : c));
+    setClinics(prev => prev.map(c => c.id === id ? { ...c, ...updated } : c).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
   };
 
   const deleteClinic = (id: string) => {
@@ -1060,7 +1116,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `pay-${Date.now()}`,
       receiptNumber: `REC-${new Date().getFullYear()}-${String(seq).padStart(3, '0')}`
     };
-    setPatientPayments(prev => [newPayment, ...prev]);
+    setPatientPayments(prev => [newPayment, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
 
     // Automatically record matching revenue in global clinic financial transactions
     addTransaction({
@@ -1090,25 +1146,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const resetToDefaultData = () => {
     localStorage.clear();
-    setClinics(INITIAL_CLINICS);
-    setProfessionals(INITIAL_PROFESSIONALS);
+    setClinics([...INITIAL_CLINICS].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
+    setProfessionals([...INITIAL_PROFESSIONALS].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
     setActiveProfessionalIdState(INITIAL_PROFESSIONALS[0]?.id || 'prof-1');
     setActiveClinicId('todas');
     setLayoutTheme('natural');
-    setPatients(INITIAL_PATIENTS);
-    setAppointments(INITIAL_APPOINTMENTS);
-    setInventory(INITIAL_INVENTORY);
-    setFinancials(INITIAL_FINANCIAL);
-    setPrescriptions(INITIAL_PRESCRIPTIONS);
+    setPatients([...INITIAL_PATIENTS].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })));
+    setAppointments([...INITIAL_APPOINTMENTS].sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`)));
+    setInventory([...INITIAL_INVENTORY].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
+    setFinancials([...INITIAL_FINANCIAL].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    setPrescriptions([...INITIAL_PRESCRIPTIONS].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setOdontograms(INITIAL_ODONTOGRAM_DATA);
     setOdontogramSnapshots(INITIAL_ODONTOGRAM_SNAPSHOTS);
-    setClinicalEvolutions(INITIAL_CLINICAL_EVOLUTION);
+    setClinicalEvolutions([...INITIAL_CLINICAL_EVOLUTION].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setClinicalExams({});
-    setTussProcedures(INITIAL_TUSS_PROCEDURES);
-    setPriceTables(DEFAULT_PRICE_TABLES);
-    setTreatmentPlans(INITIAL_TREATMENT_PLANS);
-    setPatientPayments(INITIAL_PATIENT_PAYMENTS);
-    setDocumentTemplates(INITIAL_DOCUMENT_TEMPLATES);
+    setTussProcedures([...INITIAL_TUSS_PROCEDURES].sort((a, b) => a.description.localeCompare(b.description, 'pt-BR', { sensitivity: 'base' })));
+    setPriceTables([...DEFAULT_PRICE_TABLES].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
+    setTreatmentPlans([...INITIAL_TREATMENT_PLANS].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    setPatientPayments([...INITIAL_PATIENT_PAYMENTS].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    setDocumentTemplates([...INITIAL_DOCUMENT_TEMPLATES].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR', { sensitivity: 'base' })));
     setClinicInfo({
       name: 'DentisPro Odontologia Especializada',
       dentistName: 'Dr. Lucas Mendes',
@@ -1192,21 +1248,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const data = JSON.parse(jsonString);
       if (!data || typeof data !== 'object') return false;
 
-      if (data.patients && Array.isArray(data.patients)) setPatients(data.patients);
-      if (data.appointments && Array.isArray(data.appointments)) setAppointments(data.appointments);
-      if (data.inventory && Array.isArray(data.inventory)) setInventory(data.inventory);
-      if (data.financials && Array.isArray(data.financials)) setFinancials(data.financials);
-      if (data.prescriptions && Array.isArray(data.prescriptions)) setPrescriptions(data.prescriptions);
+      if (data.patients && Array.isArray(data.patients)) {
+        setPatients([...data.patients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })));
+      }
+      if (data.appointments && Array.isArray(data.appointments)) {
+        setAppointments([...data.appointments].sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`)));
+      }
+      if (data.inventory && Array.isArray(data.inventory)) {
+        setInventory([...data.inventory].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
+      }
+      if (data.financials && Array.isArray(data.financials)) {
+        setFinancials([...data.financials].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      }
+      if (data.prescriptions && Array.isArray(data.prescriptions)) {
+        setPrescriptions([...data.prescriptions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      }
       if (data.odontograms) setOdontograms(data.odontograms);
       if (data.odontogramSnapshots) setOdontogramSnapshots(data.odontogramSnapshots);
-      if (data.clinicalEvolutions && Array.isArray(data.clinicalEvolutions)) setClinicalEvolutions(data.clinicalEvolutions);
+      if (data.clinicalEvolutions && Array.isArray(data.clinicalEvolutions)) {
+        setClinicalEvolutions([...data.clinicalEvolutions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      }
       if (data.clinicalExams) setClinicalExams(data.clinicalExams);
-      if (data.treatmentPlans && Array.isArray(data.treatmentPlans)) setTreatmentPlans(data.treatmentPlans);
-      if (data.patientPayments && Array.isArray(data.patientPayments)) setPatientPayments(data.patientPayments);
+      if (data.treatmentPlans && Array.isArray(data.treatmentPlans)) {
+        setTreatmentPlans([...data.treatmentPlans].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      }
+      if (data.patientPayments && Array.isArray(data.patientPayments)) {
+        setPatientPayments([...data.patientPayments].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      }
       if (data.clinicInfo) setClinicInfo(data.clinicInfo);
-      if (data.clinics && Array.isArray(data.clinics)) setClinics(data.clinics);
-      if (data.professionals && Array.isArray(data.professionals)) setProfessionals(data.professionals);
-      if (data.priceTables && Array.isArray(data.priceTables)) setPriceTables(data.priceTables);
+      if (data.clinics && Array.isArray(data.clinics)) {
+        setClinics([...data.clinics].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
+      }
+      if (data.professionals && Array.isArray(data.professionals)) {
+        setProfessionals([...data.professionals].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
+      }
+      if (data.priceTables && Array.isArray(data.priceTables)) {
+        setPriceTables([...data.priceTables].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
+      }
+      if (data.documentTemplates && Array.isArray(data.documentTemplates)) {
+        setDocumentTemplates([...data.documentTemplates].sort((a, b) => (a.title || '').localeCompare(b.title || '', 'pt-BR', { sensitivity: 'base' })));
+      }
+      if (data.savedClinicDocuments && Array.isArray(data.savedClinicDocuments)) {
+        setSavedClinicDocuments([...data.savedClinicDocuments].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
+      }
 
       const now = new Date().toLocaleString('pt-BR');
       setLastCheckpointTime(now);

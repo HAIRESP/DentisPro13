@@ -6,6 +6,8 @@ import { RegionSelector } from './RegionSelector';
 import { AutocompleteInput } from '../common/AutocompleteInput';
 import { SpecialtyInputSelector } from '../common/SpecialtyInputSelector';
 import { printDocumentWithTitle } from '../../utils/printUtils';
+import { downloadTussSqlScript, TUSS_SQL_DDL } from '../../utils/tussSqlSchema';
+import { DEFAULT_CORRELATION_RULES } from '../../data/correlationRulesData';
 import { 
   X, 
   Search, 
@@ -29,7 +31,14 @@ import {
   ChevronUp,
   Boxes,
   ArrowLeft,
-  Printer
+  Printer,
+  Database,
+  Key,
+  Copy,
+  Code,
+  Table,
+  CheckCheck,
+  Terminal
 } from 'lucide-react';
 
 interface TussManagerModalProps {
@@ -51,10 +60,13 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
     inventory
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'procedimentos' | 'pacientes' | 'convenios' | 'regioes'>('procedimentos');
+  const [activeTab, setActiveTab] = useState<'procedimentos' | 'pacientes' | 'convenios' | 'regioes' | 'banco_sql'>('procedimentos');
   const [searchTerm, setSearchTerm] = useState('');
   const [specialtyFilter, setSpecialtyFilter] = useState('todas');
+  const [scopeFilter, setScopeFilter] = useState<'todos' | 'dente' | 'face' | 'area'>('todos');
   const [patientSearch, setPatientSearch] = useState('');
+  const [copiedSql, setCopiedSql] = useState(false);
+  const [activeSqlSnippet, setActiveSqlSnippet] = useState<'all' | 'procedures' | 'prices' | 'rules'>('all');
 
   // Expand procedure row for materials view
   const [expandedProcCode, setExpandedProcCode] = useState<string | null>(null);
@@ -68,6 +80,7 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
   const [newCode, setNewCode] = useState('');
   const [newTissCode, setNewTissCode] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [newScopeType, setNewScopeType] = useState<'dente' | 'face' | 'area'>('dente');
   const [newFaces, setNewFaces] = useState('');
   const [newSpec, setNewSpec] = useState('Dentística & Estética');
   const [newFullDesc, setNewFullDesc] = useState('');
@@ -123,7 +136,11 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
                             (proc.defaultRegion && proc.defaultRegion.toLowerCase().includes(searchTerm.toLowerCase())) ||
                             (proc.requiredMaterials && proc.requiredMaterials.some(m => m.materialName.toLowerCase().includes(searchTerm.toLowerCase())));
       const matchesSpec = specialtyFilter === 'todas' || proc.specialty === specialtyFilter;
-      return matchesSearch && matchesSpec;
+      const matchesScope = scopeFilter === 'todos' ||
+                            (scopeFilter === 'face' && (proc.scopeType === 'face' || !!proc.faces)) ||
+                            (scopeFilter === 'area' && (proc.scopeType === 'area' || (!!proc.defaultRegion && proc.defaultRegion !== 'Dente Específico' && proc.defaultRegion !== 'Dente'))) ||
+                            (scopeFilter === 'dente' && (!proc.scopeType || proc.scopeType === 'dente') && !proc.faces);
+      return matchesSearch && matchesSpec && matchesScope;
     })
     .sort((a, b) => a.description.localeCompare(b.description, 'pt-BR', { sensitivity: 'base' }));
 
@@ -138,6 +155,7 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
     setEditingCode(proc.code);
     setEditFormData({
       ...proc,
+      scopeType: proc.scopeType || (proc.faces ? 'face' : (proc.defaultRegion && proc.defaultRegion !== 'Dente Específico' && proc.defaultRegion !== 'Dente' ? 'area' : 'dente')),
       prices: { ...proc.prices },
       requiredMaterials: proc.requiredMaterials ? [...proc.requiredMaterials] : []
     });
@@ -160,6 +178,7 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
       code: newCode.trim(),
       tissCode: newTissCode.trim() || undefined,
       description: newDesc.trim(),
+      scopeType: newScopeType,
       faces: newFaces.trim() || undefined,
       specialty: newSpec,
       suggestedCost: baseCost,
@@ -176,6 +195,7 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
     setNewCode('');
     setNewTissCode('');
     setNewDesc('');
+    setNewScopeType('dente');
     setNewFaces('');
     setNewFullDesc('');
     setNewPrices({});
@@ -368,12 +388,32 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
               <Layers className="w-4 h-4 text-[#d4a373]" />
               Legenda de Regiões / Dentes ({REGION_LEGENDS.length})
             </button>
+            <button
+              onClick={() => setActiveTab('banco_sql')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                activeTab === 'banco_sql'
+                  ? 'bg-[#1e3a8a] text-white shadow-sm'
+                  : 'bg-[#f4f4eb] text-[#5a5a40] hover:bg-[#e8e8db]'
+              }`}
+            >
+              <Database className="w-4 h-4 text-cyan-400" />
+              Banco SQL & Chaves Primárias
+            </button>
           </div>
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => downloadTussSqlScript(tussProcedures, priceTables, DEFAULT_CORRELATION_RULES)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e3a8a] hover:bg-[#172554] text-white rounded-lg text-xs font-bold transition-colors shadow-2xs cursor-pointer"
+              title="Baixar script relacional SQL completo com Chave Primária e Procedimentos"
+            >
+              <Database className="w-4 h-4 text-cyan-300" />
+              <span>Baixar SQL (.sql)</span>
+            </button>
+
+            <button
               onClick={handleExportCSV}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f4f4eb] hover:bg-[#e8e8db] text-[#5a5a40] border border-[#e5e5d1] rounded-lg text-xs font-bold transition-colors shadow-2xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f4f4eb] hover:bg-[#e8e8db] text-[#5a5a40] border border-[#e5e5d1] rounded-lg text-xs font-bold transition-colors shadow-2xs cursor-pointer"
               title="Exportar esta tabela em formato CSV / Excel"
             >
               <Download className="w-4 h-4 text-[#d4a373]" />
@@ -407,18 +447,33 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
                   className="w-full pl-9 pr-3 py-2 bg-[#fdfdf9] border border-[#e5e5d1] rounded-lg text-xs focus:ring-2 focus:ring-[#d4a373]"
                 />
               </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <span className="text-xs font-bold text-[#5a5a40] shrink-0">Especialidade:</span>
-                <select
-                  value={specialtyFilter}
-                  onChange={(e) => setSpecialtyFilter(e.target.value)}
-                  className="bg-[#fdfdf9] border border-[#e5e5d1] rounded-lg text-xs p-2 focus:ring-2 focus:ring-[#d4a373]"
-                >
-                  <option value="todas">Todas as Especialidades</option>
-                  {specialties.map(spec => (
-                    <option key={spec} value={spec}>{spec}</option>
-                  ))}
-                </select>
+              <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-[#5a5a40] shrink-0">Escopo:</span>
+                  <select
+                    value={scopeFilter}
+                    onChange={(e) => setScopeFilter(e.target.value as any)}
+                    className="bg-[#fdfdf9] border border-[#e5e5d1] rounded-lg text-xs p-2 focus:ring-2 focus:ring-[#d4a373]"
+                  >
+                    <option value="todos">Todos os Escopos</option>
+                    <option value="dente">🦷 Por Dente</option>
+                    <option value="face">💎 Por Face</option>
+                    <option value="area">📐 Por Área / Região</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-[#5a5a40] shrink-0">Especialidade:</span>
+                  <select
+                    value={specialtyFilter}
+                    onChange={(e) => setSpecialtyFilter(e.target.value)}
+                    className="bg-[#fdfdf9] border border-[#e5e5d1] rounded-lg text-xs p-2 focus:ring-2 focus:ring-[#d4a373]"
+                  >
+                    <option value="todas">Todas as Especialidades</option>
+                    {specialties.map(spec => (
+                      <option key={spec} value={spec}>{spec}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -429,7 +484,7 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
                   <tr>
                     <th className="p-3">Código TUSS</th>
                     <th className="p-3">Descrição & Materiais Necessários</th>
-                    <th className="p-3">Face</th>
+                    <th className="p-3">Escopo & Face</th>
                     <th className="p-3">Especialidade</th>
                     <th className="p-3">Região Padrão</th>
                     {priceTables.map(tbl => (
@@ -441,7 +496,7 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#e5e5d1]">
-                  {filteredProcedures.map(proc => {
+                  {filteredProcedures.map((proc, index) => {
                     const isEditing = editingCode === proc.code;
                     const isExpanded = expandedProcCode === proc.code;
                     const matCount = proc.requiredMaterials?.length || 0;
@@ -474,7 +529,7 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs">
                               <div>
                                 <label className="block font-bold text-gray-700 mb-1">Descrição</label>
                                 <input
@@ -486,7 +541,20 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
                               </div>
 
                               <div>
-                                <label className="block font-bold text-gray-700 mb-1">Faces (Critérios: M, D, O, I, V, L [Inf], P [Sup])</label>
+                                <label className="block font-bold text-gray-700 mb-1">Escopo Odontológico</label>
+                                <select
+                                  value={editFormData.scopeType || (editFormData.faces ? 'face' : (editFormData.defaultRegion && editFormData.defaultRegion !== 'Dente Específico' && editFormData.defaultRegion !== 'Dente' ? 'area' : 'dente'))}
+                                  onChange={(e) => setEditFormData({ ...editFormData, scopeType: e.target.value as any })}
+                                  className="w-full p-2 border border-amber-300 rounded-lg bg-white text-xs font-bold"
+                                >
+                                  <option value="dente">🦷 Por Dente (Individual)</option>
+                                  <option value="face">💎 Por Face (Restaurações)</option>
+                                  <option value="area">📐 Por Área / Região</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block font-bold text-gray-700 mb-1">Faces (M, D, O, I, V, L, P)</label>
                                 <input
                                   type="text"
                                   placeholder="ex: O, M/O, M/O/D, V, P"
@@ -728,9 +796,14 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
                       <React.Fragment key={proc.code}>
                         <tr className="hover:bg-[#fcfdf9] transition-colors">
                           <td className="p-3 font-mono font-bold text-[#d4a373]">
-                            <div>{proc.code}</div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-200 text-[10px] font-bold tracking-tight" title="Chave Primária SQL Relacional (Primary Key ID)">
+                                PK #{proc.id ?? (index + 1)}
+                              </span>
+                              <span>{proc.code}</span>
+                            </div>
                             {proc.tissCode && proc.tissCode !== proc.code && (
-                              <span className="text-[10px] text-gray-400 font-normal">TISS: {proc.tissCode}</span>
+                              <span className="text-[10px] text-gray-400 font-normal block mt-0.5">TISS: {proc.tissCode}</span>
                             )}
                           </td>
                           <td className="p-3 font-semibold text-gray-800">
@@ -766,9 +839,22 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
                             )}
                           </td>
                           <td className="p-3">
-                            <span className="px-2 py-0.5 bg-[#f4f4eb] text-[#2c3e2e] border border-[#e5e5d1] rounded text-[11px] font-mono font-medium">
-                              {proc.faces || '-'}
-                            </span>
+                            <div className="flex flex-col gap-1">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1 w-fit ${
+                                proc.scopeType === 'face' || proc.faces
+                                  ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                                  : proc.scopeType === 'area' || (proc.defaultRegion && proc.defaultRegion !== 'Dente Específico' && proc.defaultRegion !== 'Dente')
+                                  ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                                  : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                              }`}>
+                                {proc.scopeType === 'face' || proc.faces ? '💎 Face' : proc.scopeType === 'area' || (proc.defaultRegion && proc.defaultRegion !== 'Dente Específico' && proc.defaultRegion !== 'Dente') ? '📐 Área' : '🦷 Dente'}
+                              </span>
+                              {proc.faces && (
+                                <span className="px-1.5 py-0.5 bg-[#f4f4eb] text-[#2c3e2e] border border-[#e5e5d1] rounded text-[10px] font-mono font-bold w-fit">
+                                  {proc.faces}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="p-3">
                             <span className="px-2 py-0.5 bg-[#f0f0e4] text-[#5a5a40] rounded text-[10px] font-medium">
@@ -1079,8 +1165,404 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
           </div>
         )}
 
+        {/* TAB: BANCO DE DADOS SQL RELACIONAL & CHAVES PRIMÁRIAS */}
+        {activeTab === 'banco_sql' && (
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* Header Hero */}
+            <div className="bg-gradient-to-r from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white p-5 rounded-2xl border border-slate-700 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="p-3 bg-blue-600/20 border border-blue-500/40 rounded-xl text-cyan-400">
+                  <Database className="w-7 h-7" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base font-bold text-white tracking-wide">
+                      Banco de Dados Relacional SQL • Catálogo TUSS / ANS
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                      Padrão ANSI / PostgreSQL
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-cyan-300 border border-blue-500/30 text-[10px] font-bold">
+                      Chave Primária (PK) Normalizada
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1 max-w-3xl leading-relaxed">
+                    O <strong>Procedimento Odontológico</strong> é o <strong>Elemento Principal e Central</strong> da modelagem (tabela <code className="text-cyan-300 bg-slate-800 px-1 py-0.5 rounded font-mono text-[11px]">tuss_procedures</code> com Chave Primária <code className="text-cyan-300 bg-slate-800 px-1 py-0.5 rounded font-mono text-[11px]">id SERIAL PRIMARY KEY</code>). Todas as tabelas de preços por convênio e regras de correlação conectam-se a ele via Chaves Estrangeiras (Foreign Keys).
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(TUSS_SQL_DDL);
+                    setCopiedSql(true);
+                    setTimeout(() => setCopiedSql(false), 2500);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+                  title="Copiar esquema SQL DDL completo para a área de transferência"
+                >
+                  {copiedSql ? <CheckCheck className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-cyan-400" />}
+                  <span>{copiedSql ? 'Copiado!' : 'Copiar DDL'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => downloadTussSqlScript(tussProcedures, priceTables, DEFAULT_CORRELATION_RULES)}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition shadow-md cursor-pointer"
+                  title="Baixar arquivo .sql completo pronto para execução no PostgreSQL / Cloud SQL / Supabase"
+                >
+                  <Download className="w-4 h-4 text-white" />
+                  <span>Baixar Dump SQL (.sql)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Architecture Cards (4 Tables) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1: Elemento Principal */}
+              <div className="bg-white p-4 rounded-xl border-2 border-blue-500/40 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-blue-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">
+                  ELEMENTO PRINCIPAL
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-blue-50 rounded-lg text-blue-700">
+                    <Key className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xs text-gray-900 font-mono">tuss_procedures</h4>
+                    <span className="text-[10px] text-blue-700 font-bold">Procedimento Odontológico</span>
+                  </div>
+                </div>
+                <div className="space-y-1.5 text-[11px] pt-1 border-t border-gray-100">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">Chave Primária (PK):</span>
+                    <span className="font-mono font-bold text-blue-900 bg-blue-50 px-1.5 py-0.2 rounded">id (SERIAL)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">Chave de Negócio:</span>
+                    <span className="font-mono font-bold text-amber-900 bg-amber-50 px-1.5 py-0.2 rounded">code (UNIQUE)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">Entidade Central:</span>
+                    <span className="font-semibold text-gray-800">description (Nome)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">Procedimentos Ativos:</span>
+                    <span className="font-bold text-emerald-700 font-mono">{tussProcedures.length} registros</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Price Tables */}
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-amber-50 rounded-lg text-amber-700">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xs text-gray-900 font-mono">price_tables</h4>
+                    <span className="text-[10px] text-amber-700 font-bold">Convênios & Tabelas</span>
+                  </div>
+                </div>
+                <div className="space-y-1.5 text-[11px] pt-1 border-t border-gray-100">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">Chave Primária (PK):</span>
+                    <span className="font-mono font-bold text-blue-900 bg-blue-50 px-1.5 py-0.2 rounded">id (SERIAL)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">Código Único:</span>
+                    <span className="font-mono font-bold text-gray-800">code (VARCHAR)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">Identificador ANS:</span>
+                    <span className="font-medium text-gray-800">ans_registration</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">Tabelas / Convênios:</span>
+                    <span className="font-bold text-amber-700 font-mono">{priceTables.length} ativos</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Procedure Prices */}
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-emerald-50 rounded-lg text-emerald-700">
+                    <DollarSign className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xs text-gray-900 font-mono">procedure_prices</h4>
+                    <span className="text-[10px] text-emerald-700 font-bold">Preços Relacionais</span>
+                  </div>
+                </div>
+                <div className="space-y-1.5 text-[11px] pt-1 border-t border-gray-100">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">Chave Primária (PK):</span>
+                    <span className="font-mono font-bold text-blue-900 bg-blue-50 px-1.5 py-0.2 rounded">id (SERIAL)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">FK Procedimento:</span>
+                    <span className="font-mono font-semibold text-blue-700">procedure_id</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">FK Tabela / Convênio:</span>
+                    <span className="font-mono font-semibold text-amber-700">price_table_id</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">Preço Vinculado:</span>
+                    <span className="font-bold text-emerald-700 font-mono">price NUMERIC(10,2)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Correlation Rules */}
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-purple-50 rounded-lg text-purple-700">
+                    <Layers className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xs text-gray-900 font-mono">correlation_rules</h4>
+                    <span className="text-[10px] text-purple-700 font-bold">Regras de Odontograma</span>
+                  </div>
+                </div>
+                <div className="space-y-1.5 text-[11px] pt-1 border-t border-gray-100">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">Chave Primária (PK):</span>
+                    <span className="font-mono font-bold text-blue-900 bg-blue-50 px-1.5 py-0.2 rounded">id (SERIAL)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">FK Procedimento:</span>
+                    <span className="font-mono font-semibold text-blue-700">procedure_id</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">Achado Clínico:</span>
+                    <span className="font-medium text-gray-800 font-mono">condition_type</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">Regras Cadastradas:</span>
+                    <span className="font-bold text-purple-700 font-mono">{DEFAULT_CORRELATION_RULES.length} regras</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SQL Snippet Interactive Viewer */}
+            <div className="bg-[#1a1d2e] rounded-2xl border border-slate-700 overflow-hidden shadow-xl">
+              <div className="p-3 bg-[#111422] border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Terminal className="w-4 h-4 text-cyan-400" />
+                  <span className="text-xs font-bold text-slate-200 font-mono">
+                    Esquema SQL DDL Relacional (Procedimento como Elemento Principal)
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { id: 'all', label: 'DDL Completo' },
+                    { id: 'procedures', label: '1. tuss_procedures (PK)' },
+                    { id: 'prices', label: '2. procedure_prices (FK)' },
+                    { id: 'rules', label: '3. correlation_rules (FK)' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveSqlSnippet(tab.id as any)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold font-mono transition cursor-pointer ${
+                        activeSqlSnippet === tab.id
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 max-h-96 overflow-y-auto font-mono text-xs text-slate-300 leading-relaxed">
+                <pre className="whitespace-pre-wrap">
+                  {activeSqlSnippet === 'all' && TUSS_SQL_DDL}
+                  {activeSqlSnippet === 'procedures' && `CREATE TABLE IF NOT EXISTS tuss_procedures (
+    id SERIAL PRIMARY KEY,                                      -- CHAVE PRIMÁRIA
+    code VARCHAR(50) NOT NULL UNIQUE,                           -- CÓDIGO TUSS/ANS (Chave Única de Negócio)
+    tiss_code VARCHAR(50),                                      -- Código TISS correspondente
+    description TEXT NOT NULL,                                  -- NOME DO PROCEDIMENTO (ELEMENTO PRINCIPAL)
+    full_description TEXT,                                      -- Detalhamento técnico completo
+    specialty VARCHAR(150) NOT NULL,                            -- Especialidade Odontológica
+    category VARCHAR(100),                                      -- Categoria clínica
+    faces VARCHAR(100),                                         -- Faces aplicáveis textuais
+    scope_type VARCHAR(50) DEFAULT 'dente',                     -- 'face' | 'dente' | 'area'
+    anatomical_scope VARCHAR(100),                              -- Escopo anatômico TUSS
+    tooth_faces_count VARCHAR(50),                              -- '1_face' | '2_faces' | '3_faces' | '4_ou_mais_faces'
+    default_region VARCHAR(50),                                 -- Região anatômica padrão
+    suggested_cost NUMERIC(10, 2) NOT NULL DEFAULT 0.00,        -- Custo sugerido particular
+    rol_ans BOOLEAN DEFAULT FALSE,                              -- Cobertura obrigatória pelo Rol da ANS
+    ans_rol_current BOOLEAN DEFAULT TRUE,                       -- Vigência no Rol ANS
+    odonto_grouping VARCHAR(150),                               -- Agrupamento Odontológico ANS
+    subgroup VARCHAR(150),                                      -- Subgrupo Tabela 22 ANS
+    required_materials JSONB DEFAULT '[]'::jsonb,               -- Materiais/Insumos necessários vinculados ao estoque
+    images JSONB DEFAULT '[]'::jsonb,                           -- Imagens ilustrativas
+    videos JSONB DEFAULT '[]'::jsonb,                           -- Vídeos explicativos
+    active BOOLEAN DEFAULT TRUE,                                -- Registro ativo
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_tuss_code ON tuss_procedures(code);
+CREATE INDEX IF NOT EXISTS idx_tuss_specialty ON tuss_procedures(specialty);`}
+                  {activeSqlSnippet === 'prices' && `CREATE TABLE IF NOT EXISTS procedure_prices (
+    id SERIAL PRIMARY KEY,                                      -- CHAVE PRIMÁRIA
+    procedure_id INT NOT NULL,                                  -- FK -> tuss_procedures.id (ELEMENTO PRINCIPAL)
+    price_table_id INT NOT NULL,                                -- FK -> price_tables.id (CONVÊNIO)
+    price NUMERIC(10, 2) NOT NULL,                              -- Valor cobrado neste convênio
+    co_payment NUMERIC(10, 2) DEFAULT 0.00,                     -- Coparticipação do paciente
+    authorized BOOLEAN DEFAULT TRUE,                            -- Cobertura autorizada contratualmente
+    coverage_notes TEXT,                                        -- Observações de autorização/perícia
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_procedure_prices_proc FOREIGN KEY (procedure_id) REFERENCES tuss_procedures(id) ON DELETE CASCADE,
+    CONSTRAINT fk_procedure_prices_table FOREIGN KEY (price_table_id) REFERENCES price_tables(id) ON DELETE CASCADE,
+    CONSTRAINT uq_proc_price_table UNIQUE (procedure_id, price_table_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_proc_prices_proc ON procedure_prices(procedure_id);
+CREATE INDEX IF NOT EXISTS idx_proc_prices_table ON procedure_prices(price_table_id);`}
+                  {activeSqlSnippet === 'rules' && `CREATE TABLE IF NOT EXISTS correlation_rules (
+    id SERIAL PRIMARY KEY,                                      -- CHAVE PRIMÁRIA
+    procedure_id INT,                                           -- FK -> tuss_procedures.id (ELEMENTO PRINCIPAL)
+    procedure_description TEXT NOT NULL,                        -- Descrição redundante para performance
+    tuss_code VARCHAR(50),                                      -- Código TUSS
+    condition_type VARCHAR(50) NOT NULL,                        -- Achado odontograma ('carie', 'canal', etc.)
+    price_table_id INT,                                         -- FK -> price_tables.id (opcional)
+    scope_type VARCHAR(50) DEFAULT 'dente',                     -- 'face' | 'dente' | 'area'
+    min_surfaces INT DEFAULT 0,                                 -- Mínimo de faces
+    max_surfaces INT DEFAULT 5,                                 -- Máximo de faces
+    applicable_faces JSONB DEFAULT '[]'::jsonb,                 -- Faces permitidas
+    teeth_group VARCHAR(50) DEFAULT 'todos',                    -- Grupo anatômico
+    applicable_teeth JSONB DEFAULT '[]'::jsonb,                 -- Dentes numéricos específicos
+    aggregation_mode VARCHAR(50) DEFAULT 'dente',               -- 'hemiarco', 'sextante', 'arcada', 'ambas_arcadas'
+    applicable_regions JSONB DEFAULT '[]'::jsonb,               -- Regiões aplicáveis
+    region_code VARCHAR(50),                                    -- Código regional
+    suggested_cost NUMERIC(10, 2),                              -- Custo referencial
+    specialty VARCHAR(150),                                     -- Especialidade
+    notes TEXT,                                                 -- Orientações clínicas
+    active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_correlation_proc FOREIGN KEY (procedure_id) REFERENCES tuss_procedures(id) ON DELETE CASCADE,
+    CONSTRAINT fk_correlation_price_table FOREIGN KEY (price_table_id) REFERENCES price_tables(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_correlation_proc ON correlation_rules(procedure_id);
+CREATE INDEX IF NOT EXISTS idx_correlation_condition ON correlation_rules(condition_type);`}
+                </pre>
+              </div>
+            </div>
+
+            {/* Sample SQL JOIN Query for developers / DBA */}
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Code className="w-5 h-5 text-blue-600" />
+                  <h4 className="font-bold text-xs text-gray-900">
+                    Consulta SQL Canônica (JOIN Procedimento Principal + Convênio + Preço)
+                  </h4>
+                </div>
+                <span className="text-[10px] text-gray-400 font-mono">ANSI SQL-92+ Compliant</span>
+              </div>
+              <div className="bg-slate-900 p-3.5 rounded-xl font-mono text-[11px] text-cyan-300 overflow-x-auto">
+                <pre>{`SELECT 
+    p.id AS procedure_id,
+    p.code AS tuss_code,
+    p.description AS procedure_name,
+    p.specialty,
+    t.name AS insurance_table_name,
+    pp.price AS agreed_price,
+    p.suggested_cost AS default_cost
+FROM tuss_procedures p
+LEFT JOIN procedure_prices pp ON pp.procedure_id = p.id
+LEFT JOIN price_tables t ON t.id = pp.price_table_id
+WHERE p.active = TRUE
+ORDER BY p.id ASC;`}</pre>
+              </div>
+            </div>
+
+            {/* Procedure Records with Primary Keys Table */}
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+              <div className="p-4 bg-[#f8fafc] border-b border-gray-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Table className="w-4 h-4 text-blue-600" />
+                  <h4 className="font-bold text-xs text-gray-900">
+                    Auditoria de Procedimentos no Banco SQL (Chave Primária & Integridade)
+                  </h4>
+                </div>
+                <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                  {tussProcedures.length} Entidades Principais
+                </span>
+              </div>
+
+              <div className="max-h-72 overflow-y-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-[#f1f5f9] text-gray-600 sticky top-0 border-b border-gray-200">
+                    <tr>
+                      <th className="p-2.5 font-bold">Chave Primária (PK)</th>
+                      <th className="p-2.5 font-bold">Código TUSS</th>
+                      <th className="p-2.5 font-bold">Procedimento (Elemento Principal)</th>
+                      <th className="p-2.5 font-bold">Especialidade</th>
+                      <th className="p-2.5 font-bold text-right">Custo Base (R$)</th>
+                      <th className="p-2.5 font-bold text-center">Status Integridade</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 font-mono text-[11px]">
+                    {tussProcedures.slice(0, 50).map((proc, index) => {
+                      const pk = proc.id ?? (index + 1);
+                      return (
+                        <tr key={proc.code} className="hover:bg-slate-50 transition-colors">
+                          <td className="p-2.5 font-bold text-blue-800">
+                            <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-200">
+                              PK #{pk}
+                            </span>
+                          </td>
+                          <td className="p-2.5 font-bold text-amber-900">{proc.code}</td>
+                          <td className="p-2.5 font-sans font-semibold text-gray-800 max-w-xs truncate">
+                            {proc.description}
+                          </td>
+                          <td className="p-2.5 font-sans text-gray-600">{proc.specialty}</td>
+                          <td className="p-2.5 text-right font-bold text-emerald-700">
+                            R$ {Number(proc.suggestedCost || 0).toFixed(2)}
+                          </td>
+                          <td className="p-2.5 text-center">
+                            <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                              100% Válido
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {tussProcedures.length > 50 && (
+                <div className="p-2 bg-slate-50 text-center text-[10px] text-gray-500 border-t border-gray-200">
+                  Mostrando os primeiros 50 de {tussProcedures.length} procedimentos. Use o botão <strong>"Baixar Dump SQL"</strong> para exportar todos os registros com integridade referencial.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Modal footer */}
-        <div className="p-4 bg-white border-t border-[#e5e5d1] flex justify-end">
+        <div className="p-4 bg-white border-t border-[#e5e5d1] flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer border border-[#e5e5d1]"
+            title="Voltar para a tela anterior"
+          >
+            <ArrowLeft className="w-4 h-4 text-[#5a5a40]" />
+            <span>Voltar</span>
+          </button>
           <button
             onClick={onClose}
             className="px-5 py-2 bg-[#2c3e2e] text-white rounded-lg text-xs font-bold hover:bg-[#1b2e1e] transition-colors"
@@ -1096,7 +1578,18 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl border border-[#e5e5d1] shadow-2xl w-full max-w-lg p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[#e5e5d1] pb-3">
-              <h3 className="text-sm font-bold text-[#2c3e2e]">Novo Procedimento</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingProc(false)}
+                  className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-bold flex items-center gap-1 border border-[#e5e5d1]"
+                  title="Voltar"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-[#5a5a40]" />
+                  <span>Voltar</span>
+                </button>
+                <h3 className="text-sm font-bold text-[#2c3e2e]">Novo Procedimento</h3>
+              </div>
               <button onClick={() => setIsAddingProc(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
@@ -1238,6 +1731,19 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
                     ))}
                   </div>
                 )}
+              </div>
+
+              <div>
+                <label className="block font-bold text-[#5a5a40] mb-1">Tipo de Escopo Clínico</label>
+                <select
+                  value={newScopeType}
+                  onChange={(e) => setNewScopeType(e.target.value as any)}
+                  className="w-full p-2 bg-[#fdfdf9] border border-[#e5e5d1] rounded-lg font-bold text-xs"
+                >
+                  <option value="dente">🦷 Por Dente (Individual)</option>
+                  <option value="face">💎 Por Face (Restaurações / Superfícies)</option>
+                  <option value="area">📐 Por Área / Região (Arcadas, Hemi-arcos, Sextantes)</option>
+                </select>
               </div>
 
               <div>
@@ -1384,9 +1890,10 @@ export const TussManagerModal: React.FC<TussManagerModalProps> = ({ isOpen, onCl
                 <button
                   type="button"
                   onClick={() => setIsAddingProc(false)}
-                  className="px-4 py-2 border border-[#e5e5d1] rounded-lg text-gray-600 font-bold"
+                  className="px-4 py-2 border border-[#e5e5d1] rounded-lg text-gray-600 font-bold flex items-center gap-1.5"
                 >
-                  Cancelar
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Voltar
                 </button>
                 <button
                   type="submit"
