@@ -7779,7 +7779,7 @@ export const DentalDocumentManager: React.FC = () => {
                       </div>
 
                       {/* PATIENT & PRESCRIPTION */}
-                      <div className="space-y-3 bg-stone-50/70 p-4 rounded-lg border border-stone-300">
+                      <div className="space-y-3 bg-transparent p-4 rounded-lg border border-stone-300 relative z-10">
                         <p className="text-sm">
                           <strong>Paciente:</strong> <span className="font-bold underline text-stone-900">{patientDisplayName}</span>
                         </p>
@@ -7787,7 +7787,7 @@ export const DentalDocumentManager: React.FC = () => {
                         <div className="space-y-1">
                           <p className="text-xs font-bold uppercase tracking-wide text-stone-800">Prescrição</p>
                           <p className="text-xs font-semibold italic text-stone-600">Uso interno(via oral)</p>
-                          <div className="bg-white p-3 rounded border border-stone-300 text-xs font-medium leading-relaxed whitespace-pre-line text-stone-900">
+                          <div className="bg-transparent p-3 rounded border border-stone-300 text-xs font-medium leading-relaxed whitespace-pre-line text-stone-900">
                             • {specialPrescriptionText}
                           </div>
                         </div>
