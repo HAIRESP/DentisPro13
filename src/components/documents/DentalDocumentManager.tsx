@@ -7613,10 +7613,10 @@ export const DentalDocumentManager: React.FC = () => {
                 {/* Background Watermark (Marca d'Água) */}
                 {(clinicInfo.showWatermark ?? true) && (clinicInfo.watermarkUrl || clinicInfo.logoUrl) && (
                   <div
-                    className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0"
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-20"
                     style={{ opacity: (clinicInfo.watermarkOpacity ?? 15) / 100 }}
                   >
-                    <img src={clinicInfo.watermarkUrl || clinicInfo.logoUrl} alt="Marca d'água" className="w-80 h-80 object-contain filter grayscale opacity-80" />
+                    <img src={clinicInfo.watermarkUrl || clinicInfo.logoUrl} alt="Marca d'água" className="w-80 h-80 object-contain filter grayscale" />
                   </div>
                 )}
 
