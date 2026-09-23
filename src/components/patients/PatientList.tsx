@@ -1,3 +1,4 @@
+import { getMedicalConditionAlerts } from '../../utils/medicalAlerts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Patient, Gender } from '../../types';
@@ -498,7 +499,7 @@ export const PatientList: React.FC = () => {
           <div className="space-y-2 max-h-[700px] overflow-y-auto pr-1">
             {filteredPatients.map(p => {
               const isSelected = selectedPatientId === p.id;
-              const hasAlert = p.anamnesis?.hasAllergies || p.anamnesis?.isPregnant || p.anamnesis?.hasHeartDisease;
+              const hasAlert = getMedicalConditionAlerts(p.anamnesis).length > 0 || p.anamnesis?.isPregnant;
 
               return (
                 <div
@@ -784,6 +785,16 @@ export const PatientList: React.FC = () => {
                         <div className={`p-2.5 rounded-xl border ${selectedPatient.anamnesis?.hasHypertension ? 'bg-amber-50 border-amber-200 text-amber-800 font-bold' : `${t.cardBg} ${t.cardBorder} ${t.cardText}`}`}>
                           Hipertensão: <strong>{selectedPatient.anamnesis?.hasHypertension ? 'SIM' : 'Não'}</strong>
                         </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 text-xs" aria-label="Condições de alerta selecionadas">
+                        {getMedicalConditionAlerts(selectedPatient.anamnesis)
+                          .filter(({ key }) => !['hasAllergies', 'usesBisphosphonates', 'hasDiabetes', 'hasHypertension'].includes(key))
+                          .map(({ key, label }) => (
+                            <span key={key} className="p-2.5 rounded-xl border bg-rose-50 border-rose-200 text-rose-800 font-bold">
+                              ⚠️ {label}
+                            </span>
+                          ))}
                       </div>
 
                       {/* Detail Badges for Medical, Dental, and Epidemiological History */}
