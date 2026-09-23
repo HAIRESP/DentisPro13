@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
 import { Professional, ClinicUnit } from '../../types';
@@ -196,8 +196,16 @@ export const SettingsView: React.FC = () => {
   const [showSignatureLine, setShowSignatureLine] = useState<boolean>(clinicInfo.showSignatureLine ?? true);
 
   // Signature image & Professional stamp (Carimbo) state
-  const [signatureImageUrl, setSignatureImageUrl] = useState<string>(clinicInfo.signatureImageUrl || '');
-  const [stampImageUrl, setStampImageUrl] = useState<string>(clinicInfo.stampImageUrl || '');
+  const initialLayoutProfessional = professionals.find(p => p.id === selectedDentistDropdownId);
+  const initialLayoutIsOwner = isDrHugoRicoy(initialLayoutProfessional, initialLayoutProfessional?.name, clinicInfo.dentistName);
+  const [signatureImageUrl, setSignatureImageUrl] = useState<string>(() =>
+    initialLayoutProfessional?.signatureImageUrl ?? (initialLayoutIsOwner ? clinicInfo.signatureImageUrl || '' : '')
+  );
+  const [stampImageUrl, setStampImageUrl] = useState<string>(() =>
+    initialLayoutProfessional?.stampImageUrl ?? (initialLayoutIsOwner ? clinicInfo.stampImageUrl || '' : '')
+  );
+  const layoutProfessionalIdRef = useRef(selectedDentistDropdownId);
+  layoutProfessionalIdRef.current = selectedDentistDropdownId;
   const [showSignatureImage, setShowSignatureImage] = useState<boolean>(clinicInfo.showSignatureImage ?? true);
   const [showStampImage, setShowStampImage] = useState<boolean>(clinicInfo.showStampImage ?? true);
   const [signatureAlignment, setSignatureAlignment] = useState<'right' | 'center' | 'left'>(clinicInfo.signatureAlignment || 'right');
@@ -601,31 +609,55 @@ export const SettingsView: React.FC = () => {
     setTimeout(() => setLayoutSaved(false), 2500);
   };
 
-  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setSignatureImageUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+  const saveProfessionalImage = (
+    professionalId: string,
+    field: 'signatureImageUrl' | 'stampImageUrl',
+    value: string
+  ) => {
+    const professional = professionals.find(p => p.id === professionalId);
+    if (!professional) return;
+    updateProfessional(professionalId, { [field]: value });
+    if (isDrHugoRicoy(professional, professional.name, clinicInfo.dentistName)) {
+      updateClinicInfo({ [field]: value });
+    }
+    // A file may finish loading after the user selects another dentist.
+    if (layoutProfessionalIdRef.current === professionalId) {
+      if (field === 'signatureImageUrl') setSignatureImageUrl(value);
+      else setStampImageUrl(value);
     }
   };
 
-  const handleStampUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfessionalImageUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: 'signatureImageUrl' | 'stampImageUrl'
+  ) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setStampImageUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+    const professionalId = selectedDentistDropdownId;
+    e.target.value = '';
+    if (!file) return;
+    if (!professionals.some(p => p.id === professionalId)) {
+      window.alert('Selecione o dentista antes de carregar a imagem.');
+      return;
     }
+    if (!file.type.startsWith('image/')) {
+      window.alert('Escolha um arquivo de imagem, como PNG ou JPEG.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        saveProfessionalImage(professionalId, field, reader.result);
+      }
+    };
+    reader.onerror = () => window.alert('Não foi possível ler a imagem. Tente novamente.');
+    reader.readAsDataURL(file);
   };
+
+  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) =>
+    handleProfessionalImageUpload(e, 'signatureImageUrl');
+
+  const handleStampUpload = (e: React.ChangeEvent<HTMLInputElement>) =>
+    handleProfessionalImageUpload(e, 'stampImageUrl');
 
   // Logo & Watermark Upload
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2084,6 +2116,7 @@ export const SettingsView: React.FC = () => {
                 <span className={`text-[11px] font-bold ${t.headingText} uppercase block border-b border-stone-100 pb-1`}>
                   Figura da Assinatura & Carimbo Físico (Unificados com rotação de -12,5°)
                 </span>
+                <p className="text-[11px] text-stone-600">As imagens são salvas automaticamente para o dentista selecionado após o carregamento.</p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Assinatura Upload */}
@@ -2095,7 +2128,7 @@ export const SettingsView: React.FC = () => {
                           <img src={signatureImageUrl} alt="Assinatura" className="w-12 h-10 object-contain border border-[#d4a373] rounded-lg p-0.5 bg-white" />
                           <button
                             type="button"
-                            onClick={() => setSignatureImageUrl('')}
+                            onClick={() => saveProfessionalImage(selectedDentistDropdownId, 'signatureImageUrl', '')}
                             className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white rounded-full p-0.5 text-[9px]"
                             title="Remover"
                           >
@@ -2126,7 +2159,7 @@ export const SettingsView: React.FC = () => {
                           <img src={stampImageUrl} alt="Carimbo" className="w-12 h-10 object-contain border border-stone-200 rounded-lg p-0.5 bg-transparent mix-blend-multiply" />
                           <button
                             type="button"
-                            onClick={() => setStampImageUrl('')}
+                            onClick={() => saveProfessionalImage(selectedDentistDropdownId, 'stampImageUrl', '')}
                             className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white rounded-full p-0.5 text-[9px]"
                             title="Remover"
                           >
