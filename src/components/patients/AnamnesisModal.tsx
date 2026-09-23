@@ -1,3 +1,4 @@
+import { getMedicalConditionAlerts } from '../../utils/medicalAlerts';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
@@ -650,6 +651,11 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
 
   if (!isOpen) return null;
 
+  const additionalConditionAlerts = getMedicalConditionAlerts({
+    hasRheumaticFever, hasAsthma, hasArthritis, hasFaintingSpells, hasSinusitis, hasHepatitis, hasOtherInfections, hasCancerHistory, hasHadSurgery,
+    otherInfectionsDetails, surgeryDetails,
+  });
+
   return (
     <div className={`fixed inset-0 z-50 ${t.overlayBg} flex items-center justify-center p-3 sm:p-4 overflow-y-auto`}>
       <div className={`${t.modalBg} border ${t.modalBorder} rounded-[32px] max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto my-4`}>
@@ -747,6 +753,11 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                 🔴 Alergia: {allergyDetails || 'Não informada'}
               </span>
             )}
+            {additionalConditionAlerts.map(({ key, label }) => (
+              <span key={key} className="px-3 py-1 bg-rose-100 text-rose-800 border border-rose-300 font-bold rounded-xl flex items-center gap-1">
+                ⚠️ {label}
+              </span>
+            ))}
             {usesBisphosphonates && (
               <span className="px-3 py-1 bg-rose-100 text-rose-900 border border-rose-400 font-bold rounded-xl flex items-center gap-1">
                 🔴 BISFOSFONATOS (Risco de Osteonecrose)
@@ -807,7 +818,7 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
                 ⚠️ Uso de Substâncias / Drogas
               </span>
             )}
-            {!hasAllergies && !usesBisphosphonates && !usesAnticoagulants && !isPregnant && !hasDiabetes && !hasHypertension && !hasHeartDisease && !isSmoker && !usesRecreationalDrugs && !closeContactsInfectious && !environmentalExposure && (
+            {additionalConditionAlerts.length === 0 && !bleedingDisorder && !geneticMarkers && !hasAllergies && !usesBisphosphonates && !usesAnticoagulants && !isPregnant && !hasDiabetes && !hasHypertension && !hasHeartDisease && !isSmoker && !usesRecreationalDrugs && !closeContactsInfectious && !environmentalExposure && (
               <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium rounded-xl">
                 ✅ Nenhum alerta crítico ativo relatado
               </span>
