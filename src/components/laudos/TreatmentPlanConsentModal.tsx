@@ -125,8 +125,7 @@ export const TreatmentPlanConsentModal: React.FC<TreatmentPlanConsentModalProps>
             signedByPatient: true,
             signatureDate: new Date().toISOString().split('T')[0]
           };
-          const updated = [...attachments, newAtt];
-          setAttachments(updated);
+          setAttachments(previous => [...previous, newAtt]);
           setIsAccepted(true);
         }
       };
