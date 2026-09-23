@@ -66,17 +66,42 @@ export const ImageGalleryWithEditor: React.FC<ImageGalleryWithEditorProps> = ({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
+  const uploadPendingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const [isUploading, setIsUploading] = useState(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          onUpdateImages([...images, reader.result as string]);
-        }
-      };
-      reader.readAsDataURL(file as Blob);
-    });
+    e.target.value = '';
+    if (!files.length || uploadPendingRef.current) return;
+    uploadPendingRef.current = true;
+    setIsUploading(true);
+    try {
+      const uploaded = await Promise.all(files.map(file => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => typeof reader.result === 'string'
+          ? resolve(reader.result)
+          : reject(new Error('Não foi possível ler a imagem.'));
+        reader.onerror = () => reject(new Error('Falha ao ler ' + file.name));
+        reader.onabort = () => reject(new Error('Leitura cancelada.'));
+        reader.readAsDataURL(file);
+      })));
+      if (!mountedRef.current) return;
+      const updated = [...imagesRef.current, ...uploaded];
+      imagesRef.current = updated;
+      onUpdateImages(updated);
+    } catch {
+      if (mountedRef.current) window.alert('Não foi possível carregar as imagens. Tente novamente.');
+    } finally {
+      uploadPendingRef.current = false;
+      if (mountedRef.current) setIsUploading(false);
+    }
   };
 
   const handleRemoveImage = (indexToRemove: number) => {
@@ -295,7 +320,8 @@ export const ImageGalleryWithEditor: React.FC<ImageGalleryWithEditorProps> = ({
                 type="file" 
                 accept="image/*" 
                 multiple 
-                onChange={handleFileUpload} 
+                onChange={handleFileUpload}
+                disabled={isUploading}
                 className="hidden" 
               />
             </label>
