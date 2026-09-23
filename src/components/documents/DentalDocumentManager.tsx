@@ -1082,8 +1082,8 @@ export const DentalDocumentManager: React.FC = () => {
             <span style="font-size: 8.5px; font-weight: bold; background: #fafafa; border: 1px solid #ddd; padding: 1px 4px; border-radius: 3px; color: #666;">2ª Via Paciente</span>
           </div>
         </div>
-        <div style="margin: 4px 0; min-height: calc(76px + 1cm); position: relative; width: 100%; display: flex; align-items: center; justify-content: center; overflow: visible;">
-          ${allowStamp && docStampUrl ? `<div style="position: absolute; top: calc(38px + 1cm); left: 50%; transform: translate(-50%, -50%) rotate(-12.5deg); z-index: 10; pointer-events: none;"><img src="${docStampUrl}" style="height: 48px; max-width: 130px; object-fit: contain; border: 1px solid rgba(203,213,225,0.9); border-radius: 8px; padding: 2px; background: transparent; mix-blend-mode: multiply; filter: contrast(110%);" alt="Carimbo Profissional" /></div>` : ''}
+        <div style="margin: 4px 0; min-height: calc(76px + 0.3cm); position: relative; width: 100%; display: flex; align-items: center; justify-content: center; overflow: visible;">
+          ${allowStamp && docStampUrl ? `<div style="position: absolute; top: calc(38px + 0.3cm); left: 50%; transform: translate(-50%, -50%) rotate(-12.5deg); z-index: 10; pointer-events: none;"><img src="${docStampUrl}" style="height: 48px; max-width: 130px; object-fit: contain; border: 1px solid rgba(203,213,225,0.9); border-radius: 8px; padding: 2px; background: transparent; mix-blend-mode: multiply; filter: contrast(110%);" alt="Carimbo Profissional" /></div>` : ''}
           ${allowSig && docSigUrl ? `<div style="position: absolute; top: 38px; left: 50%; transform: translate(-50%, -50%) rotate(-2deg); z-index: 20; pointer-events: none;"><img src="${docSigUrl}" style="height: 48px; max-width: 170px; object-fit: contain; filter: contrast(125%) drop-shadow(0 1px 1px rgba(0,0,0,0.05));" alt="Assinatura Manual" /></div>` : ''}
           ${(!allowStamp || !docStampUrl) && (!allowSig || !docSigUrl) ? `<span style="font-size: 9px; color: #888;">(Linha em branco para assinatura física manual)</span>` : ''}
         </div>
@@ -7729,10 +7729,10 @@ export const DentalDocumentManager: React.FC = () => {
                           </div>
 
                           {/* Assinatura e Carimbo do Dentista Emitente (Unificados: carimbo por baixo a -12.5°, assinatura por cima a -2°) */}
-                          <div className="relative flex items-center justify-center my-1 w-full flex-1 overflow-visible pointer-events-none" style={{ minHeight: 'calc(76px + 1cm)' }}>
+                          <div className="relative flex items-center justify-center my-1 w-full flex-1 overflow-visible pointer-events-none" style={{ minHeight: 'calc(76px + 0.3cm)' }}>
                             {/* Carimbo Profissional (Por baixo da assinatura, rotacionado a 12,5° para a esquerda) */}
                             {(clinicInfo.showStampImage ?? true) && autoInsertSignatureAndStamp && effectiveStampUrl && (
-                              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[12.5deg] z-10 flex items-center justify-center" style={{ top: 'calc(38px + 1cm)' }}>
+                              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[12.5deg] z-10 flex items-center justify-center" style={{ top: 'calc(38px + 0.3cm)' }}>
                                 <img
                                   src={effectiveStampUrl}
                                   alt="Carimbo Profissional"
