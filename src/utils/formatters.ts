@@ -299,17 +299,22 @@ export function verifyProfessionalSignatureAndStamp(
   // Validador estrito de existência de arquivo (evita strings vazias, nulas ou placeholders inválidos)
   const isValidFileString = (val?: string) => Boolean(val && typeof val === 'string' && val.trim().length > 15);
 
+  // Clinic layout images belong only to its registered dentist, never to another professional.
+  const matchesLayoutDentist = Boolean(matchedProf && (
+    isClinicOwner || (clinicInfo?.dentistName && norm(matchedProf.name) === norm(clinicInfo.dentistName))
+  ));
+
   let rawSignatureUrl: string | undefined;
   if (matchedProf && isValidFileString(matchedProf.signatureImageUrl)) {
     rawSignatureUrl = matchedProf.signatureImageUrl!.trim();
-  } else if (isClinicOwner && isTargetExplicitlyHugo && isValidFileString(clinicInfo?.signatureImageUrl)) {
+  } else if (matchesLayoutDentist && isValidFileString(clinicInfo?.signatureImageUrl)) {
     rawSignatureUrl = clinicInfo!.signatureImageUrl!.trim();
   }
 
   let rawStampUrl: string | undefined;
   if (matchedProf && isValidFileString(matchedProf.stampImageUrl)) {
     rawStampUrl = matchedProf.stampImageUrl!.trim();
-  } else if (isClinicOwner && isTargetExplicitlyHugo && isValidFileString(clinicInfo?.stampImageUrl)) {
+  } else if (matchesLayoutDentist && isValidFileString(clinicInfo?.stampImageUrl)) {
     rawStampUrl = clinicInfo!.stampImageUrl!.trim();
   }
 
