@@ -50,6 +50,13 @@
   margin: 1.5cm 1.5cm 1.5cm 1.5cm;
 }
 
+/* The document preview has internal spacing; give its printed page the same safe area.
+   Keep the default @page margins for all other print views. */
+@page dental-document {
+  size: A4 portrait;
+  margin: 0;
+}
+
 @media print {
   html, body {
     background: #ffffff !important;
@@ -102,13 +109,15 @@
     margin: 0 !important;
   }
   #printable-document-sheet {
+    page: dental-document;
+    box-sizing: border-box !important;
     width: 100% !important;
     max-width: 100% !important;
     min-height: auto !important;
     border: none !important;
     box-shadow: none !important;
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 1.5cm !important;
     page-break-after: avoid;
     break-after: avoid;
   }
