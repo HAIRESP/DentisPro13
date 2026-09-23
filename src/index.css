@@ -44,6 +44,15 @@
   background: rgba(150, 150, 150, 0.6);
 }
 
+/* Documents use white paper in both the on-screen preview and the printed page. */
+#printable-document-sheet {
+  background-color: #fff !important;
+}
+
+#printable-document-sheet [class*="bg-stone-"] {
+  background-color: #fff !important;
+}
+
 /* Print optimization for system print dialog with 1.5cm margins on all sides */
 @page {
   size: A4 portrait;
