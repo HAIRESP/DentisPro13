@@ -1127,6 +1127,7 @@ export const PatientList: React.FC = () => {
                 {activeProfileTab === 'galeria' && (
                   <div className="space-y-4 pt-2">
                     <ImageGalleryWithEditor
+                      key={selectedPatient.id}
                       title="Galeria Unificada do Prontuário"
                       description="Banco de imagens centralizado deste paciente. Fotos de exames clínicos (extraoral, intraoral, odontograma), radiografias e procedimentos realizados são compartilhados e persistem neste prontuário."
                       images={selectedPatient.images || []}
