@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
 import { getPatientAgeAndBirthDate } from '../../utils/patientUtils';
-import { formatCPF, formatCNPJ, formatCEP } from '../../utils/formatters';
+import { formatCPF, formatCNPJ, formatCEP, isDrHugoRicoy, verifyProfessionalSignatureAndStamp, cleanSignatureText } from '../../utils/formatters';
 import { 
   FileText, 
   FileCheck, 
@@ -36,6 +36,7 @@ import {
   Globe,
   Mail,
   Phone,
+  MapPin,
   Star,
   SlidersHorizontal,
   Bookmark,
@@ -49,7 +50,8 @@ import {
   Layers,
   Eye,
   FileSpreadsheet,
-  DollarSign
+  DollarSign,
+  FileSignature
 } from 'lucide-react';
 import { DENTAL_MEDICATIONS_CATALOG } from '../../data/medicationsCatalog';
 import { MedicationItem } from '../../types';
@@ -574,6 +576,12 @@ export const REGION_NOTATIONS_LIST = [
   'Status Bucal Completo (Levantamento Periapical de 14 Tomadas)'
 ];
 
+export const isInsuranceValid = (insurance?: string): boolean => {
+  if (!insurance) return false;
+  const trimmed = insurance.trim().toLowerCase();
+  return trimmed !== '' && trimmed !== 'particular' && trimmed !== 'sem convênio' && trimmed !== 'sem convenio' && trimmed !== 'nenhum';
+};
+
 export const DentalDocumentManager: React.FC = () => {
   const { 
     patients, 
@@ -585,8 +593,42 @@ export const DentalDocumentManager: React.FC = () => {
     deleteSavedClinicDocument, 
     selectedPatientId: globalSelectedPatientId,
     layoutTheme,
-    tussProcedures
+    tussProcedures,
+    professionals
   } = useApp();
+
+  const [selectedDocumentProfessionalId, setSelectedDocumentProfessionalId] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('dentispro_selected_doc_prof');
+      if (saved !== null) return saved;
+    } catch (e) {}
+    return activeProfessional?.id || '';
+  });
+  const [autoInsertSignatureAndStamp, setAutoInsertSignatureAndStamp] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('dentispro_auto_insert_sig_stamp');
+      if (saved !== null) return saved === 'true';
+    } catch (e) {}
+    return true;
+  });
+
+  // Synchronize document professional when activeProfessional changes globally only if not explicitly set to empty
+  useEffect(() => {
+    if (activeProfessional?.id) {
+      try {
+        const saved = localStorage.getItem('dentispro_selected_doc_prof');
+        if (saved === null) {
+          setSelectedDocumentProfessionalId(activeProfessional.id);
+        }
+      } catch (e) {
+        setSelectedDocumentProfessionalId(activeProfessional.id);
+      }
+    }
+  }, [activeProfessional?.id]);
+
+  const documentProf = selectedDocumentProfessionalId
+    ? professionals.find(p => p.id === selectedDocumentProfessionalId)
+    : undefined;
 
   const effectiveClinicName = (activeClinic && activeClinic.id !== 'todas') ? activeClinic.name : (clinicInfo.headerTitle || clinicInfo.name || 'DentisPro');
   const effectiveClinicAddress = (activeClinic && activeClinic.id !== 'todas') ? activeClinic.address : (clinicInfo.address || 'Rua Visconde de Mauá 2600');
@@ -594,9 +636,20 @@ export const DentalDocumentManager: React.FC = () => {
   const effectiveClinicPhone = (activeClinic && activeClinic.id !== 'todas') ? activeClinic.phone : (clinicInfo.phone || '(85) 98684-6424');
   const effectiveClinicEmail = (activeClinic && activeClinic.id !== 'todas') ? activeClinic.email : (clinicInfo.email || 'contato@dentispro.com.br');
 
-  const effectiveDentistName = activeProfessional?.name || clinicInfo.dentistName || 'Hugo Andres Iglesias Ricoy';
-  const effectiveDentistCro = activeProfessional?.cro || clinicInfo.cro || 'CRO/CE 5925';
-  const effectiveDentistSpecialty = activeProfessional?.specialty || clinicInfo.specialty || 'Cirurgião-Dentista';
+  // Validação estrita da existência da assinatura e carimbo do profissional no banco de dados
+  const currentProfVerification = verifyProfessionalSignatureAndStamp(
+    selectedDocumentProfessionalId ? documentProf : undefined,
+    professionals,
+    clinicInfo,
+    autoInsertSignatureAndStamp
+  );
+
+  const effectiveDentistName = currentProfVerification.dentistName;
+  const effectiveDentistCro = currentProfVerification.dentistCro;
+  const effectiveDentistSpecialty = currentProfVerification.dentistSpecialty;
+  const isSelectedProfClinicOwner = currentProfVerification.isClinicOwner;
+  const effectiveSigUrl = currentProfVerification.signatureUrl;
+  const effectiveStampUrl = currentProfVerification.stampUrl;
 
   const t = getThemeStyles(layoutTheme);
 
@@ -611,8 +664,20 @@ export const DentalDocumentManager: React.FC = () => {
   const [activeTemplate, setActiveTemplate] = useState<DocumentTemplate | null>(null);
   const [selectedPatientId, setSelectedPatientId] = useState<string>(globalSelectedPatientId || patients[0]?.id || '');
   const [customPatientName, setCustomPatientName] = useState<string>('');
-  const [customPatientAgeYears, setCustomPatientAgeYears] = useState<string>('36');
-  const [customPatientAgeMonths, setCustomPatientAgeMonths] = useState<string>('0');
+  const [customPatientAgeYears, setCustomPatientAgeYears] = useState<string>(() => {
+    const p = patients.find(pat => pat.id === (globalSelectedPatientId || patients[0]?.id));
+    if (p?.birthDate) {
+      return String(getPatientAgeAndBirthDate(p.birthDate).ageYears);
+    }
+    return '';
+  });
+  const [customPatientAgeMonths, setCustomPatientAgeMonths] = useState<string>(() => {
+    const p = patients.find(pat => pat.id === (globalSelectedPatientId || patients[0]?.id));
+    if (p?.birthDate) {
+      return String(getPatientAgeAndBirthDate(p.birthDate).ageMonths);
+    }
+    return '0';
+  });
 
   // Synchronize with global selectedPatientId when navigating from patient profile
   React.useEffect(() => {
@@ -736,8 +801,19 @@ export const DentalDocumentManager: React.FC = () => {
     const cityOnly = formatCityOnly(effectiveClinicCity);
     const cepFormatted = formatCEP(clinicInfo.cep || '60.160-110');
     const docDateStr = doc.formattedDateStr || formattedFormattedDate || new Date().toLocaleDateString('pt-BR');
-    const dentistName = doc.professionalName || effectiveDentistName;
-    const dentistCro = effectiveDentistCro;
+    const resolvedDocProf = doc.professionalName
+      ? professionals.find(p => p.name.trim().toLowerCase() === doc.professionalName!.trim().toLowerCase())
+      : (selectedDocumentProfessionalId ? professionals.find(p => p.id === selectedDocumentProfessionalId) : undefined);
+
+    const printDocProfVerification = verifyProfessionalSignatureAndStamp(
+      doc.professionalName ? { name: doc.professionalName } : resolvedDocProf,
+      professionals,
+      clinicInfo,
+      autoInsertSignatureAndStamp
+    );
+
+    const dentistName = doc.professionalName || printDocProfVerification.dentistName;
+    const dentistCro = printDocProfVerification.dentistCro;
     const tData = doc.templateData || {};
     const pdfDocTitle = getDocumentPdfTitle(doc.title, doc.formattedDateStr || docDate, doc.patientName);
     const autoPrintScript = `
@@ -770,47 +846,39 @@ export const DentalDocumentManager: React.FC = () => {
     }
   </script>`;
 
+    // 1. Validação estrita da existência da assinatura e carimbo do profissional no banco de dados antes da impressão
+    const isDocClinicOwner = printDocProfVerification.isClinicOwner;
+    const docSigUrl = printDocProfVerification.signatureUrl;
+    const docStampUrl = printDocProfVerification.stampUrl;
+
     const sigAlign = clinicInfo.signatureAlignment || 'right';
-    const sigArrangement = clinicInfo.signatureArrangement || 'overlay';
-    const effectiveSigUrl = activeProfessional?.signatureImageUrl || clinicInfo.signatureImageUrl;
-    const effectiveStampUrl = activeProfessional?.stampImageUrl || clinicInfo.stampImageUrl;
-    const allowSig = (clinicInfo.showSignatureImage ?? true);
-    const allowStamp = (clinicInfo.showStampImage ?? true);
+    const allowSig = (clinicInfo.showSignatureImage ?? true) && Boolean(docSigUrl);
+    const allowStamp = (clinicInfo.showStampImage ?? true) && Boolean(docStampUrl);
 
-    const sigElementHtml = allowSig ? (
-      effectiveSigUrl ? `
-        <img src="${effectiveSigUrl}" style="height: 60px; max-width: 210px; object-fit: contain; filter: contrast(125%); transform: rotate(-2deg);" alt="Assinatura Manual" />
-      ` : `
-        <div style="height: 55px; width: 220px; display: inline-flex; align-items: center; justify-content: flex-start; transform: rotate(-2deg);">
-          <svg style="width: 100%; height: 100%; color: #1e1b4b;" viewBox="0 0 240 60" fill="none" stroke="#1e1b4b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M 10 35 C 30 10, 45 50, 60 25 C 70 10, 80 40, 95 30 C 110 20, 115 45, 130 25 C 145 10, 160 50, 180 20 C 195 10, 210 35, 230 30" />
-            <path d="M 30 45 C 70 48, 120 40, 200 42" stroke-width="1.8" />
-          </svg>
-        </div>
-      `
-    ) : '';
+    // Se os arquivos não existirem no banco, as imagens são omitidas automaticamente,
+    // preservando integralmente o campo e a linha de assinatura no documento.
+    const sigElementHtml = (allowSig && docSigUrl) ? `
+      <img src="${docSigUrl}" style="height: 48px; max-width: 170px; object-fit: contain; filter: contrast(125%) drop-shadow(0 1px 1px rgba(0,0,0,0.05)); transform: rotate(-2deg);" alt="Assinatura Manual" />
+    ` : '';
 
-    const stampElementHtml = allowStamp ? (
-      effectiveStampUrl ? `
-        <img src="${effectiveStampUrl}" style="height: 60px; max-width: 150px; object-fit: contain; border: 1px solid rgba(203,213,225,0.7); border-radius: 6px; padding: 2px; background: transparent; mix-blend-mode: multiply;" alt="Carimbo" />
-      ` : `
-        <div style="border: 1px dashed #cbd5e1; color: #64748b; border-radius: 8px; padding: 4px 8px; background: transparent; text-align: left; text-transform: uppercase; display: inline-flex; flex-direction: column; justify-content: center; min-width: 150px;">
-          <span style="font-weight: bold; font-size: 9.5px; display: block; line-height: 1.1; color: #334155;">${dentistName}</span>
-          <span style="font-size: 8.5px; font-family: monospace; display: block; line-height: 1.1; color: #64748b;">${dentistCro}</span>
-          <span style="font-size: 7.5px; color: #94a3b8; display: block;">Cirurgião-Dentista</span>
-        </div>
-      `
-    ) : '';
+    const stampElementHtml = (allowStamp && docStampUrl) ? `
+      <img src="${docStampUrl}" style="height: 48px; max-width: 130px; object-fit: contain; border: 1px solid rgba(203,213,225,0.9); border-radius: 8px; padding: 2px; background: transparent; mix-blend-mode: multiply; filter: contrast(110%);" alt="Carimbo Profissional" />
+    ` : '';
 
+    const hasAnySignatureOrStamp = Boolean(sigElementHtml || stampElementHtml);
     const signatureBlockHtml = `
-      <div style="margin-top: 15px; width: 100%; display: flex; flex-direction: column; align-items: ${sigAlign === 'right' ? 'flex-end' : sigAlign === 'center' ? 'center' : 'flex-start'}; text-align: ${sigAlign}; margin-left: ${sigAlign === 'right' ? 'auto' : '0'};">
-        <div style="position: relative; width: 280px; min-height: 95px; margin-bottom: 5px; margin-left: ${sigAlign === 'right' ? 'auto' : sigAlign === 'center' ? 'auto' : '0'}; margin-right: ${sigAlign === 'center' ? 'auto' : '0'};">
-          ${allowStamp ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 0' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%) rotate(-12.5deg);' : 'left: 0'}; top: 22px; z-index: 10; transform: ${sigAlign === 'center' ? 'translateX(-50%) rotate(-12.5deg)' : 'rotate(-12.5deg)'}; transform-origin: center center;">${stampElementHtml}</div>` : ''}
-          ${allowSig ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 18px' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%);' : 'left: 18px'}; top: 0; z-index: 20; pointer-events: none;">${sigElementHtml}</div>` : ''}
-        </div>
+      <div style="margin-top: ${hasAnySignatureOrStamp ? '12px' : '24px'}; width: 100%; display: flex; flex-direction: column; align-items: ${sigAlign === 'right' ? 'flex-end' : sigAlign === 'center' ? 'center' : 'flex-start'}; text-align: ${sigAlign}; margin-left: ${sigAlign === 'right' ? 'auto' : '0'};">
+        ${hasAnySignatureOrStamp ? `
+          <div style="position: relative; width: 256px; min-height: 76px; margin-bottom: 4px; margin-left: ${sigAlign === 'right' ? 'auto' : sigAlign === 'center' ? 'auto' : '0'}; margin-right: ${sigAlign === 'center' ? 'auto' : '0'}; overflow: visible; pointer-events: none;">
+            ${stampElementHtml ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 0' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%) rotate(-12.5deg);' : 'left: 0'}; top: 16px; z-index: 10; ${sigAlign !== 'center' ? 'transform: rotate(-12.5deg);' : ''} transform-origin: center center;">${stampElementHtml}</div>` : ''}
+            ${sigElementHtml ? `<div style="position: absolute; ${sigAlign === 'right' ? 'right: 16px' : sigAlign === 'center' ? 'left: 50%; transform: translateX(-50%);' : 'left: 16px'}; top: 0; z-index: 20; pointer-events: none;">${sigElementHtml}</div>` : ''}
+          </div>
+        ` : `
+          <div style="height: 28px;"></div>
+        `}
         ${(clinicInfo.showSignatureLine ?? true) ? `
-          <div style="width: 250px; border-top: 1.5px solid #222; margin-top: 5px; padding-top: 4px; font-weight: bold; font-size: 11px; text-align: ${sigAlign}; margin-left: ${sigAlign === 'right' ? 'auto' : '0'};">
-            ${clinicInfo.signatureLabel || `${dentistName} • ${dentistCro}`}
+          <div style="width: 256px; border-top: 2px solid #222; margin-top: 4px; padding-top: 4px; font-weight: bold; font-size: 11px; text-align: ${sigAlign}; margin-left: ${sigAlign === 'right' ? 'auto' : '0'}; min-height: 18px;">
+            ${printDocProfVerification.hasProfessionalSelected ? cleanSignatureText(`${dentistName}${dentistCro ? ` • ${dentistCro}` : ''}`) : '&nbsp;'}
           </div>
         ` : ''}
       </div>
@@ -823,22 +891,45 @@ export const DentalDocumentManager: React.FC = () => {
     ` : '';
 
     const clinicFooterHtml = `
-      <div style="margin-top: 20px; border-top: 1px solid #ebebe0; padding-top: 10px; font-size: 9.5px; color: #666;">
-        ${clinicInfo.footerText ? `<div style="text-align: center; margin-bottom: 8px; font-size: 10px; color: #444; font-weight: 500;">${clinicInfo.footerText}</div>` : ''}
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <a href="https://dentispro.com.br" target="_blank" rel="noopener noreferrer" style="color: #666; text-decoration: none; display: flex; align-items: center; gap: 4px;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-            dentispro.com.br
-          </a>
-          <a href="mailto:${effectiveClinicEmail}" style="color: #666; text-decoration: none; display: flex; align-items: center; gap: 4px;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
-            ${effectiveClinicEmail}
-          </a>
-          <a href="tel:${effectiveClinicPhone.replace(/\D/g, '')}" style="color: #666; text-decoration: none; display: flex; align-items: center; gap: 4px;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-            ${effectiveClinicPhone}
-          </a>
+      <div style="margin-top: 20px; border-top: 1.5px solid #222; padding-top: 8px; font-size: 9.5px; color: #333; font-family: sans-serif;">
+        <!-- Endereço da clínica -->
+        <div style="text-align: center; margin-bottom: 6px; font-size: 10px; font-weight: 600; color: #222; display: flex; align-items: center; justify-content: center; gap: 4px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5a5a40" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${effectiveClinicAddress} • ${cityOnly} - CE • CEP: ${cepFormatted}
         </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; border-top: 1px solid #ebebe0; padding-top: 6px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <a href="https://dentispro.com.br" target="_blank" rel="noopener noreferrer" style="color: #1e3a8a; text-decoration: underline; display: flex; align-items: center; gap: 3px; font-weight: 500;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+              dentispro.com.br
+            </a>
+            <a href="tel:5585986846424" style="color: #1e3a8a; text-decoration: underline; display: flex; align-items: center; gap: 3px; font-weight: 500;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+              (85) 98684 6424
+            </a>
+            <a href="https://wa.me/5585996755202" target="_blank" rel="noopener noreferrer" style="color: #1e3a8a; text-decoration: underline; display: flex; align-items: center; gap: 3px; font-weight: 500;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="#25D366"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+              (85) 99675 5202
+            </a>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            ${effectiveClinicEmail ? `
+              <a href="mailto:${effectiveClinicEmail}" style="color: #1e3a8a; text-decoration: underline; display: flex; align-items: center; gap: 3px; font-weight: 500;">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+                ${effectiveClinicEmail}
+              </a>
+            ` : ''}
+            <a href="https://www.facebook.com/drhugoandres" target="_blank" rel="noopener noreferrer" style="color: #1e3a8a; text-decoration: underline; display: flex; align-items: center; gap: 3px; font-weight: 500;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              Facebook
+            </a>
+            <a href="https://www.instagram.com/hugoandresiglesias/" target="_blank" rel="noopener noreferrer" style="color: #1e3a8a; text-decoration: underline; display: flex; align-items: center; gap: 3px; font-weight: 500;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="#E4405F"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+              Instagram
+            </a>
+          </div>
+        </div>
+        ${(clinicInfo.footerText && !clinicInfo.footerText.includes('Paulista') && !clinicInfo.footerText.toLowerCase().includes(effectiveClinicAddress.toLowerCase())) ? `<div style="text-align: center; margin-top: 6px; font-size: 9px; color: #777; font-style: italic;">${clinicInfo.footerText}</div>` : ''}
       </div>
     `;
 
@@ -972,7 +1063,7 @@ export const DentalDocumentManager: React.FC = () => {
     <div class="rect-box">
       <div>
         <div class="box-title">IDENTIFICAÇÃO DO EMITENTE</div>
-        <div class="emitente-name">${dentistName} • ${dentistCro}</div>
+        <div class="emitente-name">${printDocProfVerification.hasProfessionalSelected ? cleanSignatureText(`${dentistName} • ${dentistCro}`) : '&nbsp;'}</div>
         <div class="emitente-phone">Telefones: ${effectiveClinicPhone}</div>
       </div>
       <div style="border-top: 1px solid #eee; margin-top: 4px; padding-top: 4px;">
@@ -991,15 +1082,19 @@ export const DentalDocumentManager: React.FC = () => {
             <span style="font-size: 8.5px; font-weight: bold; background: #fafafa; border: 1px solid #ddd; padding: 1px 4px; border-radius: 3px; color: #666;">2ª Via Paciente</span>
           </div>
         </div>
-        <div style="margin: 4px 0; min-height: 56px; position: relative; width: 100%; display: flex; align-items: center; justify-content: center;">
-          ${allowStamp && effectiveStampUrl ? `<div style="position: absolute; z-index: 10; transform: rotate(-12.5deg); transform-origin: center center;"><img src="${effectiveStampUrl}" style="height: 32px; max-width: 115px; object-fit: contain; border: 1px solid rgba(203,213,225,0.7); padding: 1px; background: transparent; mix-blend-mode: multiply;" alt="Carimbo" /></div>` : ''}
-          ${allowSig && effectiveSigUrl ? `<div style="position: absolute; z-index: 20; pointer-events: none;"><img src="${effectiveSigUrl}" style="height: 36px; max-width: 140px; object-fit: contain; filter: contrast(125%); transform: rotate(-2deg);" alt="Assinatura" /></div>` : ''}
-          ${(!allowStamp || !effectiveStampUrl) && (!allowSig || !effectiveSigUrl) ? `<span style="font-size: 9px; color: #888;">(Assinatura / Carimbo do Emitente)</span>` : ''}
+        <div style="margin: 4px 0; min-height: 76px; position: relative; width: 100%; display: flex; align-items: center; justify-content: center; overflow: visible;">
+          ${allowStamp && docStampUrl ? `<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-12.5deg); z-index: 10; pointer-events: none;"><img src="${docStampUrl}" style="height: 48px; max-width: 130px; object-fit: contain; border: 1px solid rgba(203,213,225,0.9); border-radius: 8px; padding: 2px; background: transparent; mix-blend-mode: multiply; filter: contrast(110%);" alt="Carimbo Profissional" /></div>` : ''}
+          ${allowSig && docSigUrl ? `<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-2deg); z-index: 20; pointer-events: none;"><img src="${docSigUrl}" style="height: 48px; max-width: 170px; object-fit: contain; filter: contrast(125%) drop-shadow(0 1px 1px rgba(0,0,0,0.05));" alt="Assinatura Manual" /></div>` : ''}
+          ${(!allowStamp || !docStampUrl) && (!allowSig || !docSigUrl) ? `<span style="font-size: 9px; color: #888;">(Linha em branco para assinatura física manual)</span>` : ''}
         </div>
       </div>
-      <div style="border-top: 1px solid #444; padding-top: 2px; text-align: center;">
-        <div style="font-size: 9.5px; font-weight: bold; color: #000;">${dentistName}</div>
-        <div style="font-size: 8.5px; font-family: monospace; color: #555;">${dentistCro} • Cirurgião-Dentista</div>
+      <div style="border-top: 1.5px solid #222; padding-top: 3px; text-align: center; min-height: 22px;">
+        ${printDocProfVerification.hasProfessionalSelected ? `
+          <div style="font-size: 9.5px; font-weight: bold; color: #000;">${cleanSignatureText(dentistName)}</div>
+          <div style="font-size: 8.5px; font-family: monospace; color: #555;">${dentistCro}</div>
+        ` : `
+          <div style="font-size: 8.5px; color: #888;">&nbsp;</div>
+        `}
       </div>
     </div>
   </div>
@@ -1049,9 +1144,9 @@ export const DentalDocumentManager: React.FC = () => {
       const customTxt = tData.rxPanoramicoTextoCustomizado || rxPanoramicoTextoCustomizado;
       const solicitacoes = getRxPanoramicoSolicitacoesList(opts, customTxt);
 
-      const incluirConvenio = tData.rxPanoramicoIncluirConvenio ?? rxPanoramicoIncluirConvenio;
-      const convNome = tData.rxPanoramicoConvenioNome || rxPanoramicoConvenioNome;
-      const convNum = tData.rxPanoramicoConvenioNumero || rxPanoramicoConvenioNumero;
+      const incluirConvenio = tData.rxPanoramicoIncluirConvenio !== undefined ? tData.rxPanoramicoIncluirConvenio : rxPanoramicoIncluirConvenio;
+      const convNome = tData.rxPanoramicoConvenioNome !== undefined ? tData.rxPanoramicoConvenioNome : rxPanoramicoConvenioNome;
+      const convNum = tData.rxPanoramicoConvenioNumero !== undefined ? tData.rxPanoramicoConvenioNumero : rxPanoramicoConvenioNumero;
 
       const indicarClinicas = tData.rxPanoramicoIndicarClinicas ?? rxPanoramicoIndicarClinicas;
       const clinicasOpts = tData.rxPanoramicoClinicas || rxPanoramicoClinicas;
@@ -2042,11 +2137,12 @@ export const DentalDocumentManager: React.FC = () => {
 </html>`;
   };
 
-  // Helper function to open native system print dialog with dynamic PDF naming and isolated iframe
+  // Helper function to open native system print dialog with dynamic PDF naming and active document sheet
   const handlePrintSystemWindow = (doc: {
     id?: string;
     title: string;
     patientName: string;
+    patientId?: string;
     professionalName?: string;
     formattedDateStr?: string;
     summary?: string;
@@ -2054,93 +2150,28 @@ export const DentalDocumentManager: React.FC = () => {
     templateData?: Record<string, any>;
     cidCode?: string;
   }) => {
-    const pdfDocumentTitle = getDocumentPdfTitle(doc.title, doc.formattedDateStr || docDate);
-    const prevTitle = document.title;
-    document.title = pdfDocumentTitle;
-
-    const htmlContent = buildDocumentPrintHtml(doc);
-
-    const isInsideIframe = typeof window !== 'undefined' && window.self !== window.top;
-    if (isInsideIframe) {
-      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-      const blobUrl = URL.createObjectURL(blob);
-      const printWin = window.open(blobUrl, '_blank');
-      if (printWin) {
-        setTimeout(() => {
-          document.title = prevTitle;
-          URL.revokeObjectURL(blobUrl);
-        }, 5000);
-        return;
-      }
+    // 1. Localiza o modelo correspondente para carregar na folha A4 oficial
+    let matchedTemplate = DENTAL_DOCUMENT_TEMPLATES.find(t => t.id === doc.templateId);
+    if (!matchedTemplate && doc.title) {
+      const normTitle = doc.title.toLowerCase();
+      matchedTemplate = DENTAL_DOCUMENT_TEMPLATES.find(t => 
+        normTitle.includes(t.title.toLowerCase()) || t.title.toLowerCase().includes(normTitle)
+      );
+    }
+    if (!matchedTemplate) {
+      matchedTemplate = DENTAL_DOCUMENT_TEMPLATES[0];
     }
 
-    // Remove any previous print iframe to ensure a clean state
-    const oldFrame = document.getElementById('dentispro-print-sandbox-iframe');
-    if (oldFrame) {
-      try { oldFrame.remove(); } catch (_) {}
-    }
-
-    // Create a dedicated off-screen printable iframe with full layout rendering
-    // NOTE: Chromium/Safari silently ignore window.print() if visibility is 'hidden' or dimensions are 0x0.
-    // By using opacity: 0 with 100vw/100vh and z-index: -99999, the browser renders the layout and reliably triggers print dialog.
-    const iframe = document.createElement('iframe');
-    iframe.id = 'dentispro-print-sandbox-iframe';
-    iframe.style.position = 'fixed';
-    iframe.style.top = '0';
-    iframe.style.left = '0';
-    iframe.style.width = '100vw';
-    iframe.style.height = '100vh';
-    iframe.style.border = '0';
-    iframe.style.opacity = '0';
-    iframe.style.pointerEvents = 'none';
-    iframe.style.zIndex = '-99999';
-    iframe.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(iframe);
-
-    let hasTriggered = false;
-    const executePrint = () => {
-      if (hasTriggered) return;
-      hasTriggered = true;
-      try {
-        const frameWin = iframe.contentWindow;
-        if (frameWin) {
-          frameWin.focus();
-          frameWin.print();
-        } else {
-          window.print();
-        }
-      } catch (err) {
-        console.warn('Iframe print access restricted, attempting fallback window:', err);
-        const printWindow = window.open('', '_blank', 'width=880,height=980');
-        if (printWindow) {
-          printWindow.document.open();
-          printWindow.document.write(htmlContent);
-          printWindow.document.close();
-          printWindow.focus();
-          setTimeout(() => { printWindow.print(); }, 350);
-        } else {
-          window.print();
-        }
-      } finally {
-        setTimeout(() => {
-          document.title = prevTitle;
-          try { iframe.remove(); } catch (_) {}
-        }, 3500);
+    if (matchedTemplate) {
+      setActiveTemplate(matchedTemplate);
+      if (doc.patientId) {
+        setSelectedPatientId(doc.patientId);
       }
-    };
-
-    try {
-      const frameDoc = iframe.contentWindow?.document || iframe.contentDocument;
-      if (frameDoc) {
-        frameDoc.open();
-        frameDoc.write(htmlContent);
-        frameDoc.close();
-        setTimeout(executePrint, 350);
-      } else {
-        executePrint();
-      }
-    } catch (e) {
-      executePrint();
+      setIsRenderModalOpen(true);
+      // Dispara a impressão padronizada diretamente via janela nativa
+      setTimeout(() => {
+        handlePrintActiveDocument();
+      }, 300);
     }
   };
 
@@ -3065,9 +3096,18 @@ export const DentalDocumentManager: React.FC = () => {
   const [rxPanoramicoObservacoes, setRxPanoramicoObservacoes] = useState('Favor realizar radiografia panorâmica digital com ampliação padronizada e laudo radiológico minucioso.');
 
   // Dados de Convênio do Paciente (presente no Modelo 2 anexado)
-  const [rxPanoramicoIncluirConvenio, setRxPanoramicoIncluirConvenio] = useState(false);
-  const [rxPanoramicoConvenioNome, setRxPanoramicoConvenioNome] = useState('INPAO / Care Plus');
-  const [rxPanoramicoConvenioNumero, setRxPanoramicoConvenioNumero] = useState('3817.109.02956-01');
+  const [rxPanoramicoIncluirConvenio, setRxPanoramicoIncluirConvenio] = useState<boolean>(() => {
+    const p = patients.find(pat => pat.id === (globalSelectedPatientId || patients[0]?.id));
+    return Boolean(p?.healthInsurance && isInsuranceValid(p.healthInsurance));
+  });
+  const [rxPanoramicoConvenioNome, setRxPanoramicoConvenioNome] = useState<string>(() => {
+    const p = patients.find(pat => pat.id === (globalSelectedPatientId || patients[0]?.id));
+    return (p?.healthInsurance && isInsuranceValid(p.healthInsurance)) ? p.healthInsurance : '';
+  });
+  const [rxPanoramicoConvenioNumero, setRxPanoramicoConvenioNumero] = useState<string>(() => {
+    const p = patients.find(pat => pat.id === (globalSelectedPatientId || patients[0]?.id));
+    return (p?.healthInsurance && isInsuranceValid(p.healthInsurance)) ? (p.insuranceNumber || '') : '';
+  });
 
   // Indicação de Clínicas Radiológicas Parceiras (presente no Modelo 3 anexado)
   const [rxPanoramicoIndicarClinicas, setRxPanoramicoIndicarClinicas] = useState(true);
@@ -3197,15 +3237,25 @@ export const DentalDocumentManager: React.FC = () => {
           const details = getPatientAgeAndBirthDate(p.birthDate);
           setCustomPatientAgeYears(String(details.ageYears));
           setCustomPatientAgeMonths(String(details.ageMonths));
+        } else {
+          setCustomPatientAgeYears('');
+          setCustomPatientAgeMonths('0');
         }
-        if (p.healthInsurance) {
-          setRxPanoramicoConvenioNome(p.healthInsurance);
+
+        if (isInsuranceValid(p.healthInsurance)) {
+          setRxPanoramicoConvenioNome(p.healthInsurance || '');
+          setRxPanoramicoConvenioNumero(p.insuranceNumber || '');
           setRxPanoramicoIncluirConvenio(true);
-        }
-        if (p.insuranceNumber) {
-          setRxPanoramicoConvenioNumero(p.insuranceNumber);
+        } else {
+          setRxPanoramicoConvenioNome('');
+          setRxPanoramicoConvenioNumero('');
+          setRxPanoramicoIncluirConvenio(false);
         }
       }
+    } else {
+      setRxPanoramicoConvenioNome('');
+      setRxPanoramicoConvenioNumero('');
+      setRxPanoramicoIncluirConvenio(false);
     }
   }, [selectedPatientId, patients]);
 
@@ -3409,7 +3459,7 @@ export const DentalDocumentManager: React.FC = () => {
         category: activeTemplate.category,
         patientId: selectedPatientId,
         patientName: patientDisplayName,
-        professionalName: activeProfessional?.name || clinicInfo.dentistName,
+        professionalName: effectiveDentistName,
         cidCode: activeTemplate.category === 'atestado' ? (isManualCid ? customCid : cidCode) : undefined,
         summary: docSummary,
         templateId: activeTemplate.id,
@@ -3528,117 +3578,17 @@ export const DentalDocumentManager: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Solução B: Impressão Nativa com suporte inteligente a Ambientes Iframe / Sandbox
+  // Solução de Impressão Nativa Direta e Padronizada com Nome do Arquivo
   const handlePrintActiveDocument = () => {
     const docTitle = activeTemplate ? activeTemplate.title : 'Documento';
     const pdfDocumentTitle = getDocumentPdfTitle(docTitle, formattedFormattedDate, patientDisplayName);
 
     printDocumentWithTitle(pdfDocumentTitle, () => {
-      const isInsideIframe = typeof window !== 'undefined' && window.self !== window.top;
-
-      if (isInsideIframe && activeTemplate) {
-        // Quando o aplicativo está no preview/iframe do Google AI Studio ou Cloud Run,
-        // o Chrome bloqueia window.print() síncrono dentro do sandbox.
-        // Abrir um Blob HTML limpo com auto-print em nova aba desbloqueia a janela de impressão nativa!
-        const htmlContent = buildDocumentPrintHtml({
-          id: activeTemplate.id,
-          title: activeTemplate.title,
-          patientName: patientDisplayName,
-          professionalName: activeProfessional?.name || clinicInfo.dentistName,
-          formattedDateStr: formattedFormattedDate,
-          templateId: activeTemplate.id,
-          templateData: {
-            patientAge,
-            docDate,
-            docTime,
-            periodoStr,
-            rxPanoramicoOptions,
-            rxPanoramicoTextoCustomizado,
-            rxPanoramicoTeethInput,
-            rxPanoramicoFinalidade,
-            rxPanoramicoObservacoes,
-            rxPanoramicoIncluirConvenio,
-            rxPanoramicoConvenioNome,
-            rxPanoramicoConvenioNumero,
-            rxPanoramicoIndicarClinicas,
-            rxPanoramicoClinicas,
-            rxPanoramicoOutraClinica,
-            rxPeriapicalTipo,
-            rxPeriapicalTeethInput,
-            rxPeriapicalIndication,
-            rxPeriapicalNotes,
-            bloodExams,
-            prescriptionText: specialPrescriptionText,
-            receitaSimplesVias,
-            receitaSimplesUso,
-            receitaSimplesOrientacoes,
-            notificacaoBNumero,
-            notificacaoBUf,
-            notificacaoANumero,
-            notificacaoAUf,
-            afastamentoDias,
-            atendimentoType,
-            procedureDetail,
-            aptidaoFinalidade,
-            aptidaoObservacoes,
-            relatorioDocStage,
-            relatorioProcedimentoDesc,
-            relatorioComplementar,
-            tratamentoAndamentoEspecialidade,
-            tratamentoAndamentoFrequencia,
-            tratamentoAndamentoPrevisao,
-            tratamentoAndamentoObservacoes,
-            reciboValor,
-            reciboExtenso,
-            reciboReferente,
-            reciboFormaPagamento,
-            tomographyRegions: getSelectedTomographyRegions(),
-            tomographyIndications: getSelectedTomographyIndications(),
-            tomographyDelivery: getSelectedTomographyDelivery(),
-            tomographyFov,
-            tomographyNotes,
-            isPaioActive,
-            topicalAnesthetics,
-            paioAnesthesiaSites,
-            injectableTubetes,
-            paioTechnique,
-            paioBloodPressure,
-            paioHeartRate,
-            paioProcedure,
-            paioToothRegion,
-            paioComplications,
-            paioPostOpInstructions,
-            tcleImplanteRegiao,
-            tcleImplanteEnxerto,
-            tcleClareamentoTipo,
-            tcleOrtoTipo
-          }
-        });
-        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-        const blobUrl = URL.createObjectURL(blob);
-        const printWin = window.open(blobUrl, '_blank');
-        if (printWin) {
-          setTimeout(() => {
-            URL.revokeObjectURL(blobUrl);
-          }, 5000);
-          return;
-        }
-      }
-      
       try {
+        window.focus();
         window.print();
       } catch (err) {
-        console.warn('Direct window.print encountered error, fallback to system window:', err);
-        if (activeTemplate) {
-          handlePrintSystemWindow({
-            id: activeTemplate.id,
-            title: activeTemplate.title,
-            patientName: patientDisplayName,
-            professionalName: activeProfessional?.name || clinicInfo.dentistName,
-            formattedDateStr: formattedFormattedDate,
-            templateId: activeTemplate.id,
-          });
-        }
+        console.warn('Erro ao disparar impressão direta:', err);
       }
     });
   };
@@ -3657,7 +3607,8 @@ export const DentalDocumentManager: React.FC = () => {
   };
 
   return (
-    <div className={`space-y-6 pb-24 md:pb-8 font-sans ${isRenderModalOpen ? 'print:hidden' : ''}`}>
+    <>
+      <div className={`space-y-6 pb-24 md:pb-8 font-sans ${isRenderModalOpen ? 'print:hidden' : ''}`}>
       {/* Top Header & Search Bar */}
       <div className={`${t.cardBg} border ${t.cardBorder} rounded-3xl p-5 md:p-6 shadow-xs space-y-4`}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -4511,6 +4462,112 @@ export const DentalDocumentManager: React.FC = () => {
                     <span className="font-semibold text-stone-600">Rodapé:</span> <span className={t.headingText}>{clinicInfo.footerText}</span>
                   </div>
                 )}
+
+                {/* Seletor do Profissional Emitente e Opção Explícita de Assinatura Manual ou Automática */}
+                <div className="pt-2.5 border-t border-stone-200/70 space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <label className={`text-xs font-bold ${t.headingText} flex items-center gap-1.5`}>
+                      <UserCheck className={`w-3.5 h-3.5 ${t.accentText}`} />
+                      Profissional Emitente do Documento:
+                    </label>
+                    <select
+                      value={selectedDocumentProfessionalId}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSelectedDocumentProfessionalId(val);
+                        try {
+                          localStorage.setItem('dentispro_selected_doc_prof', val);
+                        } catch (err) {}
+                      }}
+                      className={`bg-white border ${t.cardBorder} rounded-xl px-2.5 py-1.5 text-xs font-bold text-stone-800 focus:outline-none cursor-pointer`}
+                    >
+                      <option value="">Nenhum (Linha em branco para assinatura física manual a caneta)</option>
+                      {professionals.map(p => {
+                        const hasImg = Boolean(
+                          (p.signatureImageUrl && p.signatureImageUrl.trim().length > 15) ||
+                          (isDrHugoRicoy(p) && clinicInfo.signatureImageUrl && clinicInfo.signatureImageUrl.trim().length > 15)
+                        );
+                        return (
+                          <option key={p.id} value={p.id}>
+                            {p.name} ({p.cro}) {hasImg ? '• Assinatura e Carimbo' : '• Assinatura Manual a Caneta'}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  {/* Controle Mesclado de Modalidade: Assinatura Manual vs Assinatura e Carimbo Automáticos */}
+                  <div className="p-2.5 bg-[#f5f5ee] rounded-xl border border-[#e5e5d1] space-y-2 text-[11px]">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="font-bold text-stone-700 flex items-center gap-1">
+                        <FileSignature className="w-3.5 h-3.5 text-[#5a5a40]" />
+                        Modalidade de Assinatura:
+                      </span>
+
+                      <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-stone-300">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAutoInsertSignatureAndStamp(false);
+                            try { localStorage.setItem('dentispro_auto_insert_sig_stamp', 'false'); } catch (e) {}
+                          }}
+                          className={`px-2.5 py-1 rounded-md text-[10.5px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                            !autoInsertSignatureAndStamp
+                              ? 'bg-stone-800 text-white shadow-xs'
+                              : 'text-stone-600 hover:bg-stone-100'
+                          }`}
+                        >
+                          ✍️ Assinatura Manual a Caneta (Linha em branco)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAutoInsertSignatureAndStamp(true);
+                            try { localStorage.setItem('dentispro_auto_insert_sig_stamp', 'true'); } catch (e) {}
+                          }}
+                          className={`px-2.5 py-1 rounded-md text-[10.5px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                            autoInsertSignatureAndStamp
+                              ? 'bg-emerald-700 text-white shadow-xs'
+                              : 'text-stone-600 hover:bg-stone-100'
+                          }`}
+                        >
+                          ✓ Assinatura e Carimbo
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Status & Verificação no Banco de Dados */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-[#e5e5d1]/60">
+                      {!currentProfVerification.hasProfessionalSelected ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 font-medium border border-stone-300 text-[10px]">
+                          ✍️ Sem profissional pré-selecionado (Linha em branco para assinatura física manual a caneta)
+                        </span>
+                      ) : (
+                        <>
+                          {currentProfVerification.hasSignature ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 text-[10px]">
+                              ✓ Assinatura Validada no Banco {autoInsertSignatureAndStamp ? '(Inserção Automática)' : '(Omitida para assinatura manual a caneta)'}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-200 text-[10px]" title="Arquivo de assinatura não localizado no banco de dados. A imagem é omitida automaticamente e o campo formal é mantido para assinatura manual.">
+                              ⚠️ Sem Assinatura no Banco (Omitida • Campo mantido)
+                            </span>
+                          )}
+
+                          {currentProfVerification.hasStamp ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 text-[10px]">
+                              ✓ Carimbo Validado no Banco
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-medium border border-stone-200 text-[10px]">
+                              Sem carimbo no banco (Omitido)
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* 1. SELEÇÃO DO PACIENTE & IDADE/MESES */}
@@ -4538,10 +4595,24 @@ export const DentalDocumentManager: React.FC = () => {
                       <option value="">-- Selecionar Paciente da Clínica --</option>
                       {patients.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.name} (CPF: {p.cpf})
+                          {p.name} {p.healthInsurance && isInsuranceValid(p.healthInsurance) ? `(${p.healthInsurance})` : '(Particular)'} - CPF: {p.cpf}
                         </option>
                       ))}
                     </select>
+                    {selectedPatient && (
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-stone-600">
+                        <span className="font-semibold">Convênio:</span>
+                        {selectedPatient.healthInsurance && isInsuranceValid(selectedPatient.healthInsurance) ? (
+                          <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                            {selectedPatient.healthInsurance}{selectedPatient.insuranceNumber ? ` • Carteirinha: ${selectedPatient.insuranceNumber}` : ''}
+                          </span>
+                        ) : (
+                          <span className="font-medium text-stone-500 bg-stone-100 px-2 py-0.5 rounded-md">
+                            Particular (Sem convênio)
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="sm:col-span-1 md:col-span-2">
@@ -6562,8 +6633,13 @@ export const DentalDocumentManager: React.FC = () => {
                         onChange={(e) => setRxPanoramicoIncluirConvenio(e.target.checked)}
                         className="w-4 h-4 text-emerald-600 rounded"
                       />
-                      <span className="text-xs font-bold text-stone-900">
-                        B. Incluir Dados de Convênio / Carteirinha do Paciente (opcional)
+                      <span className="text-xs font-bold text-stone-900 flex items-center gap-2 flex-wrap">
+                        <span>B. Incluir Dados de Convênio / Carteirinha do Paciente (opcional)</span>
+                        {selectedPatient?.healthInsurance && isInsuranceValid(selectedPatient.healthInsurance) && (
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                            {selectedPatient.healthInsurance}{selectedPatient.insuranceNumber ? ` • Nº: ${selectedPatient.insuranceNumber}` : ''}
+                          </span>
+                        )}
                       </span>
                     </label>
 
@@ -6575,7 +6651,7 @@ export const DentalDocumentManager: React.FC = () => {
                             type="text"
                             value={rxPanoramicoConvenioNome}
                             onChange={(e) => setRxPanoramicoConvenioNome(e.target.value)}
-                            placeholder="Ex: INPAO / Care Plus / Bradesco Dental"
+                            placeholder="Ex: Unimed Odonto / Bradesco Dental / Amil"
                             className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
                           />
                         </div>
@@ -6585,7 +6661,7 @@ export const DentalDocumentManager: React.FC = () => {
                             type="text"
                             value={rxPanoramicoConvenioNumero}
                             onChange={(e) => setRxPanoramicoConvenioNumero(e.target.value)}
-                            placeholder="Ex: 3817.109.02956-01"
+                            placeholder="Ex: Número da carteirinha do paciente"
                             className={`w-full ${t.inputBg} border ${t.cardBorder} rounded-xl px-3 py-2 text-xs font-bold`}
                           />
                         </div>
@@ -7468,6 +7544,7 @@ export const DentalDocumentManager: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
 
       {/* RENDERED A4 DOCUMENT PREVIEW MODAL - FULL SCREEN */}
       {isRenderModalOpen && activeTemplate && (
@@ -7613,9 +7690,15 @@ export const DentalDocumentManager: React.FC = () => {
                             IDENTIFICAÇÃO DO EMITENTE
                           </p>
                           <div className="space-y-0.5">
-                            <p className="font-bold text-xs text-stone-900">
-                              {effectiveDentistName} • {effectiveDentistCro}
-                            </p>
+                            {effectiveDentistName ? (
+                              <p className="font-bold text-xs text-stone-900">
+                                {cleanSignatureText(`${effectiveDentistName} • ${effectiveDentistCro}`)}
+                              </p>
+                            ) : (
+                              <p className="font-bold text-xs text-stone-400 italic">
+                                &nbsp;
+                              </p>
+                            )}
                             <p className="text-[11px] text-stone-700 font-semibold">
                               Telefones: {effectiveClinicPhone}
                             </p>
@@ -7645,54 +7728,52 @@ export const DentalDocumentManager: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Assinatura e Carimbo do Dentista Emitente (Unificados: carimbo por baixo a -12.5°, assinatura por cima) */}
-                          <div className="relative flex items-center justify-center my-1 w-full min-h-[48px] flex-1">
+                          {/* Assinatura e Carimbo do Dentista Emitente (Unificados: carimbo por baixo a -12.5°, assinatura por cima a -2°) */}
+                          <div className="relative flex items-center justify-center my-1 w-full min-h-[76px] flex-1 overflow-visible pointer-events-none">
                             {/* Carimbo Profissional (Por baixo da assinatura, rotacionado a 12,5° para a esquerda) */}
-                            {(clinicInfo.showStampImage ?? true) && (
-                              <div className="absolute z-10 flex items-center justify-center -rotate-[12.5deg]">
-                                {(activeProfessional?.stampImageUrl || clinicInfo.stampImageUrl) ? (
-                                  <img
-                                    src={activeProfessional?.stampImageUrl || clinicInfo.stampImageUrl}
-                                    alt="Carimbo"
-                                    className="h-8 max-w-[110px] object-contain border border-stone-200/90 rounded bg-transparent mix-blend-multiply p-0.5"
-                                  />
-                                ) : (
-                                  <div className="border border-dashed border-stone-300 rounded px-2 py-0.5 bg-transparent text-center uppercase text-[7.5px] leading-tight">
-                                    <span className="font-bold block text-stone-800">{activeProfessional?.name || clinicInfo.dentistName}</span>
-                                    <span className="block text-[7px] font-mono text-stone-600">{activeProfessional?.cro || clinicInfo.cro} • Cirurgião-Dentista</span>
-                                  </div>
-                                )}
+                            {(clinicInfo.showStampImage ?? true) && autoInsertSignatureAndStamp && effectiveStampUrl && (
+                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[12.5deg] z-10 flex items-center justify-center">
+                                <img
+                                  src={effectiveStampUrl}
+                                  alt="Carimbo Profissional"
+                                  className="h-12 max-w-[130px] object-contain border border-stone-200/90 rounded-lg bg-transparent mix-blend-multiply filter contrast-110 p-0.5"
+                                />
                               </div>
                             )}
 
                             {/* Assinatura Manual (Por cima do carimbo) */}
-                            {(clinicInfo.showSignatureImage ?? true) && (
-                              <div className="absolute z-20 pointer-events-none flex items-center justify-center -rotate-1 h-8">
-                                {(activeProfessional?.signatureImageUrl || clinicInfo.signatureImageUrl) ? (
-                                  <img
-                                    src={activeProfessional?.signatureImageUrl || clinicInfo.signatureImageUrl}
-                                    alt="Assinatura"
-                                    className="h-8 max-w-[130px] object-contain filter contrast-125"
-                                  />
-                                ) : (
-                                  <div className="relative h-8 w-28 flex items-center justify-center">
-                                    <svg className="w-full h-full text-indigo-950 opacity-90" viewBox="0 0 240 60" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                      <path d="M 10 35 C 30 10, 45 50, 60 25 C 70 10, 80 40, 95 30 C 110 20, 115 45, 130 25 C 145 10, 160 50, 180 20 C 195 10, 210 35, 230 30" />
-                                      <path d="M 30 45 C 70 48, 120 40, 200 42" strokeWidth="1.8" />
-                                    </svg>
-                                  </div>
-                                )}
+                            {(clinicInfo.showSignatureImage ?? true) && autoInsertSignatureAndStamp && effectiveSigUrl && (
+                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-2 z-20 flex items-center justify-center pointer-events-none">
+                                <img
+                                  src={effectiveSigUrl}
+                                  alt="Assinatura Manual"
+                                  className="h-12 max-w-[170px] object-contain filter contrast-125 drop-shadow-xs"
+                                />
+                              </div>
+                            )}
+
+                            {(!effectiveSigUrl && !effectiveStampUrl) && (
+                              <div className="text-[9px] text-stone-400 italic py-1 text-center">
+                                (Linha em branco para assinatura física manual)
                               </div>
                             )}
                           </div>
 
-                          <div className="w-full border-t border-stone-400 pt-0.5 text-center">
-                            <p className="text-[9.5px] font-bold text-stone-900 leading-tight">
-                              {activeProfessional?.name || clinicInfo.dentistName}
-                            </p>
-                            <p className="text-[8px] text-stone-600 font-mono leading-tight">
-                              {activeProfessional?.cro || clinicInfo.cro} • Cirurgião-Dentista
-                            </p>
+                          <div className="w-full border-t-2 border-stone-800 pt-1 text-center min-h-[22px]">
+                            {effectiveDentistName ? (
+                              <>
+                                <p className="text-[9.5px] font-bold text-stone-900 leading-tight">
+                                  {cleanSignatureText(effectiveDentistName)}
+                                </p>
+                                <p className="text-[8.5px] text-stone-600 font-mono leading-tight">
+                                  {effectiveDentistCro}
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-[8px] text-stone-400 italic">
+                                &nbsp;
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -7822,7 +7903,13 @@ export const DentalDocumentManager: React.FC = () => {
                             Paciente: <span className="underline">{patientDisplayName}</span>
                           </p>
                           <p className="text-[11px] text-stone-600">
-                            Idade: <span className="font-semibold">{patientAge}</span> • Prontuário / Convênio: <span className="font-semibold">{rxPanoramicoConvenioNome || 'Particular'}</span>
+                            Idade: <span className="font-semibold">{patientAge}</span> • {selectedPatient?.healthInsurance && isInsuranceValid(selectedPatient.healthInsurance) ? (
+                              <>Convênio: <span className="font-semibold">{selectedPatient.healthInsurance}</span>{selectedPatient.insuranceNumber ? ` (Nº: ${selectedPatient.insuranceNumber})` : ''}</>
+                            ) : (rxPanoramicoIncluirConvenio && rxPanoramicoConvenioNome) ? (
+                              <>Convênio: <span className="font-semibold">{rxPanoramicoConvenioNome}</span>{rxPanoramicoConvenioNumero ? ` (Nº: ${rxPanoramicoConvenioNumero})` : ''}</>
+                            ) : (
+                              <>Atendimento: <span className="font-semibold">Particular</span></>
+                            )}
                           </p>
                         </div>
                         <div className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200 self-start sm:self-auto">
@@ -7911,7 +7998,7 @@ export const DentalDocumentManager: React.FC = () => {
                   {/* MODEL 5: SOLICITAÇÃO DE TOMOGRAFIA CONE BEAM (CBCT) */}
                   {activeTemplate.id === 'solicitacao_tomografia' && (
                     <div className="space-y-3 text-xs font-sans text-stone-800">
-                      <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between text-xs font-semibold">
+                      <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
                         <div>
                           <span className="text-stone-500 text-[10px] uppercase font-bold mr-1.5">Paciente:</span>
                           <span className="text-stone-900 font-bold underline">{patientDisplayName}</span>
@@ -7920,6 +8007,12 @@ export const DentalDocumentManager: React.FC = () => {
                           <span className="text-stone-500 text-[10px] uppercase font-bold mr-1.5">Idade:</span>
                           <span className="text-stone-800 font-semibold">{patientAge}</span>
                         </div>
+                        {selectedPatient?.healthInsurance && isInsuranceValid(selectedPatient.healthInsurance) && (
+                          <div className="w-full pt-1 border-t border-stone-200/80 flex items-center justify-between text-[11px]">
+                            <span><strong className="text-stone-700">Convênio:</strong> {selectedPatient.healthInsurance}</span>
+                            {selectedPatient.insuranceNumber && <span><strong className="text-stone-700">Nº Carteirinha:</strong> {selectedPatient.insuranceNumber}</span>}
+                          </div>
+                        )}
                       </div>
 
                       {/* 1. Regiões Anatômicas Selecionadas */}
@@ -8036,8 +8129,15 @@ export const DentalDocumentManager: React.FC = () => {
                   {activeTemplate.id === 'justificativa_clinica' && (
                     <div className="space-y-4 pt-2">
                       <p className="font-bold text-center text-base uppercase">JUSTIFICATIVA CLÍNICA</p>
-                      <p className="text-xs">Credenciado: {formatCNPJ(clinicInfo.cnpj || '22.144.932/0001-40')} – {clinicInfo.dentistName}</p>
-                      <p className="text-xs font-bold">Associado / Paciente: {patientDisplayName}</p>
+                      <p className="text-xs">Credenciado: {clinicInfo.cnpj ? `${formatCNPJ(clinicInfo.cnpj)} – ` : ''}{effectiveDentistName} ({effectiveDentistCro})</p>
+                      <p className="text-xs font-bold">
+                        Associado / Paciente: {patientDisplayName}
+                        {selectedPatient?.healthInsurance && isInsuranceValid(selectedPatient.healthInsurance) ? (
+                          <span className="font-normal text-stone-700"> • Convênio: <strong className="font-bold text-stone-900">{selectedPatient.healthInsurance}</strong>{selectedPatient.insuranceNumber ? ` (Matrícula: ${selectedPatient.insuranceNumber})` : ''}</span>
+                        ) : (rxPanoramicoIncluirConvenio && rxPanoramicoConvenioNome) ? (
+                          <span className="font-normal text-stone-700"> • Convênio: <strong className="font-bold text-stone-900">{rxPanoramicoConvenioNome}</strong>{rxPanoramicoConvenioNumero ? ` (Matrícula: ${rxPanoramicoConvenioNumero})` : ''}</span>
+                        ) : null}
+                      </p>
 
                       <div className="border border-stone-800 p-3 rounded-lg text-xs space-y-1">
                         <p><strong>Procedimento TUSS:</strong> {tussCodeInput} – {tussDescInput}</p>
@@ -8232,7 +8332,7 @@ export const DentalDocumentManager: React.FC = () => {
                   {/* MODEL 12: RADIOGRAFIAS PERIAPICAIS & INTERPROXIMAIS */}
                   {activeTemplate.id === 'solicitacao_rx_periapical_interproximal' && (
                     <div className="space-y-4 text-xs font-sans text-stone-800">
-                      <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between text-xs font-semibold">
+                      <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
                         <div>
                           <span className="text-stone-500 text-[10px] uppercase font-bold mr-1.5">Paciente:</span>
                           <span className="text-stone-900 font-bold underline">{patientDisplayName}</span>
@@ -8241,6 +8341,12 @@ export const DentalDocumentManager: React.FC = () => {
                           <span className="text-stone-500 text-[10px] uppercase font-bold mr-1.5">Idade:</span>
                           <span className="text-stone-800 font-semibold">{patientAge}</span>
                         </div>
+                        {selectedPatient?.healthInsurance && isInsuranceValid(selectedPatient.healthInsurance) && (
+                          <div className="w-full pt-1 border-t border-stone-200/80 flex items-center justify-between text-[11px]">
+                            <span><strong className="text-stone-700">Convênio:</strong> {selectedPatient.healthInsurance}</span>
+                            {selectedPatient.insuranceNumber && <span><strong className="text-stone-700">Nº Carteirinha:</strong> {selectedPatient.insuranceNumber}</span>}
+                          </div>
+                        )}
                       </div>
 
                       <div className="border border-stone-800 p-3 rounded-xl space-y-2 bg-stone-50/50">
@@ -8337,9 +8443,9 @@ export const DentalDocumentManager: React.FC = () => {
 
                         <div className="border border-stone-800 p-2.5 rounded-lg bg-white space-y-1">
                           <span className="font-bold uppercase text-[10.5px] border-b border-stone-200 pb-0.5 block">Identificação do Paciente</span>
-                          <p className="font-bold text-stone-900 underline">{patientDisplayName}</p>
-                          <p className="text-[10.5px] text-stone-600">Endereço: ____________________________________</p>
-                          <p className="text-[10.5px] text-stone-600">Cidade: {formatCityOnly(clinicInfo.city || 'Fortaleza')} - {clinicInfo.uf || 'CE'}</p>
+                          <p className="font-bold text-stone-900 underline">{patientDisplayName}{selectedPatient?.cpf ? ` • CPF: ${selectedPatient.cpf}` : ''}</p>
+                          <p className="text-[10.5px] text-stone-600">Endereço: {selectedPatient?.address?.street ? `${selectedPatient.address.street}${selectedPatient.address.number ? `, ${selectedPatient.address.number}` : ''}${selectedPatient.address.neighborhood ? ` - ${selectedPatient.address.neighborhood}` : ''}` : '____________________________________'}</p>
+                          <p className="text-[10.5px] text-stone-600">Cidade: {selectedPatient?.address?.city ? `${selectedPatient.address.city} - ${selectedPatient.address.state || clinicInfo.uf || 'CE'}` : `${formatCityOnly(clinicInfo.city || 'Fortaleza')} - ${clinicInfo.uf || 'CE'}`}</p>
                         </div>
                       </div>
 
@@ -8481,21 +8587,32 @@ export const DentalDocumentManager: React.FC = () => {
                 </div>
 
                 {/* 4. Signature & Digital Verification (Lifted higher up for standard documents to keep footer fully visible) */}
-                <div className={`space-y-3 text-center relative z-10 ${activeTemplate.id !== 'receituario_controle_especial' ? 'mb-8 pb-4' : 'pt-2'}`}>
-                  <DocumentSignatureFooter
-                    customDentistName={effectiveDentistName}
-                    customCro={effectiveDentistCro}
-                    compact={true}
-                    hideSignatureLine={activeTemplate.id === 'receituario_controle_especial'}
-                    hideStampAndManualSignature={activeTemplate.id === 'receituario_controle_especial'}
-                    align="right"
-                  />
-                </div>
+                {activeTemplate.id !== 'receituario_controle_especial' && (
+                  <div className="space-y-3 text-center relative z-10 mb-8 pb-4">
+                    <DocumentSignatureFooter
+                      customDentistName={effectiveDentistName}
+                      customCro={effectiveDentistCro}
+                      professionalId={selectedDocumentProfessionalId}
+                      compact={true}
+                      hideSignatureLine={false}
+                      hideStampAndManualSignature={!autoInsertSignatureAndStamp}
+                      customSignatureImageUrl={effectiveSigUrl}
+                      customStampImageUrl={effectiveStampUrl}
+                      align="right"
+                    />
+                  </div>
+                )}
 
                 {/* 5. Bottom Clinic Footer (Hidden for Receituário de Controle Especial) */}
                 {activeTemplate.id !== 'receituario_controle_especial' && (
                   <div className="border-t-2 border-stone-800 pt-3 text-xs text-stone-900 relative z-10 print:text-[10px] font-sans">
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+                    {/* Endereço da clínica */}
+                    <div className="flex items-center justify-center gap-1.5 text-center font-medium text-stone-700 text-[11px] mb-2.5">
+                      <MapPin className="w-3.5 h-3.5 text-[#5a5a40] shrink-0" />
+                      <span>{effectiveClinicAddress} • {formatCityOnly(effectiveClinicCity)} - CE • CEP: {formatCEP(clinicInfo.cep || '60.160-110')}</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-1 border-t border-stone-200/80 pt-2">
                       {/* Coluna Esquerda: Site & WhatsApps/Telefones */}
                       <div className="space-y-1 text-left">
                         <div className="flex items-center gap-1.5">
@@ -9123,6 +9240,6 @@ export const DentalDocumentManager: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };

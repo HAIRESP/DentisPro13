@@ -53,6 +53,7 @@ export const LaudoStampSignature: React.FC<LaudoStampSignatureProps> = ({
       {/* Standard Document Signature and Stamp Component */}
       <div className="space-y-3 text-center relative z-10">
         <DocumentSignatureFooter
+          professionalId={effectiveProfessional?.id}
           customDentistName={dentistName}
           customCro={cro}
           specialty={specialty}

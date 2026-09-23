@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
 import { Professional, ClinicUnit } from '../../types';
-import { formatCPF, formatCNPJ, formatEPAO, formatCRO } from '../../utils/formatters';
+import { formatCPF, formatCNPJ, formatEPAO, formatCRO, isDrHugoRicoy, DEFAULT_DR_HUGO_SIGNATURE, DEFAULT_DR_HUGO_STAMP, cleanSignatureText } from '../../utils/formatters';
 import JSZip from 'jszip';
 import { 
   Settings, 
@@ -36,6 +36,7 @@ import {
   FileSignature,
   Sliders,
   Key,
+  Lock,
   ExternalLink,
   EyeOff,
   Eye,
@@ -50,6 +51,7 @@ import {
   Bot,
   MessageCircle
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { AddressFields, AddressData, formatFullAddress } from '../common/AddressFields';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
 import { SpecialtyInputSelector } from '../common/SpecialtyInputSelector';
@@ -106,16 +108,17 @@ export const SettingsView: React.FC = () => {
   } = useApp();
 
   const t = getThemeStyles(layoutTheme);
+  const { updateUserPassword, allUsers } = useAuth();
 
   // Active settings tab selection
   const [activeSettingsTab, setActiveSettingsTab] = useState<
     'cadastro' | 'whatsapp_api' | 'documentos' | 'procedimentos' | 'layout' | 'aparencia' | 'usuarios' | 'backup'
   >('cadastro');
 
-  // Selection state for mutual exclusion: 'clinic' or 'dentist'
-  const [activeSelectionMode, setActiveSelectionMode] = useState<'clinic' | 'dentist'>('clinic');
-  const [selectedClinicDropdownId, setSelectedClinicDropdownId] = useState<string>(activeClinicId || clinics[0]?.id || '');
-  const [selectedDentistDropdownId, setSelectedDentistDropdownId] = useState<string>('');
+  // Subtab for synchronized cadastro: 'dentista' or 'clinica'
+  const [cadastroSubTab, setCadastroSubTab] = useState<'dentista' | 'clinica'>('dentista');
+  const [selectedClinicDropdownId, setSelectedClinicDropdownId] = useState<string>(activeClinicId && activeClinicId !== 'todas' ? activeClinicId : (clinics[0]?.id || ''));
+  const [selectedDentistDropdownId, setSelectedDentistDropdownId] = useState<string>(activeProfessionalId || professionals[0]?.id || '');
 
   // Form buffering state for active clinic / professional
   const activeClinicObj = clinics.find(c => c.id === selectedClinicDropdownId) || clinics[0];
@@ -147,6 +150,10 @@ export const SettingsView: React.FC = () => {
   const [dentistSpecialty, setDentistSpecialty] = useState(activeDentistObj?.specialty || clinicInfo.specialty || 'Clínica Geral');
   const [dentistPhone, setDentistPhone] = useState(activeDentistObj?.phone || clinicInfo.phone || '');
   const [dentistEmail, setDentistEmail] = useState(activeDentistObj?.email || clinicInfo.email || '');
+  const [dentistPassword, setDentistPassword] = useState<string>(activeDentistObj?.password || '123456');
+  const [showDentistPassword, setShowDentistPassword] = useState<boolean>(false);
+  const [dentistPrimaryClinicId, setDentistPrimaryClinicId] = useState<string>(activeDentistObj?.primaryClinicId || activeClinicId || 'cli-aldeota');
+  const [dentistClinicIds, setDentistClinicIds] = useState<string[]>(activeDentistObj?.clinicIds || ['cli-aldeota', 'cli-sul']);
   const [dentistAddressObj, setDentistAddressObj] = useState<AddressData>({
     cep: activeDentistObj?.cep || clinicInfo.cep || '',
     street: activeDentistObj?.street || activeDentistObj?.address || clinicInfo.street || clinicInfo.address || '',
@@ -184,7 +191,7 @@ export const SettingsView: React.FC = () => {
     'Ficam prestadas as informações aos pacientes assistidos que justifiquem a recusa do atendimento, a interrupção do tratamento ou o tempo mais longo para a conclusão do tratamento, em razão da complexidade do caso, da finalidade pedagógica, do estágio de formação em que o profissional se encontre em relação às habilidades e aos conhecimentos que o caso clínico demande, ou mesmo delonga em razão de casos fortuitos que forçam a paralisação dos atendimentos nas clínicas da instituição.'
   );
   const [signatureLabel, setSignatureLabel] = useState(
-    clinicInfo.signatureLabel || `${clinicInfo.dentistName || 'Dr. Lucas Mendes'} • ${clinicInfo.cro || 'CRO/SP 123456'} - Responsável Técnico`
+    cleanSignatureText(clinicInfo.signatureLabel) || `${clinicInfo.dentistName || 'Dr. Lucas Mendes'} • ${clinicInfo.cro || 'CRO/SP 123456'}`
   );
   const [showSignatureLine, setShowSignatureLine] = useState<boolean>(clinicInfo.showSignatureLine ?? true);
 
@@ -240,19 +247,17 @@ export const SettingsView: React.FC = () => {
     }
   };
 
-  // Handle Mutual Exclusion Dropdowns
+  // Handle Synchronized Selection of Clinic and Dentist
   const handleSelectClinicDropdown = (clinicId: string) => {
     if (!clinicId) {
       setSelectedClinicDropdownId('');
       return;
     }
-    setActiveSelectionMode('clinic');
     setSelectedClinicDropdownId(clinicId);
-    setSelectedDentistDropdownId(''); // Deactivate dentist dropdown
+    setActiveClinicId(clinicId);
 
     const found = clinics.find(c => c.id === clinicId);
     if (found) {
-      setActiveClinicId(found.id);
       setClinicName(found.name);
       setHeaderTitle(found.name);
       if (found.phone) setClinicPhone(found.phone);
@@ -279,13 +284,11 @@ export const SettingsView: React.FC = () => {
       setSelectedDentistDropdownId('');
       return;
     }
-    setActiveSelectionMode('dentist');
     setSelectedDentistDropdownId(profId);
-    setSelectedClinicDropdownId(''); // Deactivate clinic dropdown
+    setActiveProfessionalId(profId);
 
     const found = professionals.find(p => p.id === profId);
     if (found) {
-      setActiveProfessionalId(found.id);
       setDentistName(found.name);
       const cleanCro = found.cro ? found.cro.replace(/[^0-9]/g, '') : '';
       setCroNumber(cleanCro);
@@ -294,10 +297,23 @@ export const SettingsView: React.FC = () => {
         if (ufMatch) setCroUf(ufMatch);
       }
       if (found.specialty) setDentistSpecialty(found.specialty);
-      setSignatureLabel(`${found.name} • ${found.cro} - Responsável Técnico`);
+      setSignatureLabel(`${found.name} • ${found.cro}`);
       if (found.cpf) setDentistCpf(formatCPF(found.cpf));
       if (found.phone) setDentistPhone(found.phone);
       if (found.email) setDentistEmail(found.email);
+      if (found.password) setDentistPassword(found.password);
+      const primaryId = found.primaryClinicId || found.clinicIds?.[0] || clinics[0]?.id || '';
+      setDentistPrimaryClinicId(primaryId);
+      const linked = found.clinicIds && found.clinicIds.length > 0 ? found.clinicIds : (primaryId ? [primaryId] : []);
+      setDentistClinicIds(linked);
+      if (primaryId) {
+        setSelectedClinicDropdownId(primaryId);
+        setActiveClinicId(primaryId);
+        const primaryClinicObj = clinics.find(c => c.id === primaryId);
+        if (primaryClinicObj) {
+          setClinicName(primaryClinicObj.name);
+        }
+      }
       
       const parts = found.city ? found.city.split('-') : [];
       setDentistAddressObj({
@@ -312,9 +328,42 @@ export const SettingsView: React.FC = () => {
 
       if (found.signatureImageUrl !== undefined) {
         setSignatureImageUrl(found.signatureImageUrl || '');
+      } else {
+        setSignatureImageUrl('');
       }
+
       if (found.stampImageUrl !== undefined) {
         setStampImageUrl(found.stampImageUrl || '');
+      } else {
+        setStampImageUrl('');
+      }
+
+      // Sincronizar automaticamente a Unidade/Consultório onde este profissional trabalha
+      const targetClinicId = found.primaryClinicId || (found.clinicIds && found.clinicIds.length > 0 ? found.clinicIds[0] : null);
+      if (targetClinicId && targetClinicId !== 'todas') {
+        setSelectedClinicDropdownId(targetClinicId);
+        setActiveClinicId(targetClinicId);
+        const targetClinic = clinics.find(c => c.id === targetClinicId);
+        if (targetClinic) {
+          setClinicName(targetClinic.name);
+          setHeaderTitle(targetClinic.name);
+          if (targetClinic.phone) setClinicPhone(targetClinic.phone);
+          if (targetClinic.email) setClinicEmail(targetClinic.email);
+          if (targetClinic.cnpj) setClinicCnpj(formatCNPJ(targetClinic.cnpj));
+          if (targetClinic.technicalManager) setTechnicalManager(targetClinic.technicalManager);
+          if (targetClinic.epaoNumber) setEpaoNumber(targetClinic.epaoNumber);
+          if (targetClinic.epaoUf) setEpaoUf(targetClinic.epaoUf);
+          const cparts = targetClinic.city ? targetClinic.city.split('-') : [];
+          setClinicAddressObj({
+            cep: targetClinic.cep || clinicInfo.cep || '',
+            street: targetClinic.street || targetClinic.address || '',
+            number: targetClinic.number || '',
+            complement: targetClinic.complement || '',
+            neighborhood: targetClinic.neighborhood || '',
+            city: cparts[0]?.trim() || targetClinic.city || '',
+            state: targetClinic.state || cparts[1]?.trim() || 'SP'
+          });
+        }
       }
     }
   };
@@ -330,27 +379,80 @@ export const SettingsView: React.FC = () => {
     setShowNewSpecialtyInput(false);
   };
 
-  // Save Handlers for specific sections
+  // Synchronization of dentist's working units
+  const handleChangePrimaryClinic = (newPrimaryId: string) => {
+    setDentistPrimaryClinicId(newPrimaryId);
+    handleSelectClinicDropdown(newPrimaryId);
+    const nextIds = Array.from(new Set([...dentistClinicIds, newPrimaryId].filter(Boolean)));
+    setDentistClinicIds(nextIds);
+    if (selectedDentistDropdownId) {
+      updateProfessional(selectedDentistDropdownId, {
+        primaryClinicId: newPrimaryId,
+        clinicIds: nextIds
+      });
+    }
+  };
+
+  const handleToggleDentistClinic = (clinicId: string, isChecked: boolean) => {
+    let nextIds: string[];
+    if (isChecked) {
+      nextIds = Array.from(new Set([...dentistClinicIds, clinicId, dentistPrimaryClinicId].filter(Boolean)));
+    } else {
+      if (clinicId === dentistPrimaryClinicId) return;
+      nextIds = dentistClinicIds.filter(id => id !== clinicId);
+      if (dentistPrimaryClinicId && !nextIds.includes(dentistPrimaryClinicId)) {
+        nextIds.push(dentistPrimaryClinicId);
+      }
+    }
+    setDentistClinicIds(nextIds);
+    if (selectedDentistDropdownId) {
+      updateProfessional(selectedDentistDropdownId, {
+        clinicIds: nextIds,
+        primaryClinicId: dentistPrimaryClinicId
+      });
+    }
+  };
+
+  // Save Handlers for synchronized sections (Single Save Button per AGENTS.md)
   const handleSaveCadastro = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    if (activeSelectionMode === 'clinic') {
-      const fullStreet = formatFullAddress({
-        street: clinicAddressObj.street,
-        number: clinicAddressObj.number,
-        complement: clinicAddressObj.complement,
-        neighborhood: clinicAddressObj.neighborhood
-      });
-      const cityState = `${clinicAddressObj.city || 'FORTALEZA'}${clinicAddressObj.state ? ' - ' + clinicAddressObj.state : ''}`;
+    // 1. Salvar dados da Clínica / Unidade
+    const fullStreet = formatFullAddress({
+      street: clinicAddressObj.street,
+      number: clinicAddressObj.number,
+      complement: clinicAddressObj.complement,
+      neighborhood: clinicAddressObj.neighborhood
+    });
+    const cityState = `${clinicAddressObj.city || 'FORTALEZA'}${clinicAddressObj.state ? ' - ' + clinicAddressObj.state : ''}`;
 
-      updateClinicInfo({
+    updateClinicInfo({
+      name: clinicName,
+      dentistName: technicalManager || dentistName,
+      cro: epaoNumber ? `EPAO/${epaoUf} ${epaoNumber}` : (croNumber ? `CRO/${croUf} ${croNumber}` : clinicInfo.cro),
+      phone: clinicPhone,
+      email: clinicEmail,
+      cnpj: formatCNPJ(clinicCnpj),
+      address: fullStreet || clinicInfo.address,
+      city: cityState,
+      cep: clinicAddressObj.cep,
+      street: clinicAddressObj.street,
+      number: clinicAddressObj.number,
+      complement: clinicAddressObj.complement,
+      neighborhood: clinicAddressObj.neighborhood,
+      state: clinicAddressObj.state,
+      epaoNumber: epaoNumber,
+      epaoUf: epaoUf,
+      technicalManager: technicalManager
+    });
+
+    if (selectedClinicDropdownId) {
+      updateClinic(selectedClinicDropdownId, {
         name: clinicName,
-        dentistName: technicalManager || dentistName,
-        cro: epaoNumber ? `EPAO/${epaoUf} ${epaoNumber}` : (croNumber ? `CRO/${croUf} ${croNumber}` : clinicInfo.cro),
         phone: clinicPhone,
         email: clinicEmail,
         cnpj: formatCNPJ(clinicCnpj),
-        address: fullStreet || clinicInfo.address,
+        address: fullStreet || 'Endereço a definir',
         city: cityState,
         cep: clinicAddressObj.cep,
         street: clinicAddressObj.street,
@@ -358,114 +460,60 @@ export const SettingsView: React.FC = () => {
         complement: clinicAddressObj.complement,
         neighborhood: clinicAddressObj.neighborhood,
         state: clinicAddressObj.state,
+        technicalManager: technicalManager,
         epaoNumber: epaoNumber,
-        epaoUf: epaoUf,
-        technicalManager: technicalManager
+        epaoUf: epaoUf
       });
+      setActiveClinicId(selectedClinicDropdownId);
+    }
 
-      if (selectedClinicDropdownId) {
-        updateClinic(selectedClinicDropdownId, {
-          name: clinicName,
-          phone: clinicPhone,
-          email: clinicEmail,
-          cnpj: formatCNPJ(clinicCnpj),
-          address: fullStreet || 'Endereço a definir',
-          city: cityState,
-          cep: clinicAddressObj.cep,
-          street: clinicAddressObj.street,
-          number: clinicAddressObj.number,
-          complement: clinicAddressObj.complement,
-          neighborhood: clinicAddressObj.neighborhood,
-          state: clinicAddressObj.state,
-          technicalManager: technicalManager,
-          epaoNumber: epaoNumber,
-          epaoUf: epaoUf
-        });
-        setActiveClinicId(selectedClinicDropdownId);
-      } else {
-        const createdClinic = addClinic({
-          name: clinicName || 'Nova Unidade',
-          phone: clinicPhone,
-          email: clinicEmail,
-          cnpj: formatCNPJ(clinicCnpj),
-          address: fullStreet || 'Endereço a definir',
-          city: cityState,
-          cep: clinicAddressObj.cep,
-          street: clinicAddressObj.street,
-          number: clinicAddressObj.number,
-          complement: clinicAddressObj.complement,
-          neighborhood: clinicAddressObj.neighborhood,
-          state: clinicAddressObj.state,
-          technicalManager: technicalManager,
-          epaoNumber: epaoNumber,
-          epaoUf: epaoUf
-        });
-        setSelectedClinicDropdownId(createdClinic.id);
-        setActiveClinicId(createdClinic.id);
-      }
-    } else {
-      const fullCro = croNumber.startsWith('CRO') ? croNumber : `CRO/${croUf} ${croNumber}`;
-      const fullDentistStreet = formatFullAddress({
+    // 2. Salvar dados do Cirurgião-Dentista
+    const fullCro = croNumber.startsWith('CRO') ? croNumber : `CRO/${croUf} ${croNumber}`;
+    const fullDentistStreet = formatFullAddress({
+      street: dentistAddressObj.street,
+      number: dentistAddressObj.number,
+      complement: dentistAddressObj.complement,
+      neighborhood: dentistAddressObj.neighborhood
+    });
+    const dentistCityState = `${dentistAddressObj.city || 'FORTALEZA'}${dentistAddressObj.state ? ' - ' + dentistAddressObj.state : ''}`;
+
+    const updatedClinicIds = Array.from(new Set([
+      ...dentistClinicIds,
+      dentistPrimaryClinicId
+    ].filter(Boolean)));
+
+    if (selectedDentistDropdownId) {
+      updateProfessional(selectedDentistDropdownId, {
+        name: dentistName,
+        cro: fullCro,
+        specialty: dentistSpecialty,
+        cpf: formatCPF(dentistCpf),
+        phone: dentistPhone,
+        email: dentistEmail,
+        address: fullDentistStreet,
+        city: dentistCityState,
+        cep: dentistAddressObj.cep,
         street: dentistAddressObj.street,
         number: dentistAddressObj.number,
         complement: dentistAddressObj.complement,
-        neighborhood: dentistAddressObj.neighborhood
-      });
-      const dentistCityState = `${dentistAddressObj.city || 'FORTALEZA'}${dentistAddressObj.state ? ' - ' + dentistAddressObj.state : ''}`;
-
-      updateClinicInfo({
-        dentistName: dentistName,
-        cro: fullCro,
-        specialty: dentistSpecialty,
-        phone: dentistPhone,
-        email: dentistEmail,
-        cpf: formatCPF(dentistCpf),
+        neighborhood: dentistAddressObj.neighborhood,
+        state: dentistAddressObj.state,
         croNumber: croNumber,
         croUf: croUf,
-        signatureLabel: `${dentistName} • ${fullCro} - Responsável Técnico`
+        primaryClinicId: dentistPrimaryClinicId || selectedClinicDropdownId,
+        clinicIds: updatedClinicIds,
+        password: dentistPassword || '123456'
       });
+      setActiveProfessionalId(selectedDentistDropdownId);
 
-      if (selectedDentistDropdownId) {
-        updateProfessional(selectedDentistDropdownId, {
-          name: dentistName,
-          cro: fullCro,
-          specialty: dentistSpecialty,
-          cpf: formatCPF(dentistCpf),
-          phone: dentistPhone,
-          email: dentistEmail,
-          address: fullDentistStreet,
-          city: dentistCityState,
-          cep: dentistAddressObj.cep,
-          street: dentistAddressObj.street,
-          number: dentistAddressObj.number,
-          complement: dentistAddressObj.complement,
-          neighborhood: dentistAddressObj.neighborhood,
-          state: dentistAddressObj.state,
-          croNumber: croNumber,
-          croUf: croUf
-        });
-        setActiveProfessionalId(selectedDentistDropdownId);
-      } else {
-        const createdProf = addProfessional({
-          name: dentistName || 'Dr(a). Profissional',
-          cro: fullCro,
-          specialty: dentistSpecialty || 'Clínica Geral',
-          cpf: formatCPF(dentistCpf),
-          phone: dentistPhone,
-          email: dentistEmail,
-          address: fullDentistStreet,
-          city: dentistCityState,
-          cep: dentistAddressObj.cep,
-          street: dentistAddressObj.street,
-          number: dentistAddressObj.number,
-          complement: dentistAddressObj.complement,
-          neighborhood: dentistAddressObj.neighborhood,
-          state: dentistAddressObj.state,
-          croNumber: croNumber,
-          croUf: croUf
-        });
-        setSelectedDentistDropdownId(createdProf.id);
-        setActiveProfessionalId(createdProf.id);
+      // Sincronizar senha no AuthContext para o usuário vinculado
+      const matchingUser = allUsers.find(u => 
+        u.professionalId === selectedDentistDropdownId || 
+        (u.email && dentistEmail && u.email.toLowerCase() === dentistEmail.toLowerCase()) ||
+        (u.name && dentistName && u.name.toLowerCase() === dentistName.toLowerCase())
+      );
+      if (matchingUser && dentistPassword) {
+        updateUserPassword(matchingUser.uid, dentistPassword);
       }
     }
 
@@ -484,7 +532,7 @@ export const SettingsView: React.FC = () => {
     });
     setSelectedClinicDropdownId(newC.id);
     setActiveClinicId(newC.id);
-    setActiveSelectionMode('clinic');
+    setCadastroSubTab('clinica');
     setClinicName(newC.name);
     if (newC.phone) setClinicPhone(newC.phone);
     setNewClinicNameInput('');
@@ -505,7 +553,7 @@ export const SettingsView: React.FC = () => {
     });
     setSelectedDentistDropdownId(newP.id);
     setActiveProfessionalId(newP.id);
-    setActiveSelectionMode('dentist');
+    setCadastroSubTab('dentista');
     setDentistName(newP.name);
     setCroNumber(newP.cro);
     setNewDentistNameInput('');
@@ -521,6 +569,9 @@ export const SettingsView: React.FC = () => {
   };
 
   const handleSaveLayout = () => {
+    const selectedProf = professionals.find(p => p.id === selectedDentistDropdownId);
+    const isOwner = selectedDentistDropdownId === 'prof-hugo' || isDrHugoRicoy(selectedProf, dentistName, clinicInfo.dentistName);
+
     updateClinicInfo({
       logoUrl: logoUrl || undefined,
       headerTitle,
@@ -532,8 +583,8 @@ export const SettingsView: React.FC = () => {
       patientAssistedJustificationText,
       signatureLabel,
       showSignatureLine,
-      signatureImageUrl,
-      stampImageUrl,
+      signatureImageUrl: isOwner ? (signatureImageUrl || '') : (clinicInfo.signatureImageUrl || ''),
+      stampImageUrl: isOwner ? (stampImageUrl || '') : (clinicInfo.stampImageUrl || ''),
       showSignatureImage,
       showStampImage,
       signatureAlignment
@@ -770,6 +821,19 @@ export const SettingsView: React.FC = () => {
 
         <button
           type="button"
+          onClick={() => setActiveSettingsTab('usuarios')}
+          className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
+            activeSettingsTab === 'usuarios'
+              ? 'bg-[#5a5a40] text-white shadow-sm'
+              : 'text-[#5a5a40] hover:bg-white/70'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4 text-[#d4a373]" />
+          Usuários & Permissões
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveSettingsTab('backup')}
           className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
             activeSettingsTab === 'backup'
@@ -974,89 +1038,124 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Mutual Exclusion Dropdowns Selector */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#fbfbf9] p-4 rounded-2xl border border-[#e5e5d1]">
-          {/* 1. Unidades e Consultórios Dropdown */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-[#5a5a40] uppercase tracking-wider flex items-center gap-1.5">
-                <Building className="w-4 h-4 text-[#d4a373]" />
-                Unidades e Consultórios
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowAddClinic(true)}
-                className="text-[11px] font-bold text-[#5a5a40] hover:text-[#d4a373] flex items-center gap-1 cursor-pointer transition"
-              >
-                <Plus className="w-3.5 h-3.5 text-[#d4a373]" />
-                Nova Unidade
-              </button>
-            </div>
-            <select
-              value={selectedClinicDropdownId}
-              onChange={(e) => handleSelectClinicDropdown(e.target.value)}
-              className={`w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold transition focus:outline-none ${
-                activeSelectionMode === 'clinic' && selectedClinicDropdownId
-                  ? 'border-[#5a5a40] text-[#2c2c2c] ring-2 ring-[#5a5a40]/20'
-                  : 'border-[#e5e5d1] text-gray-500'
-              }`}
-            >
-              <option value="">(Nenhum)</option>
-              {clinics.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.phone ? `(${c.phone})` : ''}
-                </option>
-              ))}
-            </select>
+        {/* Seletor Sincronizado de Cirurgião-Dentista e Unidade de Atuação */}
+        <div className="bg-[#fbfbf9] p-4 rounded-2xl border border-[#e5e5d1] space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#e5e5d1] pb-2">
+            <span className="text-xs font-bold text-[#5a5a40] uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-[#d4a373]" />
+              Sincronização de Profissional e Unidade de Atuação
+            </span>
+            <span className="text-[11px] text-gray-500 font-medium">
+              Selecione o profissional e a clínica onde ele trabalha
+            </span>
           </div>
 
-          {/* 2. Cirurgiões-Dentistas Dropdown */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-[#5a5a40] uppercase tracking-wider flex items-center gap-1.5">
-                <Stethoscope className="w-4 h-4 text-[#d4a373]" />
-                Cirurgiões-Dentistas
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowAddDentist(true)}
-                className="text-[11px] font-bold text-[#5a5a40] hover:text-[#d4a373] flex items-center gap-1 cursor-pointer transition"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 1. Cirurgião-Dentista */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-[#5a5a40] uppercase tracking-wider flex items-center gap-1.5">
+                  <Stethoscope className="w-4 h-4 text-[#d4a373]" />
+                  Cirurgião-Dentista
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowAddDentist(true)}
+                  className="text-[11px] font-bold text-[#5a5a40] hover:text-[#d4a373] flex items-center gap-1 cursor-pointer transition"
+                >
+                  <Plus className="w-3.5 h-3.5 text-[#d4a373]" />
+                  Novo Dentista
+                </button>
+              </div>
+              <select
+                value={selectedDentistDropdownId}
+                onChange={(e) => handleSelectDentistDropdown(e.target.value)}
+                className="w-full bg-white border border-[#5a5a40]/30 rounded-xl px-3 py-2 text-xs font-bold text-[#2c2c2c] transition focus:outline-none focus:border-[#5a5a40] ring-1 ring-[#5a5a40]/10"
               >
-                <Plus className="w-3.5 h-3.5 text-[#d4a373]" />
-                Novo Dentista
-              </button>
+                {professionals.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — {p.cro} ({p.specialty})
+                  </option>
+                ))}
+              </select>
             </div>
-            <select
-              value={selectedDentistDropdownId}
-              onChange={(e) => handleSelectDentistDropdown(e.target.value)}
-              className={`w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold transition focus:outline-none ${
-                activeSelectionMode === 'dentist' && selectedDentistDropdownId
-                  ? 'border-[#5a5a40] text-[#2c2c2c] ring-2 ring-[#5a5a40]/20'
-                  : 'border-[#e5e5d1] text-gray-500'
-              }`}
-            >
-              <option value="">(Nenhum)</option>
-              {professionals.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} — {p.cro} ({p.specialty})
-                </option>
-              ))}
-            </select>
+
+            {/* 2. Unidades e Consultórios */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-[#5a5a40] uppercase tracking-wider flex items-center gap-1.5">
+                  <Building className="w-4 h-4 text-[#d4a373]" />
+                  Unidade / Consultório de Atuação
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowAddClinic(true)}
+                  className="text-[11px] font-bold text-[#5a5a40] hover:text-[#d4a373] flex items-center gap-1 cursor-pointer transition"
+                >
+                  <Plus className="w-3.5 h-3.5 text-[#d4a373]" />
+                  Nova Unidade
+                </button>
+              </div>
+              <select
+                value={selectedClinicDropdownId}
+                onChange={(e) => handleSelectClinicDropdown(e.target.value)}
+                className="w-full bg-white border border-[#5a5a40]/30 rounded-xl px-3 py-2 text-xs font-bold text-[#2c2c2c] transition focus:outline-none focus:border-[#5a5a40] ring-1 ring-[#5a5a40]/10"
+              >
+                {clinics.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} {c.city ? `(${c.city})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
-        {/* Informações Cadastrais (Incorporated Form) */}
+        {/* Informações Cadastrais Sincronizadas */}
         <div className="bg-[#fcfdfa] border border-[#e5e5d1] rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#e5e5d1] pb-2">
-            <span className="text-xs font-bold text-[#2c3e2e] flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#d4a373]" />
-              Informações Cadastrais {activeSelectionMode === 'clinic' ? '(Unidade Ativa)' : '(Dentista Ativo)'}
-            </span>
-            <span className="text-[11px] text-gray-500">Editando dados selecionados</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#e5e5d1] pb-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCadastroSubTab('dentista')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                  cadastroSubTab === 'dentista'
+                    ? `${t.btnPrimaryBg} ${t.btnPrimaryText} shadow-xs`
+                    : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                }`}
+              >
+                <Stethoscope className="w-3.5 h-3.5" />
+                <span>Dados do Cirurgião-Dentista</span>
+                {dentistName && (
+                  <span className="text-[10px] opacity-80 font-normal">({dentistName.split(' ')[0]})</span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCadastroSubTab('clinica')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                  cadastroSubTab === 'clinica'
+                    ? `${t.btnPrimaryBg} ${t.btnPrimaryText} shadow-xs`
+                    : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                }`}
+              >
+                <Building className="w-3.5 h-3.5" />
+                <span>Dados da Unidade / Consultório</span>
+                {clinicName && (
+                  <span className="text-[10px] opacity-80 font-normal">({clinicName.split(' ')[0]})</span>
+                )}
+              </button>
+            </div>
+
+            <div className="text-[11px] text-gray-500 flex items-center gap-1.5 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+              <span>Cadastros Sincronizados</span>
+            </div>
           </div>
 
-          {activeSelectionMode === 'clinic' ? (
-            /* FORM WHEN UNIDADES E CONSULTÓRIOS IS SELECTED */
+          {cadastroSubTab === 'clinica' ? (
+            /* FORM DA CLÍNICA / UNIDADE */
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
                 <div>
@@ -1071,7 +1170,7 @@ export const SettingsView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">Cirurgião-Dentista Responsável</label>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">Cirurgião-Dentista Responsável Técnico</label>
                   <select
                     value={technicalManager}
                     onChange={(e) => setTechnicalManager(e.target.value)}
@@ -1140,17 +1239,6 @@ export const SettingsView: React.FC = () => {
                     ))}
                   </select>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1">Especialidade</label>
-                  <input
-                    type="text"
-                    disabled
-                    value=""
-                    placeholder="Sem especialidade (Unidade)"
-                    className="w-full bg-[#f0f0e8] border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-gray-400 cursor-not-allowed"
-                  />
-                </div>
               </div>
 
               <div className="pt-2">
@@ -1162,11 +1250,11 @@ export const SettingsView: React.FC = () => {
               </div>
             </div>
           ) : (
-            /* FORM WHEN CIRURGIÕES-DENTISTAS IS SELECTED */
+            /* FORM DO CIRURGIÃO-DENTISTA */
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
                 <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">Nome do Cirurgião-Dentista Responsável *</label>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">Nome do Cirurgião-Dentista *</label>
                   <input
                     type="text"
                     required
@@ -1174,6 +1262,48 @@ export const SettingsView: React.FC = () => {
                     onChange={(e) => setDentistName(e.target.value)}
                     className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-bold focus:outline-none focus:border-[#5a5a40]"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">Unidade / Consultório Principal onde Atende</label>
+                  <select
+                    value={dentistPrimaryClinicId}
+                    onChange={(e) => handleChangePrimaryClinic(e.target.value)}
+                    className="w-full bg-white border border-[#e5e5d1] rounded-2xl px-3 py-2 text-xs text-[#2c2c2c] font-bold focus:outline-none focus:border-[#5a5a40]"
+                  >
+                    {clinics.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} {c.city ? `(${c.city})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <Lock className="w-3.5 h-3.5 text-[#d4a373]" />
+                      Senha de Acesso / Troca de Perfil *
+                    </span>
+                    <span className="text-[10px] text-gray-400">Proteção de troca</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showDentistPassword ? 'text' : 'password'}
+                      value={dentistPassword}
+                      onChange={(e) => setDentistPassword(e.target.value)}
+                      placeholder="Senha do profissional"
+                      className="w-full bg-white border border-[#e5e5d1] rounded-2xl pl-3 pr-10 py-2 text-xs text-[#2c2c2c] font-mono focus:outline-none focus:border-[#5a5a40]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowDentistPassword(!showDentistPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                      title={showDentistPassword ? 'Ocultar senha' : 'Ver senha'}
+                    >
+                      {showDentistPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -1248,6 +1378,52 @@ export const SettingsView: React.FC = () => {
                 </div>
               </div>
 
+              {/* Unidades de Atuação (Multi-seleção de Clínicas do Dentista) */}
+              <div className="bg-[#fbfbf9] border border-[#e5e5d1] rounded-2xl p-3.5 space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-[#e5e5d1] pb-2">
+                  <span className="text-xs font-bold text-[#5a5a40] uppercase tracking-wider flex items-center gap-1.5">
+                    <Building className="w-4 h-4 text-[#d4a373]" />
+                    Unidades e Consultórios em que este Cirurgião-Dentista Atende
+                  </span>
+                  <span className="text-[11px] text-stone-500 font-medium">
+                    Marque apenas as unidades em que este profissional dá expediente
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
+                  {clinics.map((c) => {
+                    const isPrimary = dentistPrimaryClinicId === c.id;
+                    const isChecked = dentistClinicIds.includes(c.id) || isPrimary;
+                    return (
+                      <label
+                        key={c.id}
+                        className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition select-none ${
+                          isChecked
+                            ? 'bg-white border-[#5a5a40] text-[#2c2c2c] shadow-2xs ring-1 ring-[#5a5a40]/10'
+                            : 'bg-stone-50 border-stone-200 text-stone-500 hover:bg-white'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          disabled={isPrimary}
+                          onChange={(e) => handleToggleDentistClinic(c.id, e.target.checked)}
+                          className="mt-0.5 rounded text-[#5a5a40] focus:ring-[#5a5a40]"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold truncate text-[11.5px]">{c.name}</p>
+                          <p className="text-[10px] text-stone-400">{c.city || c.address || 'Consultório'}</p>
+                          {isPrimary && (
+                            <span className="inline-block mt-1 text-[9px] font-bold text-[#5a5a40] bg-[#e5e5d1]/50 px-1.5 py-0.5 rounded border border-[#5a5a40]/30">
+                              ★ Unidade Principal
+                            </span>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Endereço Pessoal/Residencial do Dentista (Restrito) */}
               <div className="pt-2 border-t border-[#e5e5d1] mt-3">
                 <div className="mb-2 flex items-center justify-between">
@@ -1308,7 +1484,7 @@ export const SettingsView: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {clinics.map((clinic) => {
-                const isSelectedInForm = activeSelectionMode === 'clinic' && selectedClinicDropdownId === clinic.id;
+                const isSelectedInForm = selectedClinicDropdownId === clinic.id;
                 const isSystemActive = activeClinicId === clinic.id;
                 const linkedProfs = professionals.filter(p => p.clinicIds && p.clinicIds.includes(clinic.id));
                 return (
@@ -1460,7 +1636,7 @@ export const SettingsView: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {professionals.map((prof) => {
-                const isSelectedInForm = activeSelectionMode === 'dentist' && selectedDentistDropdownId === prof.id;
+                const isSelectedInForm = selectedDentistDropdownId === prof.id;
                 const isSystemActive = activeProfessionalId === prof.id;
                 const linkedClinics = clinics.filter(c => prof.clinicIds && prof.clinicIds.includes(c.id));
                 return (
@@ -1647,6 +1823,67 @@ export const SettingsView: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Controls Column */}
           <div className="lg:col-span-7 space-y-5">
+            {/* Seletor Sincronizado de Profissional e Unidade para Layout de Documentos */}
+            <div className="bg-[#fbfbf9] p-4 rounded-2xl border border-[#e5e5d1] space-y-3">
+              <div className="flex items-center justify-between border-b border-[#e5e5d1] pb-2">
+                <span className="text-xs font-bold text-[#5a5a40] uppercase tracking-wider flex items-center gap-1.5">
+                  <Stethoscope className="w-4 h-4 text-[#d4a373]" />
+                  Dentista Emitente & Unidade do Layout
+                </span>
+                <span className="text-[11px] text-gray-500 font-medium">Sincroniza cabeçalho, carimbo e rodapé</span>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#5a5a40] mb-1">Cirurgião-Dentista Emitente</label>
+                  <select
+                    value={selectedDentistDropdownId}
+                    onChange={(e) => {
+                      const profId = e.target.value;
+                      handleSelectDentistDropdown(profId);
+                      const p = professionals.find(item => item.id === profId);
+                      if (p) {
+                        setHeaderSubtitle(`${p.name} • ${p.cro} (${p.specialty})`);
+                        setSignatureLabel(`${p.name} • ${p.cro}`);
+                        if (p.signatureImageUrl !== undefined) setSignatureImageUrl(p.signatureImageUrl || '');
+                        if (p.stampImageUrl !== undefined) setStampImageUrl(p.stampImageUrl || '');
+                      }
+                    }}
+                    className="w-full bg-white border border-[#5a5a40]/30 rounded-xl px-2.5 py-1.5 text-xs font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
+                  >
+                    {professionals.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} — {p.cro}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-[#5a5a40] mb-1">Unidade / Consultório</label>
+                  <select
+                    value={selectedClinicDropdownId}
+                    onChange={(e) => {
+                      const clinicId = e.target.value;
+                      handleSelectClinicDropdown(clinicId);
+                      const c = clinics.find(item => item.id === clinicId);
+                      if (c) {
+                        setHeaderTitle(c.name);
+                        setFooterText(`${c.address || ''} - ${c.city || ''} | Tel: ${c.phone || ''}`);
+                      }
+                    }}
+                    className="w-full bg-white border border-[#5a5a40]/30 rounded-xl px-2.5 py-1.5 text-xs font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
+                  >
+                    {clinics.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
             {/* Header & Logo */}
             <div className="bg-[#fbfbf9] p-4 rounded-2xl border border-[#e5e5d1] space-y-3">
               <span className="text-xs font-bold text-[#2c3e2e] uppercase tracking-wider flex items-center gap-1.5 border-b border-[#e5e5d1] pb-2">
@@ -2033,6 +2270,8 @@ export const SettingsView: React.FC = () => {
                   customDentistName={dentistName}
                   customCro={croNumber}
                   compact={true}
+                  customSignatureImageUrl={signatureImageUrl}
+                  customStampImageUrl={stampImageUrl}
                 />
                 <p className="text-[8.5px] text-gray-500 leading-tight pt-1">{footerText}</p>
               </div>

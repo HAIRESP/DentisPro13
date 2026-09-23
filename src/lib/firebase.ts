@@ -82,6 +82,8 @@ export interface UserProfile {
   specialty?: string;
   phone?: string;
   activeClinicId?: string;
+  password?: string; // Senha cadastrada do usuário/profissional
+  professionalId?: string; // ID do profissional correspondente em professionals (ex: prof-hugo)
   createdAt?: string;
   updatedAt?: string;
 }
@@ -122,7 +124,9 @@ export const DEMO_USERS: UserProfile[] = [
     role: 'admin',
     cro: 'CRO/CE 5925',
     specialty: 'Implantodontia & Gestão',
-    phone: '(85) 99999-0001'
+    phone: '(85) 99999-0001',
+    password: 'admin123',
+    professionalId: 'prof-hugo'
   },
   {
     uid: 'demo_dentist_02',
@@ -131,14 +135,50 @@ export const DEMO_USERS: UserProfile[] = [
     role: 'dentist',
     cro: 'CRO-CE 54321',
     specialty: 'Ortodontia',
-    phone: '(85) 98888-0002'
+    phone: '(85) 98888-0002',
+    password: '123456',
+    professionalId: 'prof-2'
+  },
+  {
+    uid: 'demo_dentist_03',
+    email: 'lucas@dentispro.com.br',
+    name: 'Dr. Lucas Mendes',
+    role: 'dentist',
+    cro: 'CRO/CE 4120',
+    specialty: 'Endodontia',
+    phone: '(85) 98711-2233',
+    password: '123456',
+    professionalId: 'prof-1'
+  },
+  {
+    uid: 'demo_dentist_04',
+    email: 'roberto@dentispro.com.br',
+    name: 'Dr. Roberto Fonseca',
+    role: 'dentist',
+    cro: 'CRO/CE 7890',
+    specialty: 'Periodontia',
+    phone: '(85) 98822-3344',
+    password: '123456',
+    professionalId: 'prof-3'
+  },
+  {
+    uid: 'demo_dentist_05',
+    email: 'juliana@dentispro.com.br',
+    name: 'Dra. Juliana Costa',
+    role: 'dentist',
+    cro: 'CRO/CE 9876',
+    specialty: 'Odontopediatria',
+    phone: '(85) 98933-4455',
+    password: '123456',
+    professionalId: 'prof-4'
   },
   {
     uid: 'demo_reception_03',
     email: 'recepcao@dentispro.com.br',
     name: 'Mariana Souza (Recepção)',
     role: 'receptionist',
-    phone: '(85) 97777-0003'
+    phone: '(85) 97777-0003',
+    password: 'recepcao123'
   }
 ];
 
@@ -154,6 +194,21 @@ export async function saveUserProfileToFirestore(profile: UserProfile): Promise<
     }, { merge: true });
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
+  }
+}
+
+// Update user password specifically
+export async function updateUserPasswordInFirestore(uid: string, newPassword: string): Promise<void> {
+  if (!uid) return;
+  const path = `users/${uid}`;
+  try {
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, {
+      password: newPassword,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, path);
   }
 }
 

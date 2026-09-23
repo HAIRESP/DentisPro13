@@ -26,6 +26,9 @@ export interface Professional {
   cro: string;
   specialty: string;
   clinicIds: string[]; // Clinics where this professional is available
+  primaryClinicId?: string; // Clínica principal onde trabalha
+  password?: string; // Senha de acesso do profissional para troca de perfil
+  userId?: string; // ID do usuário vinculado no sistema de permissões
   cpf?: string;
   phone?: string;
   email?: string;

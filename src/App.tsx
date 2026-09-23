@@ -14,6 +14,7 @@ import { DentalDocumentManager } from './components/documents/DentalDocumentMana
 import { LaudosView } from './components/laudos/LaudosView';
 import { SectionHeaderBar } from './components/common/SectionHeaderBar';
 import { UserSessionModal } from './components/common/UserSessionModal';
+import { SwitchProfessionalModal } from './components/common/SwitchProfessionalModal';
 import { ShieldAlert, KeyRound } from 'lucide-react';
 
 const MainContent: React.FC = () => {
@@ -107,6 +108,7 @@ const AppShell: React.FC = () => {
   return (
     <div className={`min-h-screen ${shellBg} flex flex-col font-sans transition-colors duration-300`} data-theme={layoutTheme}>
       <MainContent />
+      <SwitchProfessionalModal />
     </div>
   );
 };

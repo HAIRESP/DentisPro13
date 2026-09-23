@@ -3,6 +3,7 @@ import { useApp, ActiveTab } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { UserSessionModal } from './UserSessionModal';
 import { ClinicListModal } from './ClinicListModal';
+import { ProfessionalClinicSelector } from './ProfessionalClinicSelector';
 import { 
   ArrowLeft, 
   LayoutDashboard, 
@@ -103,26 +104,8 @@ export const SectionHeaderBar: React.FC = () => {
 
         {/* Right Side: Quick info & Session Access */}
         <div className="flex items-center justify-end gap-2 text-xs">
-          {/* Active Unit / Clinic */}
-          {activeClinic && (
-            <button
-              type="button"
-              onClick={() => setShowClinicListModal(true)}
-              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium transition cursor-pointer"
-              title="Ver unidades cadastradas"
-            >
-              <Building2 className="w-3.5 h-3.5 text-[#d4a373]" />
-              <span className="truncate max-w-[130px]">{activeClinic.name}</span>
-            </button>
-          )}
-
-          {/* Active Dentist */}
-          {activeProfessional && (
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-stone-100 text-stone-700 font-medium">
-              <Stethoscope className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="truncate max-w-[140px]">{activeProfessional.name}</span>
-            </div>
-          )}
+          {/* Unified Professional & Clinic Selector */}
+          <ProfessionalClinicSelector variant="compact-header" />
 
           {/* User Profile Card & Switch button */}
           <div className="flex items-center gap-2 pl-2 border-l border-stone-200">

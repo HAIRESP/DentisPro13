@@ -1,5 +1,6 @@
 import { Patient, Appointment, InventoryItem, FinancialTransaction, Prescription, WhatsAppTemplate, ToothCondition, OdontogramSnapshot, ClinicalEvolutionEntry, ClinicUnit, Professional, TUSSProcedure, TreatmentPlan, PatientPayment, PriceTable, DentistCommissionRecord, InsuranceGuide, SavedClinicDocument } from '../types';
 import { OFFICIAL_ANS_TUSS_PROCEDURES } from './tussCatalog';
+import { DEFAULT_DR_HUGO_SIGNATURE, DEFAULT_DR_HUGO_STAMP } from '../utils/formatters';
 
 export const INITIAL_CLINICS: ClinicUnit[] = [
   {
@@ -61,7 +62,10 @@ export const INITIAL_PROFESSIONALS: Professional[] = [
     cro: 'CRO/CE 5925',
     cpf: '879.750.253-72',
     specialty: 'Implantodontia, Prótese & Clínica Geral',
-    clinicIds: ['cli-online', 'cli-marv', 'cli-1', 'cli-2', 'cli-3', 'cli-4']
+    primaryClinicId: 'cli-marv',
+    clinicIds: ['cli-marv', 'cli-online'],
+    signatureImageUrl: DEFAULT_DR_HUGO_SIGNATURE,
+    stampImageUrl: DEFAULT_DR_HUGO_STAMP
   },
   {
     id: 'prof-4',
@@ -187,6 +191,7 @@ export const INITIAL_PATIENTS: Patient[] = [
       cep: '01304-000'
     },
     healthInsurance: 'Amil Dental',
+    insuranceNumber: '44332211',
     anamnesis: {
       hasAllergies: false,
       hasHeartDisease: false,
@@ -297,6 +302,7 @@ export const INITIAL_PATIENTS: Patient[] = [
       cep: '04102-000'
     },
     healthInsurance: 'Bradesco Dental',
+    insuranceNumber: '33221100',
     anamnesis: {
       hasAllergies: false,
       hasHeartDisease: false,

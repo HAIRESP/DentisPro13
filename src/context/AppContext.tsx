@@ -43,6 +43,7 @@ import {
   INITIAL_SAVED_DOCUMENTS
 } from '../data/mockData';
 import { INITIAL_DOCUMENT_TEMPLATES } from '../data/documentTemplatesCatalog';
+import { DEFAULT_DR_HUGO_SIGNATURE, DEFAULT_DR_HUGO_STAMP, cleanSignatureText } from '../utils/formatters';
 
 export type ActiveTab = 'dashboard' | 'pacientes' | 'agendamento' | 'relatorios' | 'configuracoes' | 'exame_clinico' | 'odontograma' | 'estoque' | 'financeiro' | 'triagem' | 'documentos' | 'laudos';
 
@@ -107,6 +108,13 @@ interface AppContextType {
   setActiveClinicId: (id: string) => void;
   layoutTheme: string;
   setLayoutTheme: (theme: string) => void;
+
+  // Unified Professional & Clinic Selection with Password Authentication
+  selectProfessionalAndClinic: (profId: string, clinicId?: string) => void;
+  switchRequest: { targetProfId: string; targetClinicId?: string } | null;
+  requestSwitchProfessional: (targetProfId: string, targetClinicId?: string) => void;
+  cancelSwitchProfessional: () => void;
+  applySwitchProfessional: (targetProfId: string, targetClinicId?: string) => void;
   
   // Patients
   patients: Patient[];
@@ -282,13 +290,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [professionals, setProfessionals] = useState<Professional[]>(() => {
     const loaded = loadInitial<Professional[]>(STORAGE_KEYS.PROFESSIONALS, INITIAL_PROFESSIONALS);
-    return [...loaded].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    const normalized = loaded.map(p => {
+      if (p.id === 'prof-hugo' || p.name.includes('Hugo Andres')) {
+        const hasAllOldClinics = p.clinicIds && p.clinicIds.length >= 6;
+        return {
+          ...p,
+          primaryClinicId: p.primaryClinicId || 'cli-marv',
+          clinicIds: hasAllOldClinics ? ['cli-marv', 'cli-online'] : (p.clinicIds || ['cli-marv', 'cli-online']),
+          signatureImageUrl: p.signatureImageUrl !== undefined ? p.signatureImageUrl : '',
+          stampImageUrl: p.stampImageUrl !== undefined ? p.stampImageUrl : ''
+        };
+      }
+      return p;
+    });
+    return normalized.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
   });
   const [activeProfessionalId, setActiveProfessionalIdState] = useState<string>(() => {
     const loaded = loadInitial('dentispro_active_prof_v1', '');
     const currentProfs = loadInitial<Professional[]>(STORAGE_KEYS.PROFESSIONALS, INITIAL_PROFESSIONALS);
     if (loaded && currentProfs.some(p => p.id === loaded)) return loaded;
-    return currentProfs[0]?.id || '';
+    const hugo = currentProfs.find(p => p.id === 'prof-hugo' || p.name.includes('Hugo Andres'));
+    return hugo?.id || currentProfs[0]?.id || '';
   });
   const [activeClinicId, setActiveClinicId] = useState<string>(() => loadInitial(STORAGE_KEYS.ACTIVE_CLINIC, 'todas'));
   const [layoutTheme, setLayoutTheme] = useState<string>(() => loadInitial(STORAGE_KEYS.LAYOUT_THEME, 'natural'));
@@ -488,23 +510,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       city: 'Fortaleza - CE',
       logoUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=150&auto=format&fit=crop&q=80',
       headerTitle: 'DentisPro Odontologia • Unidade Fortaleza (Consultório 102)',
-      headerSubtitle: 'Hugo Andres Iglesias Ricoy • CRO/CE 5925 - Cirurgião-Dentista Responsável',
+      headerSubtitle: 'Hugo Andres Iglesias Ricoy • CRO/CE 5925',
       watermarkUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=150&auto=format&fit=crop&q=80',
       watermarkOpacity: 15,
       showWatermark: true,
       footerText: 'Av. Dom Luís, 1200 - Meireles - Fortaleza - CE • CEP: 60.160-110 | Tel: +55 (85) 98111-0826',
       patientAssistedJustificationText: 'Ficam prestadas as informações aos pacientes assistidos que justifiquem a recusa do atendimento, a interrupção do tratamento ou o tempo mais longo para a conclusão do tratamento, em razão da complexidade do caso, da finalidade pedagógica, do estágio de formação em que o profissional se encontre em relação às habilidades e aos conhecimentos que o caso clínico demande, ou mesmo delonga em razão de casos fortuitos que forçam a paralisação dos atendimentos nas clínicas da instituição.',
-      signatureLabel: 'Hugo Andres Iglesias Ricoy • CRO/CE 5925 - Cirurgião-Dentista Responsável',
+      signatureLabel: 'Hugo Andres Iglesias Ricoy • CRO/CE 5925',
       showSignatureLine: true,
       showSignatureImage: true,
       showStampImage: true,
-      signatureAlignment: 'right'
+      signatureAlignment: 'right',
+      signatureImageUrl: '',
+      stampImageUrl: ''
     };
     const loaded = loadInitial<ClinicInfo>(STORAGE_KEYS.CLINIC_INFO, defaultObj);
-    if (loaded && loaded.name && loaded.name.trim().toUpperCase() === 'MARV') {
-      return { ...loaded, name: 'DentisPro' };
-    }
-    return loaded;
+    const withDefaults: ClinicInfo = {
+      ...loaded,
+      headerSubtitle: cleanSignatureText(loaded.headerSubtitle) || defaultObj.headerSubtitle,
+      signatureLabel: cleanSignatureText(loaded.signatureLabel) || defaultObj.signatureLabel,
+      signatureImageUrl: loaded.signatureImageUrl !== undefined ? loaded.signatureImageUrl : '',
+      stampImageUrl: loaded.stampImageUrl !== undefined ? loaded.stampImageUrl : '',
+      name: (loaded && loaded.name && loaded.name.trim().toUpperCase() === 'MARV') ? 'DentisPro' : loaded.name
+    };
+    return withDefaults;
   });
 
   const [documentTemplates, setDocumentTemplates] = useState<CustomDocumentTemplate[]>(() => {
@@ -957,18 +986,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Professional Handlers
   const activeProfessional = professionals.find(p => p.id === activeProfessionalId) || professionals[0];
 
-  const setActiveProfessionalId = (id: string) => {
-    setActiveProfessionalIdState(id);
-    localStorage.setItem('dentispro_active_prof_v1', JSON.stringify(id));
-    const prof = professionals.find(p => p.id === id);
+  const [switchRequest, setSwitchRequest] = useState<{ targetProfId: string; targetClinicId?: string } | null>(null);
+
+  const selectProfessionalAndClinic = (profId: string, clinicId?: string) => {
+    setActiveProfessionalIdState(profId);
+    localStorage.setItem('dentispro_active_prof_v1', JSON.stringify(profId));
+    
+    const prof = professionals.find(p => p.id === profId);
+    let chosenClinicId = clinicId;
+    if (!chosenClinicId) {
+      if (prof?.primaryClinicId && clinics.some(c => c.id === prof.primaryClinicId)) {
+        chosenClinicId = prof.primaryClinicId;
+      } else if (prof?.clinicIds && prof.clinicIds.length > 0 && clinics.some(c => c.id === prof.clinicIds[0])) {
+        chosenClinicId = prof.clinicIds[0];
+      } else {
+        chosenClinicId = activeClinicId;
+      }
+    }
+
+    if (chosenClinicId) {
+      setActiveClinicId(chosenClinicId);
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_CLINIC, JSON.stringify(chosenClinicId));
+    }
+
     if (prof) {
+      const selectedClinic = clinics.find(c => c.id === chosenClinicId);
       setClinicInfo(prev => ({
         ...prev,
         dentistName: prof.name,
         cro: prof.cro,
-        specialty: prof.specialty
+        specialty: prof.specialty,
+        phone: prof.phone || selectedClinic?.phone || prev.phone,
+        email: prof.email || selectedClinic?.email || prev.email,
+        address: selectedClinic?.address || prev.address,
+        city: selectedClinic?.city || prev.city,
+        name: selectedClinic?.name || prev.name
       }));
     }
+  };
+
+  const requestSwitchProfessional = (targetProfId: string, targetClinicId?: string) => {
+    if (targetProfId === activeProfessionalId) {
+      if (targetClinicId && targetClinicId !== activeClinicId) {
+        setActiveClinicId(targetClinicId);
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_CLINIC, JSON.stringify(targetClinicId));
+      }
+      return;
+    }
+    setSwitchRequest({ targetProfId, targetClinicId });
+  };
+
+  const cancelSwitchProfessional = () => {
+    setSwitchRequest(null);
+  };
+
+  const applySwitchProfessional = (targetProfId: string, targetClinicId?: string) => {
+    selectProfessionalAndClinic(targetProfId, targetClinicId);
+    setSwitchRequest(null);
+  };
+
+  const setActiveProfessionalId = (id: string) => {
+    selectProfessionalAndClinic(id);
   };
 
   const addProfessional = (profData: Omit<Professional, 'id'>): Professional => {
@@ -1323,6 +1401,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveClinicId,
         layoutTheme,
         setLayoutTheme,
+        selectProfessionalAndClinic,
+        switchRequest,
+        requestSwitchProfessional,
+        cancelSwitchProfessional,
+        applySwitchProfessional,
         patients,
         selectedPatientId,
         setSelectedPatientId,

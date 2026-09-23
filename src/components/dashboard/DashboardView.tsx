@@ -20,7 +20,9 @@ import {
   KeyRound,
   Edit2,
   Check,
-  X
+  X,
+  Lock,
+  Stethoscope
 } from 'lucide-react';
 
 export const DashboardView: React.FC = () => {
@@ -34,7 +36,7 @@ export const DashboardView: React.FC = () => {
     updateClinicInfo,
     professionals,
     activeProfessionalId,
-    setActiveProfessionalId,
+    requestSwitchProfessional,
     clinics,
     activeClinicId,
     setActiveClinicId,
@@ -43,6 +45,18 @@ export const DashboardView: React.FC = () => {
 
   const { currentUser, userPermissions } = useAuth();
   const t = getThemeStyles(layoutTheme);
+
+  const handleProfessionalChange = (newProfId: string) => {
+    if (newProfId === activeProfessionalId) return;
+    const targetProf = professionals.find(p => p.id === newProfId);
+    let targetClinicId = activeClinicId;
+    if (targetProf && targetProf.clinicIds && targetProf.clinicIds.length > 0) {
+      if (!targetProf.clinicIds.includes(activeClinicId) && activeClinicId !== 'todas') {
+        targetClinicId = targetProf.primaryClinicId || targetProf.clinicIds[0];
+      }
+    }
+    requestSwitchProfessional(newProfId, targetClinicId);
+  };
 
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [showClinicListModal, setShowClinicListModal] = useState(false);
@@ -299,24 +313,28 @@ export const DashboardView: React.FC = () => {
             {/* Divisor Vertical */}
             <div className="hidden xl:block w-px h-5 bg-white/15" />
 
-            {/* 3. Seleção em Dropdown do Dentista Operador */}
+            {/* 3. Seleção em Dropdown do Dentista Operador (Protegido por Senha) */}
             {professionals.length > 0 && (
-              <div className="flex items-center gap-1.5 min-w-[190px] flex-1 max-w-[240px]">
-                <label className="text-[10px] font-semibold text-white/90 whitespace-nowrap shrink-0">
-                  Dentista:
+              <div className="flex items-center gap-1.5 min-w-[210px] flex-1 max-w-[260px]">
+                <label className="text-[10px] font-semibold text-white/90 whitespace-nowrap shrink-0 flex items-center gap-1">
+                  <Stethoscope className="w-3 h-3 text-[#d4a373]" />
+                  <span>Dentista:</span>
                 </label>
-                <select
-                  value={activeProfessionalId}
-                  onChange={(e) => setActiveProfessionalId(e.target.value)}
-                  className={`w-full ${selectBg} text-white border border-white/25 rounded-md px-2 py-0.5 text-xs font-medium focus:outline-none focus:border-white cursor-pointer shadow-2xs`}
-                  title="Selecionar Dentista Operador"
-                >
-                  {professionals.map(p => (
-                    <option key={p.id} value={p.id} className={`${selectBg} text-white`}>
-                      {p.name} ({p.cro})
-                    </option>
-                  ))}
-                </select>
+                <div className="relative flex-1 min-w-0">
+                  <select
+                    value={activeProfessionalId}
+                    onChange={(e) => handleProfessionalChange(e.target.value)}
+                    className={`w-full ${selectBg} text-white border border-white/25 rounded-md px-2 py-0.5 pr-6 text-xs font-medium focus:outline-none focus:border-white cursor-pointer shadow-2xs truncate`}
+                    title="Selecionar Dentista Operador (Exige senha ao alternar)"
+                  >
+                    {professionals.map(p => (
+                      <option key={p.id} value={p.id} className={`${selectBg} text-white`}>
+                        {p.name} ({p.cro})
+                      </option>
+                    ))}
+                  </select>
+                  <Lock className="w-2.5 h-2.5 text-white/50 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" title="Troca protegida por senha" />
+                </div>
               </div>
             )}
 
@@ -325,22 +343,26 @@ export const DashboardView: React.FC = () => {
 
             {/* 4. Seleção em Dropdown da Unidade / Consultório ativa */}
             {clinics.length > 0 && (
-              <div className="flex items-center gap-1.5 min-w-[200px] flex-1 max-w-[260px]">
-                <label className="text-[10px] font-semibold text-white/90 whitespace-nowrap shrink-0">
-                  Unidade:
+              <div className="flex items-center gap-1.5 min-w-[210px] flex-1 max-w-[270px]">
+                <label className="text-[10px] font-semibold text-white/90 whitespace-nowrap shrink-0 flex items-center gap-1">
+                  <Building2 className="w-3 h-3 text-[#d4a373]" />
+                  <span>Unidade:</span>
                 </label>
                 <select
                   value={activeClinicId}
                   onChange={(e) => setActiveClinicId(e.target.value)}
-                  className={`w-full ${selectBg} text-white border border-white/25 rounded-md px-2 py-0.5 text-xs font-medium focus:outline-none focus:border-white cursor-pointer shadow-2xs`}
-                  title="Selecionar Unidade Ativa"
+                  className={`w-full ${selectBg} text-white border border-white/25 rounded-md px-2 py-0.5 text-xs font-medium focus:outline-none focus:border-white cursor-pointer shadow-2xs truncate`}
+                  title="Selecionar Unidade onde trabalha"
                 >
-                  <option value="todas" className={`${selectBg} text-white`}>Todas ({clinics.length})</option>
-                  {clinics.map(c => (
-                    <option key={c.id} value={c.id} className={`${selectBg} text-white`}>
-                      {c.name}
-                    </option>
-                  ))}
+                  <option value="todas" className={`${selectBg} text-white`}>Todas as Unidades</option>
+                  {clinics.map(c => {
+                    const isLinked = activeProfessional?.clinicIds?.includes(c.id);
+                    return (
+                      <option key={c.id} value={c.id} className={`${selectBg} text-white`}>
+                        {c.name} {isLinked ? '✓' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
                 <button
                   type="button"

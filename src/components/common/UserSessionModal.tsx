@@ -25,7 +25,9 @@ import {
   ExternalLink,
   Globe,
   ArrowLeft,
-  Printer
+  Printer,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 interface UserSessionModalProps {
@@ -41,13 +43,15 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
     currentUser, 
     userRole, 
     userPermissions, 
+    allUsers,
+    updateUserPassword,
     loginWithDemoUser, 
     loginWithEmail, 
     signupNewUser, 
     logout 
   } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'switch' | 'login' | 'signup' | 'partners'>('switch');
+  const [activeTab, setActiveTab] = useState<'profile' | 'switch' | 'login' | 'signup' | 'partners' | 'passwords'>('switch');
   const [copiedLink, setCopiedLink] = useState(false);
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
@@ -56,8 +60,28 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
   const [croInput, setCroInput] = useState('');
   const [specialtyInput, setSpecialtyInput] = useState('');
   
+  // Password Management State
+  const [editingUserUid, setEditingUserUid] = useState<string | null>(null);
+  const [newPasswordVal, setNewPasswordVal] = useState('');
+  const [showPasswordText, setShowPasswordText] = useState(false);
+  
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleUpdatePassword = async (uid: string) => {
+    if (!newPasswordVal.trim()) {
+      setFeedbackMsg({ type: 'error', text: 'Informe uma senha válida.' });
+      return;
+    }
+    const ok = await updateUserPassword(uid, newPasswordVal.trim());
+    if (ok) {
+      setFeedbackMsg({ type: 'success', text: 'Senha atualizada com sucesso! Esta credencial já está ativa para a troca de perfil.' });
+      setEditingUserUid(null);
+      setNewPasswordVal('');
+    } else {
+      setFeedbackMsg({ type: 'error', text: 'Falha ao salvar a nova senha.' });
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -185,6 +209,17 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>Novo Usuário</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('passwords')}
+            className={`px-3 py-2 rounded-t-lg transition cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'passwords' ? `${t.modalBg} border-t-2 border-t-[#d4a373] ${t.modalText} shadow-2xs` : `${t.modalMutedText} hover:opacity-80`
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-600" />
+            <span>Gestão de Senhas</span>
           </button>
 
           <button
@@ -500,6 +535,107 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
                 <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
                   Atualmente, cada parceiro pode navegar utilizando o perfil adequado (Dentista, Recepção ou Administrador). As restrições de aba por função garantem que recepcionistas não vejam o financeiro e dentistas vejam a parte clínica. Travas de acesso e senhas avançadas por parceiro podem ser ajustadas no módulo de <strong>Configurações</strong>.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: PASSWORDS MANAGEMENT */}
+          {activeTab === 'passwords' && (
+            <div className="space-y-4">
+              <div className="bg-[#fbfbf9] p-3.5 rounded-xl border border-[#e5e5d1] space-y-1.5">
+                <h4 className="text-xs font-bold text-[#5a5a40] flex items-center gap-1.5">
+                  <Lock className="w-4 h-4 text-[#d4a373]" />
+                  <span>Gestão de Senhas de Acesso e Troca de Profissional</span>
+                </h4>
+                <p className="text-[11px] text-stone-600 leading-relaxed font-medium">
+                  Defina ou altere as senhas dos profissionais e usuários do sistema. Esta mesma senha será solicitada ao alternar de cirurgião-dentista ou unidade na barra superior.
+                </p>
+              </div>
+
+              <div className="space-y-2.5">
+                {allUsers.map((u) => {
+                  const isEditingThis = editingUserUid === u.uid;
+
+                  return (
+                    <div
+                      key={u.uid}
+                      className="p-3.5 bg-white border border-[#e5e5d1] rounded-xl space-y-3 hover:border-[#5a5a40]/50 transition"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-[#5a5a40] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                            {u.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-[#2c2c2c] flex items-center gap-1.5">
+                              <span>{u.name}</span>
+                              {u.cro && <span className="text-[10.5px] font-normal text-stone-500">({u.cro})</span>}
+                            </p>
+                            <p className="text-[11px] text-stone-500 font-medium">{u.email}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-stone-600 bg-stone-100 border border-stone-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <Lock className="w-2.5 h-2.5 text-[#d4a373]" />
+                            <span>{u.password ? 'Senha Cadastrada ✓' : 'Senha Padrão'}</span>
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isEditingThis) {
+                                setEditingUserUid(null);
+                                setNewPasswordVal('');
+                              } else {
+                                setEditingUserUid(u.uid);
+                                setNewPasswordVal(u.password || '123456');
+                                setShowPasswordText(false);
+                              }
+                            }}
+                            className="px-2.5 py-1 text-xs font-bold text-[#5a5a40] bg-[#f5f5f0] hover:bg-[#eaeae0] rounded-lg border border-[#e5e5d1] flex items-center gap-1 transition cursor-pointer"
+                          >
+                            <KeyRound className="w-3 h-3 text-[#d4a373]" />
+                            <span>{isEditingThis ? 'Cancelar' : 'Alterar Senha'}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {isEditingThis && (
+                        <div className="pt-2 border-t border-[#e5e5d1] flex flex-wrap items-center justify-between gap-3 animate-in fade-in duration-150">
+                          <span className="text-[11px] font-bold text-stone-600">Nova Senha:</span>
+                          <div className="flex items-center gap-2 flex-1 max-w-sm">
+                            <div className="relative flex-1">
+                              <input
+                                type={showPasswordText ? 'text' : 'password'}
+                                value={newPasswordVal}
+                                onChange={(e) => setNewPasswordVal(e.target.value)}
+                                placeholder="Digite a nova senha"
+                                className="w-full bg-white border border-[#e5e5d1] rounded-lg px-3 py-1.5 text-xs text-[#2c2c2c] pr-8 focus:outline-none focus:border-[#5a5a40]"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPasswordText(!showPasswordText)}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-0.5 cursor-pointer"
+                              >
+                                {showPasswordText ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleUpdatePassword(u.uid)}
+                              className="px-3 py-1.5 bg-[#5a5a40] hover:bg-[#4a4a35] text-white text-xs font-bold rounded-lg shadow-2xs transition cursor-pointer flex items-center gap-1 shrink-0"
+                            >
+                              <Check className="w-3.5 h-3.5 text-[#d4a373]" />
+                              <span>Salvar</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

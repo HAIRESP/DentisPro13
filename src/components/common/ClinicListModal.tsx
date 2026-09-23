@@ -331,7 +331,7 @@ export const ClinicListModal: React.FC<ClinicListModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">Responsável Técnico</label>
+                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1">Profissional Responsável</label>
                   <select
                     value={newTechnicalManager}
                     onChange={(e) => setNewTechnicalManager(e.target.value)}
