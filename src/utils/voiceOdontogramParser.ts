@@ -1,3 +1,4 @@
+import { authenticatedFetch } from './authenticatedFetch';
 import { ToothConditionType, ToothSurface } from '../types';
 
 export interface VoiceOdontogramResult {
@@ -238,7 +239,7 @@ export async function parseDentalVoiceCommandWithGemini(
   currentSelectedTeeth: number[] = []
 ): Promise<VoiceOdontogramResult> {
   try {
-    const response = await fetch('/api/gemini/parse-voice-odontogram', {
+    const response = await authenticatedFetch('/api/gemini/parse-voice-odontogram', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ textCommand, currentSelectedTeeth })

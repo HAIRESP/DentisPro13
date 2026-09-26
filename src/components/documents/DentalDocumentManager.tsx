@@ -1,3 +1,5 @@
+import { authorizeWorkspaceAction } from '../../utils/workspaceActions';
+import { useWorkspaceStorage } from '../../context/WorkspaceStorage';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
@@ -583,6 +585,7 @@ export const isInsuranceValid = (insurance?: string): boolean => {
 };
 
 export const DentalDocumentManager: React.FC = () => {
+  const workspaceStorage = useWorkspaceStorage();
   const { 
     patients, 
     clinicInfo, 
@@ -599,14 +602,14 @@ export const DentalDocumentManager: React.FC = () => {
 
   const [selectedDocumentProfessionalId, setSelectedDocumentProfessionalId] = useState<string>(() => {
     try {
-      const saved = localStorage.getItem('dentispro_selected_doc_prof');
+      const saved = workspaceStorage.getItem('dentispro_selected_doc_prof');
       if (saved !== null) return saved;
     } catch (e) {}
     return activeProfessional?.id || '';
   });
   const [autoInsertSignatureAndStamp, setAutoInsertSignatureAndStamp] = useState<boolean>(() => {
     try {
-      const saved = localStorage.getItem('dentispro_auto_insert_sig_stamp');
+      const saved = workspaceStorage.getItem('dentispro_auto_insert_sig_stamp');
       if (saved !== null) return saved === 'true';
     } catch (e) {}
     return true;
@@ -616,7 +619,7 @@ export const DentalDocumentManager: React.FC = () => {
   useEffect(() => {
     if (activeProfessional?.id) {
       try {
-        const saved = localStorage.getItem('dentispro_selected_doc_prof');
+        const saved = workspaceStorage.getItem('dentispro_selected_doc_prof');
         if (saved === null) {
           setSelectedDocumentProfessionalId(activeProfessional.id);
         }
@@ -941,7 +944,7 @@ export const DentalDocumentManager: React.FC = () => {
           <div>
             <div class="dentist-name">${clinicInfo.headerSubtitle || dentistName}</div>
             <div class="dentist-cro">Cirurgião-Dentista ${dentistCro} ${clinicInfo.specialty ? `• ${clinicInfo.specialty}` : ''}</div>
-            <div class="dentist-sub">EPAO: ${clinicInfo.epao || '825 CE'} • CNPJ: ${formatCNPJ(clinicInfo.cnpj || '22.144.932/0001-40')}</div>
+            <div class="dentist-sub">EPAO: ${[clinicInfo.epaoNumber, clinicInfo.epaoUf].filter(Boolean).join(' ') || 'Não informado'} • CNPJ: ${formatCNPJ(clinicInfo.cnpj || '22.144.932/0001-40')}</div>
           </div>
         </div>
         <div class="clinic-right">
@@ -2138,7 +2141,7 @@ export const DentalDocumentManager: React.FC = () => {
   };
 
   // Helper function to open native system print dialog with dynamic PDF naming and active document sheet
-  const handlePrintSystemWindow = (doc: {
+  const handlePrintSystemWindow = async (doc: {
     id?: string;
     title: string;
     patientName: string;
@@ -2150,6 +2153,8 @@ export const DentalDocumentManager: React.FC = () => {
     templateData?: Record<string, any>;
     cidCode?: string;
   }) => {
+    try {await authorizeWorkspaceAction('print');} catch(e) {alert(e instanceof Error ? e.message : 'Impressão não autorizada.'); return;}
+
     // 1. Localiza o modelo correspondente para carregar na folha A4 oficial
     let matchedTemplate = DENTAL_DOCUMENT_TEMPLATES.find(t => t.id === doc.templateId);
     if (!matchedTemplate && doc.title) {
@@ -2609,7 +2614,7 @@ export const DentalDocumentManager: React.FC = () => {
   // Custom Saved Prescription Templates state (persisted in localStorage)
   const [customSavedTemplates, setCustomSavedTemplates] = useState<MedicationItem[]>(() => {
     try {
-      const saved = localStorage.getItem('dentispro_custom_med_templates') || localStorage.getItem('planetodonto_custom_med_templates');
+      const saved = workspaceStorage.getItem('dentispro_custom_med_templates') || workspaceStorage.getItem('planetodonto_custom_med_templates');
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       return [];
@@ -2944,7 +2949,7 @@ export const DentalDocumentManager: React.FC = () => {
     const updated = [newTemplate, ...customSavedTemplates.filter(t => !(t.name === newTemplate.name && t.dosage === newTemplate.dosage))];
     setCustomSavedTemplates(updated);
     try {
-      localStorage.setItem('dentispro_custom_med_templates', JSON.stringify(updated));
+      workspaceStorage.setItem('dentispro_custom_med_templates', JSON.stringify(updated));
     } catch (e) {}
   };
 
@@ -2952,7 +2957,7 @@ export const DentalDocumentManager: React.FC = () => {
     const updated = customSavedTemplates.filter(t => t.id !== templateId);
     setCustomSavedTemplates(updated);
     try {
-      localStorage.setItem('dentispro_custom_med_templates', JSON.stringify(updated));
+      workspaceStorage.setItem('dentispro_custom_med_templates', JSON.stringify(updated));
     } catch (e) {}
   };
 
@@ -3456,7 +3461,7 @@ export const DentalDocumentManager: React.FC = () => {
       addSavedClinicDocument({
         title: activeTemplate.title,
         subtitle: activeTemplate.subtitle,
-        category: activeTemplate.category,
+        category: activeTemplate.category === 'receituario' ? 'receita' : activeTemplate.category === 'termo' ? 'outro' : activeTemplate.category,
         patientId: selectedPatientId,
         patientName: patientDisplayName,
         professionalName: effectiveDentistName,
@@ -4476,7 +4481,7 @@ export const DentalDocumentManager: React.FC = () => {
                         const val = e.target.value;
                         setSelectedDocumentProfessionalId(val);
                         try {
-                          localStorage.setItem('dentispro_selected_doc_prof', val);
+                          workspaceStorage.setItem('dentispro_selected_doc_prof', val);
                         } catch (err) {}
                       }}
                       className={`bg-white border ${t.cardBorder} rounded-xl px-2.5 py-1.5 text-xs font-bold text-stone-800 focus:outline-none cursor-pointer`}
@@ -4509,7 +4514,7 @@ export const DentalDocumentManager: React.FC = () => {
                           type="button"
                           onClick={() => {
                             setAutoInsertSignatureAndStamp(false);
-                            try { localStorage.setItem('dentispro_auto_insert_sig_stamp', 'false'); } catch (e) {}
+                            try { workspaceStorage.setItem('dentispro_auto_insert_sig_stamp', 'false'); } catch (e) {}
                           }}
                           className={`px-2.5 py-1 rounded-md text-[10.5px] font-bold transition cursor-pointer flex items-center gap-1 ${
                             !autoInsertSignatureAndStamp
@@ -4523,7 +4528,7 @@ export const DentalDocumentManager: React.FC = () => {
                           type="button"
                           onClick={() => {
                             setAutoInsertSignatureAndStamp(true);
-                            try { localStorage.setItem('dentispro_auto_insert_sig_stamp', 'true'); } catch (e) {}
+                            try { workspaceStorage.setItem('dentispro_auto_insert_sig_stamp', 'true'); } catch (e) {}
                           }}
                           className={`px-2.5 py-1 rounded-md text-[10.5px] font-bold transition cursor-pointer flex items-center gap-1 ${
                             autoInsertSignatureAndStamp
@@ -7638,8 +7643,8 @@ export const DentalDocumentManager: React.FC = () => {
                         <p className="text-[10px] text-stone-600 font-mono">
                           {clinicInfo.headerSubtitle || `Cirurgião-Dentista ${effectiveDentistCro} ${effectiveDentistSpecialty ? `• ${effectiveDentistSpecialty}` : ''}`}
                         </p>
-                        {clinicInfo.epao && (
-                          <p className="text-[9.5px] text-stone-500 font-mono">EPAO: {clinicInfo.epao}</p>
+                        {clinicInfo.epaoNumber && (
+                          <p className="text-[9.5px] text-stone-500 font-mono">EPAO: {[clinicInfo.epaoNumber, clinicInfo.epaoUf].filter(Boolean).join(' ')}</p>
                         )}
                         {clinicInfo.cnpj && (
                           <p className="text-[9.5px] text-stone-500">CNPJ: {formatCNPJ(clinicInfo.cnpj)}</p>
@@ -8437,7 +8442,7 @@ export const DentalDocumentManager: React.FC = () => {
                         <div className="border border-stone-800 p-2.5 rounded-lg bg-white space-y-1">
                           <span className="font-bold uppercase text-[10.5px] border-b border-stone-200 pb-0.5 block">Identificação do Emitente</span>
                           <p className="font-bold">{effectiveDentistName} • {effectiveDentistCro}</p>
-                          <p className="text-[10.5px] text-stone-600">{effectiveClinicAddress} - {formatCityOnly(effectiveClinicCity)}/{clinicInfo.uf || 'CE'}</p>
+                          <p className="text-[10.5px] text-stone-600">{effectiveClinicAddress} - {formatCityOnly(effectiveClinicCity)}/{clinicInfo.state || 'CE'}</p>
                           <p className="text-[10.5px] text-stone-600">Tel: {effectiveClinicPhone}</p>
                         </div>
 
@@ -8445,7 +8450,7 @@ export const DentalDocumentManager: React.FC = () => {
                           <span className="font-bold uppercase text-[10.5px] border-b border-stone-200 pb-0.5 block">Identificação do Paciente</span>
                           <p className="font-bold text-stone-900 underline">{patientDisplayName}{selectedPatient?.cpf ? ` • CPF: ${selectedPatient.cpf}` : ''}</p>
                           <p className="text-[10.5px] text-stone-600">Endereço: {selectedPatient?.address?.street ? `${selectedPatient.address.street}${selectedPatient.address.number ? `, ${selectedPatient.address.number}` : ''}${selectedPatient.address.neighborhood ? ` - ${selectedPatient.address.neighborhood}` : ''}` : '____________________________________'}</p>
-                          <p className="text-[10.5px] text-stone-600">Cidade: {selectedPatient?.address?.city ? `${selectedPatient.address.city} - ${selectedPatient.address.state || clinicInfo.uf || 'CE'}` : `${formatCityOnly(clinicInfo.city || 'Fortaleza')} - ${clinicInfo.uf || 'CE'}`}</p>
+                          <p className="text-[10.5px] text-stone-600">Cidade: {selectedPatient?.address?.city ? `${selectedPatient.address.city} - ${selectedPatient.address.state || clinicInfo.state || 'CE'}` : `${formatCityOnly(clinicInfo.city || 'Fortaleza')} - ${clinicInfo.state || 'CE'}`}</p>
                         </div>
                       </div>
 

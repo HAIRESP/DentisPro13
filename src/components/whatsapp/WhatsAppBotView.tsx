@@ -1,3 +1,4 @@
+import { authenticatedFetch } from '../../utils/authenticatedFetch';
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
@@ -184,7 +185,7 @@ export const WhatsAppBotView: React.FC = () => {
     ]);
 
     try {
-      const response = await fetch('/api/gemini/parse-document', {
+      const response = await authenticatedFetch('/api/gemini/parse-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -302,7 +303,7 @@ export const WhatsAppBotView: React.FC = () => {
 
   // Clean Reinstallation Handler
   const handleCleanReinstall = () => {
-    if (!window.confirm('Deseja realizar a Reinstalação Limpa da Conexão WhatsApp? Isso redefinirá os tokens de sessão, atualizará a instância e testará a rota de webhook do zero.')) {
+    if (!window.confirm('Deseja realizar a Reinstalação Limpa da Conexão WhatsApp? Isso redefine as configurações locais; não estabelece uma conexão real com o provedor.')) {
       return;
     }
     setIsCleanReinstalling(true);
@@ -1177,7 +1178,7 @@ export const WhatsAppBotView: React.FC = () => {
               <div>
                 <h4 className="font-bold text-xs text-emerald-900">Reinstalação Limpa Concluída com Sucesso!</h4>
                 <p className="text-xs text-emerald-700 mt-0.5">
-                  Os tokens de sessão foram revalidados, o cache de reconexão foi limpo e o webhook oficial está sincronizado na nuvem.
+                  As configurações locais foram redefinidas. O recebimento automático de mensagens ainda não está disponível.
                 </p>
               </div>
             </div>
@@ -1324,29 +1325,8 @@ export const WhatsAppBotView: React.FC = () => {
                   <p className="text-[10px] text-gray-400 mt-1">Token de acesso permanente gerado no Usuário do Sistema no Gerenciador de Negócios Meta</p>
                 </div>
 
-                <div className="sm:col-span-2 bg-emerald-50 border border-emerald-200 p-4 rounded-xl space-y-2">
-                  <label className="block text-xs font-bold text-emerald-950">
-                    URL de Callback para Webhook (Cole na Meta Cloud API / Evolution API):
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 bg-white border border-emerald-300 px-3 py-2 rounded-lg text-xs font-mono text-emerald-950 font-bold select-all break-all">
-                      {typeof window !== 'undefined' ? `${window.location.origin}/api/whatsapp/webhook` : 'https://suaclinica.com.br/api/whatsapp/webhook'}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = typeof window !== 'undefined' ? `${window.location.origin}/api/whatsapp/webhook` : 'https://suaclinica.com.br/api/whatsapp/webhook';
-                        navigator.clipboard.writeText(url);
-                        alert('URL do Webhook copiada com sucesso para a área de transferência!');
-                      }}
-                      className="px-3.5 py-2 bg-[#075e54] text-white rounded-lg text-xs font-bold hover:bg-[#128c7e] cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs"
-                    >
-                      <Copy className="w-3.5 h-3.5" /> Copiar URL
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-emerald-800 leading-relaxed">
-                    💡 <strong>Onde usar esta URL?</strong> Você deve colar esta URL no painel do <strong>Meta for Developers</strong> (em <em>WhatsApp &gt; Configuração &gt; URL de Callback</em>) ou no painel da sua <strong>Evolution API</strong> no campo de Webhook para receber as mensagens e confirmações dos pacientes em tempo real.
-                  </p>
+                <div className="sm:col-span-2 p-4 bg-stone-50 border rounded-xl text-sm">
+                  Recebimento automático de mensagens ainda não está disponível. A integração com o provedor precisa ser configurada antes de ativar esse recurso.
                 </div>
               </div>
             </div>

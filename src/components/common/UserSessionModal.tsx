@@ -1,21 +1,22 @@
+import { NewUserForm } from './NewUserForm';
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
-import { UserRole, ROLE_PERMISSIONS, DEMO_USERS } from '../../lib/firebase';
+import { UserRole, ROLE_PERMISSIONS } from '../../lib/firebase';
 import { printDocumentWithTitle } from '../../utils/printUtils';
-import { 
-  UserCheck, 
-  ShieldCheck, 
-  Stethoscope, 
-  Users, 
-  Lock, 
-  LogOut, 
-  X, 
-  Check, 
-  Plus, 
-  KeyRound, 
-  Mail, 
+import {
+  UserCheck,
+  ShieldCheck,
+  Stethoscope,
+  Users,
+  Lock,
+  LogOut,
+  X,
+  Check,
+  Plus,
+  KeyRound,
+  Mail,
   UserPlus,
   Building,
   CheckCircle2,
@@ -39,92 +40,65 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
   const { layoutTheme } = useApp();
   const t = getThemeStyles(layoutTheme);
 
-  const { 
-    currentUser, 
-    userRole, 
-    userPermissions, 
+  const {
+    currentUser,
+    authError,
+    userRole,
+    userPermissions,
     allUsers,
-    updateUserPassword,
-    loginWithDemoUser, 
-    loginWithEmail, 
-    signupNewUser, 
-    logout 
+    requestPasswordReset,
+    loginWithDemoUser,
+    loginWithEmail,
+    logout
   } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'switch' | 'login' | 'signup' | 'partners' | 'passwords'>('switch');
+  const [activeTab, setActiveTab] = useState<'profile' | 'switch' | 'login' | 'signup' | 'partners' | 'passwords'>('login');
   const [copiedLink, setCopiedLink] = useState(false);
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
-  const [nameInput, setNameInput] = useState('');
-  const [roleInput, setRoleInput] = useState<UserRole>('dentist');
-  const [croInput, setCroInput] = useState('');
-  const [specialtyInput, setSpecialtyInput] = useState('');
-  
-  // Password Management State
-  const [editingUserUid, setEditingUserUid] = useState<string | null>(null);
-  const [newPasswordVal, setNewPasswordVal] = useState('');
-  const [showPasswordText, setShowPasswordText] = useState(false);
-  
+
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleUpdatePassword = async (uid: string) => {
-    if (!newPasswordVal.trim()) {
-      setFeedbackMsg({ type: 'error', text: 'Informe uma senha válida.' });
-      return;
-    }
-    const ok = await updateUserPassword(uid, newPasswordVal.trim());
-    if (ok) {
-      setFeedbackMsg({ type: 'success', text: 'Senha atualizada com sucesso! Esta credencial já está ativa para a troca de perfil.' });
-      setEditingUserUid(null);
-      setNewPasswordVal('');
-    } else {
-      setFeedbackMsg({ type: 'error', text: 'Falha ao salvar a nova senha.' });
-    }
+  const handlePasswordReset = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const ok = await requestPasswordReset();
+      setFeedbackMsg(ok
+        ? { type: 'success', text: 'Solicitação enviada. Confira sua caixa de entrada e spam. A senha só muda após concluir o link recebido.' }
+        : { type: 'error', text: 'Não foi possível solicitar a redefinição. Confira a conexão e tente novamente.' });
+    } finally { setIsSubmitting(false); }
   };
 
   if (!isOpen) return null;
 
-  const handleCustomLogin = async (e: React.FormEvent) => {
+  const handleCustomLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    // Read the visible fields: password managers may fill them without React events.
+    const formData = new FormData(e.currentTarget);
+    const email = String(formData.get('username') || '').trim();
+    const password = String(formData.get('password') || '');
     setIsSubmitting(true);
     setFeedbackMsg(null);
 
-    const success = await loginWithEmail(emailInput, passwordInput);
-    setIsSubmitting(false);
-
-    if (success) {
-      setFeedbackMsg({ type: 'success', text: 'Sessão iniciada com sucesso!' });
-      setTimeout(() => {
-        onClose();
-      }, 1000);
-    } else {
-      setFeedbackMsg({ type: 'error', text: 'E-mail ou senha incorretos. Verifique suas credenciais.' });
+    try {
+      const success = await loginWithEmail(email, password);
+      if (success) {
+        setPasswordInput('');
+        setFeedbackMsg({ type: 'success', text: 'Sessão iniciada com sucesso!' });
+        setTimeout(onClose, 1000);
+      } else {
+        setFeedbackMsg({ type: 'error', text: 'Não foi possível entrar. Confira suas credenciais e a conexão.' });
+      }
+    } catch {
+      setFeedbackMsg({ type: 'error', text: 'Não foi possível concluir o login. Tente novamente.' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleCustomSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!emailInput || !passwordInput || !nameInput) {
-      setFeedbackMsg({ type: 'error', text: 'Preencha os campos obrigatórios (E-mail, Senha e Nome).' });
-      return;
-    }
-
-    setIsSubmitting(true);
-    setFeedbackMsg(null);
-
-    const success = await signupNewUser(emailInput, passwordInput, nameInput, roleInput, croInput, specialtyInput);
-    setIsSubmitting(false);
-
-    if (success) {
-      setFeedbackMsg({ type: 'success', text: 'Usuário cadastrado com sucesso e sessão iniciada!' });
-      setTimeout(() => {
-        onClose();
-      }, 1000);
-    } else {
-      setFeedbackMsg({ type: 'error', text: 'Erro ao cadastrar usuário. Tente novamente.' });
-    }
-  };
 
   return (
     <div className={`fixed inset-0 z-50 ${t.overlayBg} flex items-center justify-center p-4`}>
@@ -180,17 +154,6 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
         <div className={`flex border-b ${t.modalBorder} ${t.cardBg} px-4 pt-2 gap-1 text-xs font-bold shrink-0`}>
           <button
             type="button"
-            onClick={() => setActiveTab('switch')}
-            className={`px-3 py-2 rounded-t-lg transition cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'switch' ? `${t.modalBg} border-t-2 border-t-[#d4a373] ${t.modalText} shadow-2xs` : `${t.modalMutedText} hover:opacity-80`
-            }`}
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Trocar Perfil Rápido</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setActiveTab('login')}
             className={`px-3 py-2 rounded-t-lg transition cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'login' ? `${t.modalBg} border-t-2 border-t-[#d4a373] ${t.modalText} shadow-2xs` : `${t.modalMutedText} hover:opacity-80`
@@ -235,6 +198,7 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
         </div>
 
         {/* Feedback Message Banner */}
+        {authError && <p role="alert" className="p-3 text-rose-700">{authError}</p>}
         {feedbackMsg && (
           <div className={`mx-5 mt-4 p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${
             feedbackMsg.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
@@ -246,84 +210,34 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
 
         {/* Modal Content */}
         <div className="p-5 overflow-y-auto space-y-4 flex-1">
-          {/* TAB 1: QUICK SWITCH */}
-          {activeTab === 'switch' && (
-            <div className="space-y-4">
-              <p className="text-xs text-stone-600 leading-relaxed font-medium">
-                Alterne instantaneamente a sessão ativa para testar e validar o comportamento do software de acordo com as restrições e parâmetros de cada usuário:
-              </p>
-
-              <div className="grid grid-cols-1 gap-3">
-                {DEMO_USERS.map((demo) => {
-                  const isCurrent = currentUser?.uid === demo.uid || currentUser?.email === demo.email;
-                  const rolePerm = ROLE_PERMISSIONS[demo.role];
-
-                  return (
-                    <div
-                      key={demo.uid}
-                      onClick={() => {
-                        loginWithDemoUser(demo.role);
-                        setFeedbackMsg({ type: 'success', text: `Sessão alterada para ${demo.name} (${rolePerm.label})` });
-                      }}
-                      className={`p-3.5 rounded-xl border transition cursor-pointer flex items-start justify-between gap-3 ${
-                        isCurrent 
-                          ? 'bg-[#f7f7f0] border-[#5a5a40] shadow-2xs ring-1 ring-[#5a5a40]' 
-                          : 'bg-white border-[#e5e5d1] hover:border-[#5a5a40]/60 hover:bg-[#fbfbf9]'
-                      }`}
-                    >
-                      <div className="space-y-1.5 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-sm text-[#2c2c2c]">{demo.name}</span>
-                          <span className={`px-2 py-0.5 rounded text-[10.5px] font-bold ${
-                            demo.role === 'admin' ? 'bg-amber-100 text-amber-900' :
-                            demo.role === 'dentist' ? 'bg-sky-100 text-sky-900' :
-                            'bg-emerald-100 text-emerald-900'
-                          }`}>
-                            {rolePerm.label}
-                          </span>
-                        </div>
-
-                        <p className="text-xs text-stone-500 font-medium">{demo.email} {demo.cro ? `• ${demo.cro}` : ''}</p>
-
-                        <div className="text-[11px] text-stone-600 bg-[#f0f0e8] p-2 rounded-lg border border-[#e5e5d1]">
-                          <strong className="text-[#5a5a40]">Permissões:</strong> {rolePerm.description}
-                        </div>
-                      </div>
-
-                      {isCurrent ? (
-                        <span className="px-2.5 py-1 bg-[#5a5a40] text-white text-xs font-bold rounded-lg shrink-0 flex items-center gap-1">
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Ativo</span>
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          className="px-3 py-1.5 bg-stone-100 hover:bg-[#5a5a40] hover:text-white text-stone-700 text-xs font-bold rounded-lg transition shrink-0 cursor-pointer"
-                        >
-                          Entrar
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+          {/* TAB 2: EMAIL LOGIN */}
+          {activeTab === 'login' && currentUser && (
+            <div className="space-y-4 text-sm">
+              <p>Conta conectada: <strong>{currentUser.email}</strong>.</p>
+              <p>Fechar esta janela mantém sua sessão. Para entrar com outra conta, encerre a sessão atual.</p>
+              <button type="button" onClick={() => void logout()} className="px-4 py-2 rounded-xl bg-[#5a5a40] text-white">
+                Sair e trocar de conta
+              </button>
             </div>
           )}
-
-          {/* TAB 2: EMAIL LOGIN */}
-          {activeTab === 'login' && (
-            <form onSubmit={handleCustomLogin} className="space-y-3.5 text-xs">
+          {activeTab === 'login' && !currentUser && (
+            <form id="dentispro-login" autoComplete="on" onSubmit={handleCustomLogin} className="space-y-3.5 text-xs">
               <p className="text-xs text-stone-600 font-medium">
                 Inicie uma sessão com suas credenciais do Firebase Authentication para salvar seus parâmetros de clínica na nuvem:
               </p>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#5a5a40] mb-1">E-mail do Usuário:</label>
+                <label htmlFor="dentispro-login-email" className="block text-[11px] font-bold text-[#5a5a40] mb-1">E-mail do Usuário:</label>
                 <div className="relative">
                   <input
+                    id="dentispro-login-email"
+                    name="username"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     type="email"
                     required
-                    value={emailInput}
+                    defaultValue={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     placeholder="seu.email@clinica.com.br"
                     className="w-full bg-[#fbfbf9] border border-[#e5e5d1] rounded-xl pl-9 pr-3 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
@@ -333,12 +247,15 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#5a5a40] mb-1">Senha de Acesso:</label>
+                <label htmlFor="dentispro-login-password" className="block text-[11px] font-bold text-[#5a5a40] mb-1">Senha de Acesso:</label>
                 <div className="relative">
                   <input
+                    id="dentispro-login-password"
+                    name="password"
+                    autoComplete="current-password"
                     type="password"
                     required
-                    value={passwordInput}
+                    defaultValue={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
                     placeholder="••••••••"
                     className="w-full bg-[#fbfbf9] border border-[#e5e5d1] rounded-xl pl-9 pr-3 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
@@ -360,98 +277,7 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
             </form>
           )}
 
-          {/* TAB 3: SIGNUP NEW USER */}
-          {activeTab === 'signup' && (
-            <form onSubmit={handleCustomSignup} className="space-y-3 text-xs">
-              <p className="text-xs text-stone-600 font-medium">
-                Cadastre um novo usuário (Dentista, Recepcionista ou Administrador) com credenciais e restrição de acesso:
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-bold text-[#5a5a40] mb-1">Nome Completo do Profissional:</label>
-                  <input
-                    type="text"
-                    required
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    placeholder="Ex: Dra. Juliana Santos"
-                    className="w-full bg-[#fbfbf9] border border-[#e5e5d1] rounded-xl px-3 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-[#5a5a40] mb-1">E-mail:</label>
-                  <input
-                    type="email"
-                    required
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="juliana@clinica.com.br"
-                    className="w-full bg-[#fbfbf9] border border-[#e5e5d1] rounded-xl px-3 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-[#5a5a40] mb-1">Senha:</label>
-                  <input
-                    type="password"
-                    required
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-[#fbfbf9] border border-[#e5e5d1] rounded-xl px-3 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-[#5a5a40] mb-1">Função / Perfil de Acesso:</label>
-                  <select
-                    value={roleInput}
-                    onChange={(e) => setRoleInput(e.target.value as UserRole)}
-                    className="w-full bg-[#fbfbf9] border border-[#e5e5d1] rounded-xl px-3 py-2 text-xs font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
-                  >
-                    <option value="dentist">🩺 Dentista / Profissional Clínico</option>
-                    <option value="receptionist">📋 Recepcionista / Atendente</option>
-                    <option value="admin">👑 Administrador(a) Geral</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-[#5a5a40] mb-1">CRO (se aplicável):</label>
-                  <input
-                    type="text"
-                    value={croInput}
-                    onChange={(e) => setCroInput(e.target.value)}
-                    placeholder="Ex: CRO-CE 98765"
-                    className="w-full bg-[#fbfbf9] border border-[#e5e5d1] rounded-xl px-3 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-bold text-[#5a5a40] mb-1">Especialidade Principal:</label>
-                  <input
-                    type="text"
-                    value={specialtyInput}
-                    onChange={(e) => setSpecialtyInput(e.target.value)}
-                    placeholder="Ex: Endodontia, Odontopediatria..."
-                    className="w-full bg-[#fbfbf9] border border-[#e5e5d1] rounded-xl px-3 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`px-5 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold rounded-xl transition cursor-pointer shadow-2xs flex items-center gap-1.5`}
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Cadastrando...' : 'Criar Conta e Iniciar Sessão'}</span>
-                </button>
-              </div>
-            </form>
-          )}
+          {activeTab === 'signup' && <NewUserForm />}
 
           {/* TAB 4: PARTNERS & ACCESS SHARING */}
           {activeTab === 'partners' && (
@@ -539,104 +365,14 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
             </div>
           )}
 
-          {/* TAB 5: PASSWORDS MANAGEMENT */}
           {activeTab === 'passwords' && (
-            <div className="space-y-4">
-              <div className="bg-[#fbfbf9] p-3.5 rounded-xl border border-[#e5e5d1] space-y-1.5">
-                <h4 className="text-xs font-bold text-[#5a5a40] flex items-center gap-1.5">
-                  <Lock className="w-4 h-4 text-[#d4a373]" />
-                  <span>Gestão de Senhas de Acesso e Troca de Profissional</span>
-                </h4>
-                <p className="text-[11px] text-stone-600 leading-relaxed font-medium">
-                  Defina ou altere as senhas dos profissionais e usuários do sistema. Esta mesma senha será solicitada ao alternar de cirurgião-dentista ou unidade na barra superior.
-                </p>
-              </div>
-
-              <div className="space-y-2.5">
-                {allUsers.map((u) => {
-                  const isEditingThis = editingUserUid === u.uid;
-
-                  return (
-                    <div
-                      key={u.uid}
-                      className="p-3.5 bg-white border border-[#e5e5d1] rounded-xl space-y-3 hover:border-[#5a5a40]/50 transition"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-[#5a5a40] text-white flex items-center justify-center font-bold text-xs shrink-0">
-                            {u.name.substring(0, 2).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-[#2c2c2c] flex items-center gap-1.5">
-                              <span>{u.name}</span>
-                              {u.cro && <span className="text-[10.5px] font-normal text-stone-500">({u.cro})</span>}
-                            </p>
-                            <p className="text-[11px] text-stone-500 font-medium">{u.email}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-stone-600 bg-stone-100 border border-stone-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-                            <Lock className="w-2.5 h-2.5 text-[#d4a373]" />
-                            <span>{u.password ? 'Senha Cadastrada ✓' : 'Senha Padrão'}</span>
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (isEditingThis) {
-                                setEditingUserUid(null);
-                                setNewPasswordVal('');
-                              } else {
-                                setEditingUserUid(u.uid);
-                                setNewPasswordVal(u.password || '123456');
-                                setShowPasswordText(false);
-                              }
-                            }}
-                            className="px-2.5 py-1 text-xs font-bold text-[#5a5a40] bg-[#f5f5f0] hover:bg-[#eaeae0] rounded-lg border border-[#e5e5d1] flex items-center gap-1 transition cursor-pointer"
-                          >
-                            <KeyRound className="w-3 h-3 text-[#d4a373]" />
-                            <span>{isEditingThis ? 'Cancelar' : 'Alterar Senha'}</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {isEditingThis && (
-                        <div className="pt-2 border-t border-[#e5e5d1] flex flex-wrap items-center justify-between gap-3 animate-in fade-in duration-150">
-                          <span className="text-[11px] font-bold text-stone-600">Nova Senha:</span>
-                          <div className="flex items-center gap-2 flex-1 max-w-sm">
-                            <div className="relative flex-1">
-                              <input
-                                type={showPasswordText ? 'text' : 'password'}
-                                value={newPasswordVal}
-                                onChange={(e) => setNewPasswordVal(e.target.value)}
-                                placeholder="Digite a nova senha"
-                                className="w-full bg-white border border-[#e5e5d1] rounded-lg px-3 py-1.5 text-xs text-[#2c2c2c] pr-8 focus:outline-none focus:border-[#5a5a40]"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowPasswordText(!showPasswordText)}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-0.5 cursor-pointer"
-                              >
-                                {showPasswordText ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                              </button>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleUpdatePassword(u.uid)}
-                              className="px-3 py-1.5 bg-[#5a5a40] hover:bg-[#4a4a35] text-white text-xs font-bold rounded-lg shadow-2xs transition cursor-pointer flex items-center gap-1 shrink-0"
-                            >
-                              <Check className="w-3.5 h-3.5 text-[#d4a373]" />
-                              <span>Salvar</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+            <div className="space-y-4 text-sm">
+              <p>Redefina a senha da sua conta pelo link enviado ao e-mail <strong>{currentUser?.email}</strong>.</p>
+              <p>O sistema não exibe nem armazena sua senha no cadastro profissional.</p>
+              <button type="button" disabled={isSubmitting} onClick={handlePasswordReset}
+                className="px-4 py-2 rounded-xl bg-[#5a5a40] text-white disabled:opacity-50">
+                {isSubmitting ? 'Enviando...' : 'Enviar e-mail de redefinição'}
+              </button>
             </div>
           )}
         </div>
@@ -656,7 +392,7 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
               type="button"
               onClick={() => printDocumentWithTitle({
                 docTitle: 'Ficha_Sessao_Usuario',
-                patientName: currentUser?.displayName || currentUser?.email || 'Usuario',
+                patientName: currentUser?.name || currentUser?.email || 'Usuario',
                 date: new Date()
               })}
               className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 border border-[#e5e5d1]"

@@ -1,3 +1,4 @@
+import { useWorkspaceStorage } from '../../context/WorkspaceStorage';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getPatientAgeAndBirthDate } from '../../utils/patientUtils';
@@ -513,6 +514,7 @@ export const PAYMENT_CONDITIONS_CATEGORIES = [
 ];
 
 export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ patientId }) => {
+  const workspaceStorage = useWorkspaceStorage();
   const { 
     patients, 
     treatmentPlans, 
@@ -555,7 +557,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
 
   // Correlation Rules State
   const [correlationRules, setCorrelationRules] = useState<CorrelationRule[]>(() => {
-    const saved = localStorage.getItem('clinic_correlation_rules');
+    const saved = workspaceStorage.getItem('clinic_correlation_rules');
     if (!saved) return DEFAULT_CORRELATION_RULES;
     try {
       const parsed: CorrelationRule[] = JSON.parse(saved);
@@ -598,7 +600,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('clinic_correlation_rules', JSON.stringify(correlationRules));
+    workspaceStorage.setItem('clinic_correlation_rules', JSON.stringify(correlationRules));
   }, [correlationRules]);
 
   const resetRuleForm = () => {
@@ -2689,7 +2691,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                   onClick={() => printDocumentWithTitle({
                     docTitle: 'Plano_de_Tratamento',
                     patientName: patient?.name,
-                    date: activePrintPlan?.createdAt || new Date()
+                    date: activePrintPlan?.date || new Date()
                   })}
                   className={`px-4 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold rounded-xl flex items-center gap-2 shadow-2xs cursor-pointer transition`}
                 >
@@ -2897,7 +2899,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                 onClick={() => printDocumentWithTitle({
                   docTitle: 'Plano_de_Tratamento',
                   patientName: patient?.name,
-                  date: activePrintPlan?.createdAt || new Date()
+                  date: activePrintPlan?.date || new Date()
                 })}
                 className={`px-5 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-xl flex items-center gap-2 shadow-2xs cursor-pointer transition`}
               >
@@ -3868,7 +3870,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                                     <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-200 rounded text-[10px] font-bold">
                                       🦷 Por Dente
                                     </span>
-                                    {rule.teethGroup && rule.teethGroup !== 'todos' && rule.teethGroup !== 'custom' && (
+                                    {rule.teethGroup && rule.teethGroup !== 'todos' && rule.teethGroup !== 'personalizado' && (
                                       <span className="text-[10px] text-emerald-800 font-medium">
                                         {rule.teethGroup === 'molares' ? 'Molares' : rule.teethGroup === 'anteriores' ? 'Anteriores' : rule.teethGroup === 'pre_molares' ? 'Pré-molares' : rule.teethGroup === 'sisos' ? 'Sisos' : 'Odontopediatria'}
                                       </span>

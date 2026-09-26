@@ -477,6 +477,7 @@ export const AppointmentCalendar: React.FC = () => {
                           id: alert.id,
                           patientId: alert.patientId,
                           patientName: alert.patientName,
+                          patientPhone: patients.find(p => p.id === alert.patientId)?.phone || '',
                           clinicId: clinics[0]?.id || 'cli-1',
                           dentistName: professionals[0]?.name || clinicInfo.dentistName,
                           date: todayStr,
@@ -771,7 +772,7 @@ export const AppointmentCalendar: React.FC = () => {
           onClose={() => setSelectedAptForReport(null)}
           onDeductStock={(materialsToDeduct) => {
             materialsToDeduct.forEach(item => {
-              adjustStockQuantity(item.inventoryItemId, -item.quantityToDeduct);
+              adjustStockQuantity(item.itemId, -item.qty);
             });
             setSelectedAptForReport(null);
           }}

@@ -279,7 +279,7 @@ export const PatientList: React.FC = () => {
 
     const created = addPatient({
       name: newName,
-      cpf: formatCPF(newCpf) || '000.000.000-00',
+      cpf: formatCPF(newCpf) || '',
       phone: newPhone,
       email: newEmail,
       birthDate: newBirthDate || '1990-01-01',
@@ -436,14 +436,14 @@ export const PatientList: React.FC = () => {
                         if (cols.length >= 2 && cols[0].trim()) {
                           addPatient({
                             name: cols[0].trim(),
-                            cpf: cols[1]?.trim() || '000.000.000-00',
-                            phone: cols[2]?.trim() || '(11) 99999-9999',
-                            email: cols[3]?.trim() || 'paciente@email.com',
-                            birthDate: '1990-01-01',
-                            gender: 'masculino',
+                            cpf: cols[1]?.trim() || '',
+                            phone: cols[2]?.trim() || '',
+                            email: cols[3]?.trim() || '',
+                            birthDate: '',
+                            gender: '',
                             healthInsurance: 'Particular',
-                            address: { street: 'Rua', number: '100', neighborhood: 'Centro', city: 'São Paulo', state: 'SP', cep: '01000-000' },
-                            anamnesis: { hasAllergies: false, hasHeartDisease: false, hasDiabetes: false, hasHypertension: false, bleedingDisorder: false },
+                            address: { street: '', number: '', neighborhood: '', city: '', state: '', cep: '' },
+                            anamnesis: {},
                             status: 'ativo'
                           });
                           count++;
@@ -523,7 +523,7 @@ export const PatientList: React.FC = () => {
                     <div className="overflow-hidden">
                       <div className="flex items-center gap-1.5">
                         <h4 className={`font-bold text-xs truncate ${isSelected ? 'text-white' : t.headingText}`}>{p.name}</h4>
-                        {hasAlert && <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" title="Alerta em Anamnese!" />}
+                        {hasAlert && <span title="Alerta em Anamnese!"><AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" aria-label="Alerta em Anamnese!" /></span>}
                       </div>
                       <p className={`text-[11px] font-mono truncate ${isSelected ? 'opacity-90' : 'text-gray-500'}`}>
                         {p.phone} • {p.preferredClinicName || p.healthInsurance || 'Particular'}
