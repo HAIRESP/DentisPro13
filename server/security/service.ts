@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Actor, AccessError, canRead, code, codeDigest, digest, equalDigest, identifier, requireRecentPassword, requireThat, secret, textField, validateDemographics, validateWorkspace, validateClinicWorkspace } from './policy';
+import { Actor, AccessError, canRead, code, codeDigest, digest, equalDigest, identifier, requireRecentPassword, requireThat, secret, textField, validateDemographics, validateWorkspace, validateClinicWorkspace, treatmentMonthExpiresAt } from './policy';
 import type { Document, SecureStore, UnitOfWork } from './store';
 
 export class ClinicalSecurity {
@@ -218,26 +218,27 @@ export class ClinicalSecurity {
         result = await transaction(async tx => { const p = await patient(tx); return {ownerUid: p.ownerUid, grants: p.grants, contactVerified: !!p.contactVerifiedAt}; });
       } else if (action === 'access.request') {
         const targetUid = identifier(input.targetUid);
-        requireThat(['visit', 'until_revoked'].includes(input.duration), 400, 'Escolha o período da autorização.');
+        requireThat(['visit', 'month', 'until_revoked'].includes(input.duration), 400, 'Escolha o período da autorização.');
         const id = randomUUID(), otp = code(), portal = secret(), now = this.clock();
         const request = await transaction(async tx => {
           const p = await patient(tx);
           const target = await tx.get(this.path('members', targetUid));
           requireThat(target?.active && ['admin', 'dentist'].includes(target.role), 400, 'Profissional inválido.');
+          requireThat(input.duration !== 'until_revoked' || targetUid === p.ownerUid, 400, 'Para outro profissional, escolha um atendimento ou um mês, com autorização do paciente.');
           requireThat(p.contactVerifiedAt || targetUid === p.ownerUid, 409, 'Primeiro confirme o contato do paciente autorizando o profissional responsável.');
           const rate = await tx.get(this.path('rates', patientId));
           const count = rate?.day === Math.floor(now / 86400000) ? rate.count : 0;
           requireThat(!rate || now - rate.last >= 60000, 429, 'Aguarde um minuto antes de reenviar.');
           requireThat(count < 5, 429, 'Limite diário de solicitações atingido.');
           tx.set(this.path('rates', patientId), {last: now, day: Math.floor(now / 86400000), count: count + 1});
-          const request = {id, patientId, targetUid, targetName: target.name, requestedBy: actor.uid, duration: input.duration, expiresAt: now + 300000, portalExpiresAt: now + 86400000, attempts: 0, codeHash: codeDigest(this.key, id, otp), portalHash: digest(portal), status: 'sending', createdAt: now, email: p.demographics.email};
+          const request = {purpose: 'consent', consentVersion: p.consentVersions?.[targetUid] || 0, id, patientId, targetUid, targetName: target.name, requestedBy: actor.uid, duration: input.duration, expiresAt: now + 300000, portalExpiresAt: now + 86400000, attempts: 0, codeHash: codeDigest(this.key, id, otp), portalHash: digest(portal), status: 'sending', createdAt: now, email: p.demographics.email};
           tx.create(this.path('challenges', id), request);
           tx.create(this.path('portals', digest(portal)), {requestId: id});
           return request;
         });
         try {
           const url = `${this.publicUrl.replace(/\/$/, '')}/patient-access#${portal}`;
-          await this.store.deliver(request.email, `Solicitação de ${request.targetName} para acessar seu prontuário. Período: ${input.duration === 'visit' ? '8 horas' : 'até você suspender'}. Código: ${otp}. Válido por 5 minutos, uso único. Só informe se concordar. Confirme ou suspenda pelo link (válido por 24 horas): ${url}`);
+          await this.store.deliver(request.email, `Solicitação de ${request.targetName} para acessar seu prontuário. Período: ${input.duration === 'visit' ? '8 horas' : input.duration === 'month' ? 'um mês a partir da confirmação, sem renovação automática' : 'até você suspender'}. Código: ${otp}. Válido por 5 minutos, uso único. Só informe se concordar. Confirme ou suspenda pelo link (válido por 24 horas): ${url}`);
           await transaction(async tx => { const c = await tx.get(this.path('challenges', id)); requireThat(c?.status === 'sending', 409, 'Solicitação indisponível.'); tx.set(this.path('challenges', id), {...c, status: 'pending'}); });
         } catch (e) {
           await transaction(async tx => { const c = await tx.get(this.path('challenges', id)); if (c?.status === 'sending') tx.set(this.path('challenges', id), {...c, status: 'failed'}); }); throw e;
@@ -258,6 +259,7 @@ export class ClinicalSecurity {
         await this.store.deliver(p.demographics.email, `Acesso excepcional solicitado por ${actor.name} ao seu prontuário, somente leitura, por 15 minutos. Motivo: ${reason}. A operação será registrada para auditoria.`);
         result = await transaction(async tx => {
           const current = await patient(tx), expiresAt = this.clock() + 900000;
+          requireThat((current.consentVersions?.[actor.uid] || 0) === (p.consentVersions?.[actor.uid] || 0), 409, 'O paciente alterou o acesso durante a solicitação. A exceção não foi liberada.');
           tx.set(this.path('patients', patientId), {...current, exceptions: {...current.exceptions, [actor.uid]: {expiresAt, reason}}});
           tx.create(this.path('exception_history', randomUUID()), {patientId, actorUid: actor.uid, reason, expiresAt, intentId});
           return {expiresAt};
@@ -283,16 +285,51 @@ export class ClinicalSecurity {
         tx.set(this.path('challenges', id), {...c, attempts: c.attempts + 1}); return false;
       }
       const p = await tx.get(this.path('patients', c.patientId));
+      if (c.purpose === 'management') {
+        requireThat(!requester && p?.contactVerifiedAt && c.email === p.demographics.email, 403, 'Confirme o gerenciamento pelo link enviado ao paciente.');
+        tx.set(this.path('challenges', id), {...c, status: 'used', usedAt: this.clock()});
+        tx.create(this.path('receipts', randomUUID()), {action: 'patient.management.confirm', patientId: c.patientId, requestId: id, at: this.clock(), actorUid: 'patient', outcome: 'committed'});
+        return true; // Identity confirmation never creates or extends a clinical grant.
+      }
+      requireThat(p && (c.consentVersion ?? 0) === (p.consentVersions?.[c.targetUid] || 0), 409, 'Este código é anterior à suspensão ou a outra autorização. Solicite um novo código.');
       const member = await tx.get(this.path('members', c.targetUid));
       requireThat(p && member?.active && ['admin', 'dentist'].includes(member.role), 403, 'Profissional ou paciente indisponível.');
-      const grant = {status: 'active', expiresAt: c.duration === 'visit' ? this.clock() + 28800000 : null, authorizedAt: this.clock()};
-      tx.set(this.path('patients', c.patientId), {...p, contactVerifiedAt: p.contactVerifiedAt || this.clock(), grants: {...p.grants, [c.targetUid]: grant}});
+      requireThat(['visit', 'month', 'until_revoked'].includes(c.duration) && (c.duration !== 'until_revoked' || c.targetUid === p.ownerUid), 400, 'Prazo de autorização indisponível. Solicite um novo código.');
+      const grant = {status: 'active', expiresAt: c.duration === 'visit' ? this.clock() + 28800000 : c.duration === 'month' ? treatmentMonthExpiresAt(this.clock()) : null, authorizedAt: this.clock()};
+      tx.set(this.path('patients', c.patientId), {...p, consentVersions: {...p.consentVersions, [c.targetUid]: (p.consentVersions?.[c.targetUid] || 0) + 1}, contactVerifiedAt: p.contactVerifiedAt || this.clock(), grants: {...p.grants, [c.targetUid]: grant}});
       tx.set(this.path('challenges', id), {...c, status: 'used', usedAt: this.clock()});
       tx.create(this.path('consent_history', randomUUID()), {patientId: c.patientId, targetUid: c.targetUid, requestId: id, channel: 'email_otp', duration: c.duration, at: this.clock(), requestedBy: c.requestedBy, confirmedBy: requester || 'patient', previous: p.grants[c.targetUid] || null, grant});
       return true;
     });
     requireThat(outcome, 400, 'Código incorreto.');
     return {ok: true};
+  }
+  private async renewManagement(previous: Document, intentId: string) {
+    const now = this.clock(), id = randomUUID(), otp = code(), portal = secret();
+    const request = await this.store.transaction(async tx => {
+      const p = await tx.get(this.path('patients', previous.patientId));
+      const rate = await tx.get(this.path('portal_rates', previous.patientId));
+      requireThat(p?.contactVerifiedAt, 403, 'O contato ainda precisa ser confirmado pela primeira autorização na clínica.');
+      const count = rate?.day === Math.floor(now / 86400000) ? rate.count : 0;
+      requireThat(!rate || now - rate.last >= 60000, 429, 'Aguarde um minuto antes de reenviar.');
+      requireThat(count < 5, 429, 'Limite diário de renovação atingido.');
+      const value = {id, patientId: previous.patientId, targetUid: null, targetName: null, requestedBy: 'patient', purpose: 'management', duration: null,
+        expiresAt: now + 300000, portalExpiresAt: now + 86400000, attempts: 0, codeHash: codeDigest(this.key, id, otp), portalHash: digest(portal),
+        status: 'sending', createdAt: now, email: p.demographics.email};
+      tx.set(this.path('portal_rates', previous.patientId), {last: now, day: Math.floor(now / 86400000), count: count + 1});
+      tx.create(this.path('challenges', id), value);
+      tx.create(this.path('portals', digest(portal)), {requestId: id});
+      tx.create(this.path('receipts', randomUUID()), {action: 'patient.management.request', patientId: previous.patientId, requestId: id, intentId, at: now});
+      return value;
+    });
+    try {
+      await this.store.deliver(request.email, `Gerenciamento de autorizações do DentisPro. Este código não autoriza nem renova acesso de profissionais. Código: ${otp}. Válido por 5 minutos. Link válido por 24 horas: ${this.publicUrl.replace(/\/$/, '')}/patient-access#${portal}`);
+      await this.store.transaction(async tx => {const c = await tx.get(this.path('challenges', id)); requireThat(c?.status === 'sending', 409, 'Solicitação indisponível.'); tx.set(this.path('challenges', id), {...c, status: 'pending'});});
+    } catch(e) {
+      await this.store.transaction(async tx => {const c = await tx.get(this.path('challenges', id)); if(c?.status === 'sending') tx.set(this.path('challenges', id), {...c, status: 'failed'});});
+      throw e;
+    }
+    return {ok: true, message: 'Novo link enviado ao contato já confirmado. Abra o e-mail e confirme o código. Nenhuma autorização clínica foi renovada.'};
   }
   async portal(token: string, action: string, entered?: string, targetUid?: string) {
     requireThat(/^[A-Za-z0-9_-]{43}$/.test(token), 400, 'Link inválido.');
@@ -302,28 +339,31 @@ export class ClinicalSecurity {
       const request = await this.store.transaction(async tx => {
         const ref = await tx.get(this.path('portals', portalId));
         const c = ref ? await tx.get(this.path('challenges', ref.requestId)) : null;
-        requireThat(c && c.portalExpiresAt > this.clock() && ['pending', 'used'].includes(c.status), 400, 'Link expirado ou indisponível. Solicite um novo código à clínica.'); return c;
+        requireThat(c && (action === 'renew' || c.portalExpiresAt > this.clock()) && ['pending', 'used'].includes(c.status), 400, 'Link expirado ou indisponível. Use Renovar link de gerenciamento para receber um novo e-mail.'); return c;
       });
       let result: any;
       let details: Record<string, any> = {};
-      if (action === 'confirm') result = await this.confirm(request.id, entered || '', null, this.store.transaction.bind(this.store));
+      if (action === 'renew') result = await this.renewManagement(request, intent);
+      else if (action === 'confirm') result = await this.confirm(request.id, entered || '', null, this.store.transaction.bind(this.store));
       else if (action === 'suspend') {
         requireThat(request.status === 'used', 403, 'Confirme o código para gerenciar o acesso.');
         const uid = identifier(targetUid);
         await this.store.transaction(async tx => {
           const p = await tx.get(this.path('patients', request.patientId));
-          requireThat(p && (p.grants[uid] || p.ownerUid === uid), 400, 'Autorização não encontrada.');
+          requireThat(p && (p.grants[uid] || p.ownerUid === uid || p.exceptions[uid]), 400, 'Autorização não encontrada.');
           const exceptions = {...p.exceptions}; delete exceptions[uid];
-          tx.set(this.path('patients', request.patientId), {...p, exceptions, grants: {...p.grants, [uid]: {status: 'suspended', expiresAt: null, authorizedAt: this.clock()}}});
+          tx.set(this.path('patients', request.patientId), {...p, consentVersions: {...p.consentVersions, [uid]: (p.consentVersions?.[uid] || 0) + 1}, exceptions, grants: {...p.grants, [uid]: {status: 'suspended', expiresAt: null, authorizedAt: this.clock()}}});
           tx.create(this.path('receipts', randomUUID()), {action: 'patient.suspend', patientId: request.patientId, targetUid: uid, intentId: intent, at: this.clock(), actorUid: 'patient', outcome: 'committed'});
         }); result = {ok: true};
       } else if (action === 'view') {
-        result = {professional: request.targetName, duration: request.duration, status: request.status};
+        result = {purpose: request.purpose || 'consent', professional: request.targetName, duration: request.duration, status: request.status, portalExpiresAt: request.portalExpiresAt};
         if (request.status === 'used') {
           const p = await this.store.transaction(tx => tx.get(this.path('patients', request.patientId)));
           const members = await this.store.list(this.path('members'));
-          const ids = new Set([p!.ownerUid, ...Object.keys(p!.grants)]);
-          result.grants = [...ids].map(uid => ({uid, name: members.find(m => m.uid === uid)?.name || 'Profissional', ...(p!.grants[uid] || {status: 'active', expiresAt: null})}));
+          const ids = new Set([p!.ownerUid, ...Object.keys(p!.grants), ...Object.keys(p!.exceptions)]);
+          result.grants = [...ids].map(uid => ({uid, name: members.find(m => m.uid === uid)?.name || 'Profissional',
+            ...(p!.grants[uid] || (uid === p!.ownerUid ? {status: 'active', expiresAt: null} : {status: 'none', expiresAt: null})),
+            exception: p!.exceptions[uid]?.expiresAt > this.clock() ? p!.exceptions[uid] : null}));
         }
       } else throw new AccessError(400, 'Operação inválida.');
       await this.store.audit({action: `patient.${action}`, clinic: this.clinic, patientId: request.patientId, targetUid: targetUid || request.targetUid, intentId: intent, outcome: 'success'});

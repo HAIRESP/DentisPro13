@@ -87,3 +87,14 @@ export function validateClinicWorkspace(value: any) {
   for (const p of value.dentispro_professionals_v1 || []) requireThat(!p.password, 400, 'Remova senhas antigas dos cadastros de profissionais.');
   return value;
 }
+
+/** One calendar month in the clinic's Fortaleza timezone, clamped at month end. */
+export function treatmentMonthExpiresAt(now: number) {
+  const offset = 3 * 60 * 60 * 1000;
+  const local = new Date(now - offset), day = local.getUTCDate();
+  local.setUTCDate(1);
+  local.setUTCMonth(local.getUTCMonth() + 1);
+  const lastDay = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth() + 1, 0)).getUTCDate();
+  local.setUTCDate(Math.min(day, lastDay));
+  return local.getTime() + offset;
+}

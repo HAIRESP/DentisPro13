@@ -82,3 +82,7 @@ Referências técnicas: https://firebase.google.com/docs/admin/setup ; https://f
 - Cadastros mínimos recebem estruturas vazias para renderização; respostas médicas ausentes permanecem desconhecidas. Importação CSV não inventa CPF, telefone, e-mail, nascimento ou endereço.
 - Sugestões de procedimentos usam o catálogo cadastrado, sem acrescentar exemplos fixos.
 - Dois testes de regressão cobrem ausência de achados e preservação de respostas médicas. Ainda é necessário revisar todos os textos padrão dos modelos legados: esta etapa não certifica integralmente o conteúdo de todos os documentos.
+
+## Primeira etapa após auditoria
+
+Consentimento mensal, suspensão de códigos antigos, recuperação independente do portal e suspensão de exceções foram implementados. [Detalhes e limites](review/CONSENTIMENTO-2026-09-26.md). Verificação atual: 39 testes, TypeScript e build passaram. Os demais achados da auditoria continuam pendentes; não liberar para uso clínico.
