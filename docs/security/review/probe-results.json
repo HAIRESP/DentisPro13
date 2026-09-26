@@ -1,0 +1,50 @@
+{
+  "warning": "Reproduced=true means a defect was observed, not fixed.",
+  "findings": [
+    {
+      "id": "R01_pending_code_restores_suspended_access",
+      "reproduced": true,
+      "evidence": "A code issued before suspension reactivated access after suspension."
+    },
+    {
+      "id": "R02_patient_loses_self_service_revocation",
+      "reproduced": true,
+      "evidence": "Unlimited grant remains active after the only patient management link expires."
+    },
+    {
+      "id": "R03_incomplete_clinical_schema_accepted",
+      "reproduced": true,
+      "evidence": "Missing record ID/items and null exam accepted as a saved clinical version."
+    },
+    {
+      "id": "R04_forged_clinical_identity_accepted",
+      "reproduced": true,
+      "evidence": "Version author is owner, but prescription retains client-supplied other author/professional."
+    },
+    {
+      "id": "R05_demographic_race_with_clinical_save",
+      "reproduced": true,
+      "evidence": "Save succeeds while demographics changed; new snapshot already has stale identity."
+    },
+    {
+      "id": "R06_read_released_after_suspend_during_final_audit",
+      "reproduced": true,
+      "evidence": "Response contains clinical data even though suspension completed while final audit awaited."
+    },
+    {
+      "id": "R07_exception_invisible_and_not_suspendable_by_patient",
+      "reproduced": true,
+      "evidence": "Patient receives notification but exception-only admin is absent from grants and cannot be suspended."
+    },
+    {
+      "id": "R08_inactive_actor_gets_patient_list_in_flight",
+      "reproduced": true,
+      "evidence": "Member deactivated during intent audit still receives patient list; this branch has no recheck."
+    },
+    {
+      "id": "R09_configuration_committed_then_response_fails",
+      "reproduced": true,
+      "evidence": "Null configuration passes validator and commits; Object.keys(null) fails during result audit."
+    }
+  ]
+}
