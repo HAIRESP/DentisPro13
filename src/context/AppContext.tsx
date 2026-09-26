@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { WorkspaceStorageContext } from './WorkspaceStorage';
+import { memoryWorkspace, SecureWorkspaceSession } from '../utils/secureWorkspace';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { 
   Patient, 
   Appointment, 
@@ -22,26 +24,7 @@ import {
   SavedClinicDocument,
   CustomDocumentTemplate
 } from '../types';
-import { 
-  INITIAL_PATIENTS, 
-  INITIAL_APPOINTMENTS, 
-  INITIAL_INVENTORY, 
-  INITIAL_FINANCIAL, 
-  INITIAL_PRESCRIPTIONS, 
-  INITIAL_ODONTOGRAM_DATA, 
-  INITIAL_ODONTOGRAM_SNAPSHOTS,
-  INITIAL_CLINICAL_EVOLUTION,
-  WHATSAPP_TEMPLATES,
-  INITIAL_CLINICS,
-  INITIAL_PROFESSIONALS,
-  INITIAL_TUSS_PROCEDURES,
-  DEFAULT_PRICE_TABLES,
-  INITIAL_TREATMENT_PLANS,
-  INITIAL_PATIENT_PAYMENTS,
-  INITIAL_COMMISSIONS,
-  INITIAL_INSURANCE_GUIDES,
-  INITIAL_SAVED_DOCUMENTS
-} from '../data/mockData';
+import { WHATSAPP_TEMPLATES, INITIAL_TUSS_PROCEDURES, DEFAULT_PRICE_TABLES } from '../data/mockData';
 import { INITIAL_DOCUMENT_TEMPLATES } from '../data/documentTemplatesCatalog';
 import { DEFAULT_DR_HUGO_SIGNATURE, DEFAULT_DR_HUGO_STAMP, cleanSignatureText } from '../utils/formatters';
 
@@ -87,7 +70,7 @@ export interface ClinicInfo {
   signatureAlignment?: 'right' | 'center' | 'left';
 }
 
-interface AppContextType {
+export interface AppContextType {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   
@@ -253,18 +236,37 @@ const STORAGE_KEYS = {
   DOCUMENT_TEMPLATES: 'dentispro_document_templates_v1',
 };
 
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+export const AppProvider: React.FC<{ children: React.ReactNode; secure: SecureWorkspaceSession }> = ({ children, secure }) => {
+  const storageRef = useRef<ReturnType<typeof memoryWorkspace> | null>(null);
+  if (!storageRef.current) storageRef.current = memoryWorkspace(secure);
+  const storage = storageRef.current;
+  const INITIAL_PATIENTS: Patient[] = [];
+  const INITIAL_APPOINTMENTS: Appointment[] = [];
+  const INITIAL_INVENTORY: InventoryItem[] = [];
+  const INITIAL_FINANCIAL: FinancialTransaction[] = [];
+  const INITIAL_PRESCRIPTIONS: Prescription[] = [];
+  const INITIAL_CLINICAL_EVOLUTION: ClinicalEvolutionEntry[] = [];
+  const INITIAL_CLINICS: ClinicUnit[] = [];
+  const INITIAL_PROFESSIONALS: Professional[] = [];
+  const INITIAL_TREATMENT_PLANS: TreatmentPlan[] = [];
+  const INITIAL_PATIENT_PAYMENTS: PatientPayment[] = [];
+  const INITIAL_COMMISSIONS: DentistCommissionRecord[] = [];
+  const INITIAL_INSURANCE_GUIDES: InsuranceGuide[] = [];
+  const INITIAL_SAVED_DOCUMENTS: SavedClinicDocument[] = [];
+  const INITIAL_ODONTOGRAM_DATA: Record<string, ToothCondition[]> = {};
+  const INITIAL_ODONTOGRAM_SNAPSHOTS: Record<string, OdontogramSnapshot[]> = {};
+
+  const [activeTab, setActiveTab] = useState<ActiveTab>('pacientes');
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(secure.patientId);
   const [whatsAppModalAppointment, setWhatsAppModalAppointment] = useState<Appointment | null>(null);
 
   // Helper load state with fallback (checks current key, then legacy planetodonto_ key)
   const loadInitial = <T,>(key: string, fallback: T): T => {
     try {
-      const item = localStorage.getItem(key);
+      const item = storage.getItem(key);
       if (item) return JSON.parse(item);
       const legacyKey = key.replace('dentispro_', 'planetodonto_');
-      const legacyItem = localStorage.getItem(legacyKey);
+      const legacyItem = storage.getItem(legacyKey);
       return legacyItem ? JSON.parse(legacyItem) : fallback;
     } catch {
       return fallback;
@@ -273,7 +275,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [clinics, setClinics] = useState<ClinicUnit[]>(() => {
     const loaded = loadInitial<ClinicUnit[]>(STORAGE_KEYS.CLINICS, INITIAL_CLINICS);
-    const hasOnline = loaded.some(c => c.id === 'cli-online' || c.name.toLowerCase().includes('atendimento online'));
+    const hasOnline = true;
     const list = hasOnline ? [...loaded] : [
       {
         id: 'cli-online',
@@ -498,32 +500,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   
   const [clinicInfo, setClinicInfo] = useState<ClinicInfo>(() => {
-    const defaultObj: ClinicInfo = {
-      name: 'DentisPro Odontologia Especializada',
-      dentistName: 'Hugo Andres Iglesias Ricoy',
-      cro: 'CRO/CE 5925',
-      cpf: '879.750.253-72',
-      specialty: 'Implantodontia, Ortodontia & Gestão Odontológica',
-      phone: '5585981110826',
-      email: 'drhugoandres@gmail.com',
-      address: 'Av. Dom Luís, 1200 - Meireles',
-      city: 'Fortaleza - CE',
-      logoUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=150&auto=format&fit=crop&q=80',
-      headerTitle: 'DentisPro Odontologia • Unidade Fortaleza (Consultório 102)',
-      headerSubtitle: 'Hugo Andres Iglesias Ricoy • CRO/CE 5925',
-      watermarkUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=150&auto=format&fit=crop&q=80',
-      watermarkOpacity: 15,
-      showWatermark: true,
-      footerText: 'Av. Dom Luís, 1200 - Meireles - Fortaleza - CE • CEP: 60.160-110 | Tel: +55 (85) 98111-0826',
-      patientAssistedJustificationText: 'Ficam prestadas as informações aos pacientes assistidos que justifiquem a recusa do atendimento, a interrupção do tratamento ou o tempo mais longo para a conclusão do tratamento, em razão da complexidade do caso, da finalidade pedagógica, do estágio de formação em que o profissional se encontre em relação às habilidades e aos conhecimentos que o caso clínico demande, ou mesmo delonga em razão de casos fortuitos que forçam a paralisação dos atendimentos nas clínicas da instituição.',
-      signatureLabel: 'Hugo Andres Iglesias Ricoy • CRO/CE 5925',
-      showSignatureLine: true,
-      showSignatureImage: true,
-      showStampImage: true,
-      signatureAlignment: 'right',
-      signatureImageUrl: '',
-      stampImageUrl: ''
-    };
+    const defaultObj: ClinicInfo = {name: 'DentisPro', dentistName: '', cro: '', specialty: '', phone: '', email: '', address: '', city: '', showSignatureImage: false, showStampImage: false};
     const loaded = loadInitial<ClinicInfo>(STORAGE_KEYS.CLINIC_INFO, defaultObj);
     const withDefaults: ClinicInfo = {
       ...loaded,
@@ -559,29 +536,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setDocumentTemplates([...INITIAL_DOCUMENT_TEMPLATES].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR', { sensitivity: 'base' })));
   };
 
-  // Sync to localStorage
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients)); }, [patients]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments)); }, [appointments]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory)); }, [inventory]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.FINANCIAL, JSON.stringify(financials)); }, [financials]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.PRESCRIPTIONS, JSON.stringify(prescriptions)); }, [prescriptions]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ODONTOGRAMS, JSON.stringify(odontograms)); }, [odontograms]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ODONTOGRAM_SNAPSHOTS, JSON.stringify(odontogramSnapshots)); }, [odontogramSnapshots]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.EVOLUTIONS, JSON.stringify(clinicalEvolutions)); }, [clinicalEvolutions]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CLINICAL_EXAMS, JSON.stringify(clinicalExams)); }, [clinicalExams]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.TREATMENT_PLANS, JSON.stringify(treatmentPlans)); }, [treatmentPlans]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.PATIENT_PAYMENTS, JSON.stringify(patientPayments)); }, [patientPayments]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.TUSS_PROCEDURES, JSON.stringify(tussProcedures)); }, [tussProcedures]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.PRICE_TABLES, JSON.stringify(priceTables)); }, [priceTables]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.COMMISSIONS, JSON.stringify(commissions)); }, [commissions]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.INSURANCE_GUIDES, JSON.stringify(insuranceGuides)); }, [insuranceGuides]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.SAVED_DOCUMENTS, JSON.stringify(savedClinicDocuments)); }, [savedClinicDocuments]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.DOCUMENT_TEMPLATES, JSON.stringify(documentTemplates)); }, [documentTemplates]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CLINICS, JSON.stringify(clinics)); }, [clinics]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.PROFESSIONALS, JSON.stringify(professionals)); }, [professionals]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ACTIVE_CLINIC, JSON.stringify(activeClinicId)); }, [activeClinicId]);
+  // Sync only to the in-memory workspace; the parent explicitly saves a server version.
+  useEffect(() => { storage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients)); }, [patients]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments)); }, [appointments]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory)); }, [inventory]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.FINANCIAL, JSON.stringify(financials)); }, [financials]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.PRESCRIPTIONS, JSON.stringify(prescriptions)); }, [prescriptions]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.ODONTOGRAMS, JSON.stringify(odontograms)); }, [odontograms]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.ODONTOGRAM_SNAPSHOTS, JSON.stringify(odontogramSnapshots)); }, [odontogramSnapshots]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.EVOLUTIONS, JSON.stringify(clinicalEvolutions)); }, [clinicalEvolutions]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.CLINICAL_EXAMS, JSON.stringify(clinicalExams)); }, [clinicalExams]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.TREATMENT_PLANS, JSON.stringify(treatmentPlans)); }, [treatmentPlans]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.PATIENT_PAYMENTS, JSON.stringify(patientPayments)); }, [patientPayments]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.TUSS_PROCEDURES, JSON.stringify(tussProcedures)); }, [tussProcedures]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.PRICE_TABLES, JSON.stringify(priceTables)); }, [priceTables]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.COMMISSIONS, JSON.stringify(commissions)); }, [commissions]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.INSURANCE_GUIDES, JSON.stringify(insuranceGuides)); }, [insuranceGuides]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.SAVED_DOCUMENTS, JSON.stringify(savedClinicDocuments)); }, [savedClinicDocuments]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.DOCUMENT_TEMPLATES, JSON.stringify(documentTemplates)); }, [documentTemplates]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.CLINICS, JSON.stringify(clinics)); }, [clinics]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.PROFESSIONALS, JSON.stringify(professionals)); }, [professionals]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.ACTIVE_CLINIC, JSON.stringify(activeClinicId)); }, [activeClinicId]);
   useEffect(() => { 
-    localStorage.setItem(STORAGE_KEYS.LAYOUT_THEME, JSON.stringify(layoutTheme));
+    storage.setItem(STORAGE_KEYS.LAYOUT_THEME, JSON.stringify(layoutTheme));
     document.documentElement.setAttribute('data-theme', layoutTheme);
     if (layoutTheme === 'dark-executive') {
       document.documentElement.classList.add('dark');
@@ -608,7 +585,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteSavedClinicDocument = (id: string) => {
     setSavedClinicDocuments(prev => prev.filter(d => d.id !== id));
   };
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CLINIC_INFO, JSON.stringify(clinicInfo)); }, [clinicInfo]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.CLINIC_INFO, JSON.stringify(clinicInfo)); }, [clinicInfo]);
 
   // Dentist Commissions Handlers
   const addCommission = (commData: Omit<DentistCommissionRecord, 'id'>) => {
@@ -697,10 +674,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deletePriceTable = (id: string) => {
     setPriceTables(prev => prev.filter(t => t.id !== id));
   };
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CLINICS, JSON.stringify(clinics)); }, [clinics]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.PROFESSIONALS, JSON.stringify(professionals)); }, [professionals]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ACTIVE_CLINIC, JSON.stringify(activeClinicId)); }, [activeClinicId]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.LAYOUT_THEME, JSON.stringify(layoutTheme)); }, [layoutTheme]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.CLINICS, JSON.stringify(clinics)); }, [clinics]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.PROFESSIONALS, JSON.stringify(professionals)); }, [professionals]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.ACTIVE_CLINIC, JSON.stringify(activeClinicId)); }, [activeClinicId]);
+  useEffect(() => { storage.setItem(STORAGE_KEYS.LAYOUT_THEME, JSON.stringify(layoutTheme)); }, [layoutTheme]);
 
   // Open Patient Profile helper
   const openPatientProfile = (id: string) => {
@@ -958,10 +935,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateClinicalEvolution = (id: string, updatedData: Partial<ClinicalEvolutionEntry>) => {
+    if (secure.initialStorage.dentispro_evolutions_v2?.some((entry: ClinicalEvolutionEntry) => entry.id === id)) {
+      alert('Evolução finalizada. Registre um novo complemento para preservar o histórico.'); return;
+    }
     setClinicalEvolutions(prev => prev.map(evo => evo.id === id ? { ...evo, ...updatedData } : evo).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };
 
   const deleteClinicalEvolution = (id: string) => {
+    if (secure.initialStorage.dentispro_evolutions_v2?.some((entry: ClinicalEvolutionEntry) => entry.id === id)) {
+      alert('Evolução finalizada. Registre um novo complemento para preservar o histórico.'); return;
+    }
     setClinicalEvolutions(prev => prev.filter(evo => evo.id !== id));
   };
 
@@ -990,7 +973,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const selectProfessionalAndClinic = (profId: string, clinicId?: string) => {
     setActiveProfessionalIdState(profId);
-    localStorage.setItem('dentispro_active_prof_v1', JSON.stringify(profId));
+    storage.setItem('dentispro_active_prof_v1', JSON.stringify(profId));
     
     const prof = professionals.find(p => p.id === profId);
     let chosenClinicId = clinicId;
@@ -1006,7 +989,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (chosenClinicId) {
       setActiveClinicId(chosenClinicId);
-      localStorage.setItem(STORAGE_KEYS.ACTIVE_CLINIC, JSON.stringify(chosenClinicId));
+      storage.setItem(STORAGE_KEYS.ACTIVE_CLINIC, JSON.stringify(chosenClinicId));
     }
 
     if (prof) {
@@ -1029,7 +1012,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (targetProfId === activeProfessionalId) {
       if (targetClinicId && targetClinicId !== activeClinicId) {
         setActiveClinicId(targetClinicId);
-        localStorage.setItem(STORAGE_KEYS.ACTIVE_CLINIC, JSON.stringify(targetClinicId));
+        storage.setItem(STORAGE_KEYS.ACTIVE_CLINIC, JSON.stringify(targetClinicId));
       }
       return;
     }
@@ -1223,7 +1206,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const resetToDefaultData = () => {
-    localStorage.clear();
+    storage.clear();
     setClinics([...INITIAL_CLINICS].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
     setProfessionals([...INITIAL_PROFESSIONALS].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
     setActiveProfessionalIdState(INITIAL_PROFESSIONALS[0]?.id || 'prof-1');
@@ -1261,7 +1244,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // State for tracking checkpoint
   const [lastCheckpointTime, setLastCheckpointTime] = useState<string | null>(() => {
-    return localStorage.getItem('dentispro_last_checkpoint_timestamp');
+    return storage.getItem('dentispro_last_checkpoint_timestamp');
   });
 
   // Create Checkpoint Function
@@ -1296,8 +1279,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     const jsonStr = JSON.stringify(backupPayload, null, 2);
-    localStorage.setItem('dentispro_latest_checkpoint_data', jsonStr);
-    localStorage.setItem('dentispro_last_checkpoint_timestamp', formattedDate);
+    storage.setItem('dentispro_latest_checkpoint_data', jsonStr);
+    storage.setItem('dentispro_last_checkpoint_timestamp', formattedDate);
     setLastCheckpointTime(formattedDate);
 
     const summary = `${patients.length} pacientes, ${appointments.length} consultas, ${inventory.length} itens de estoque, ${financials.length} transações financeiras.`;
@@ -1307,7 +1290,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Export JSON Backup File
   const exportDatabaseBackupJSON = () => {
     const checkpoint = createDatabaseCheckpoint();
-    const jsonStr = localStorage.getItem('dentispro_latest_checkpoint_data') || '{}';
+    const jsonStr = storage.getItem('dentispro_latest_checkpoint_data') || '{}';
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -1321,67 +1304,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Import JSON Backup File
-  const importDatabaseBackupJSON = (jsonString: string): boolean => {
-    try {
-      const data = JSON.parse(jsonString);
-      if (!data || typeof data !== 'object') return false;
-
-      if (data.patients && Array.isArray(data.patients)) {
-        setPatients([...data.patients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })));
-      }
-      if (data.appointments && Array.isArray(data.appointments)) {
-        setAppointments([...data.appointments].sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`)));
-      }
-      if (data.inventory && Array.isArray(data.inventory)) {
-        setInventory([...data.inventory].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
-      }
-      if (data.financials && Array.isArray(data.financials)) {
-        setFinancials([...data.financials].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      }
-      if (data.prescriptions && Array.isArray(data.prescriptions)) {
-        setPrescriptions([...data.prescriptions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      }
-      if (data.odontograms) setOdontograms(data.odontograms);
-      if (data.odontogramSnapshots) setOdontogramSnapshots(data.odontogramSnapshots);
-      if (data.clinicalEvolutions && Array.isArray(data.clinicalEvolutions)) {
-        setClinicalEvolutions([...data.clinicalEvolutions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      }
-      if (data.clinicalExams) setClinicalExams(data.clinicalExams);
-      if (data.treatmentPlans && Array.isArray(data.treatmentPlans)) {
-        setTreatmentPlans([...data.treatmentPlans].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      }
-      if (data.patientPayments && Array.isArray(data.patientPayments)) {
-        setPatientPayments([...data.patientPayments].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      }
-      if (data.clinicInfo) setClinicInfo(data.clinicInfo);
-      if (data.clinics && Array.isArray(data.clinics)) {
-        setClinics([...data.clinics].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
-      }
-      if (data.professionals && Array.isArray(data.professionals)) {
-        setProfessionals([...data.professionals].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
-      }
-      if (data.priceTables && Array.isArray(data.priceTables)) {
-        setPriceTables([...data.priceTables].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
-      }
-      if (data.documentTemplates && Array.isArray(data.documentTemplates)) {
-        setDocumentTemplates([...data.documentTemplates].sort((a, b) => (a.title || '').localeCompare(b.title || '', 'pt-BR', { sensitivity: 'base' })));
-      }
-      if (data.savedClinicDocuments && Array.isArray(data.savedClinicDocuments)) {
-        setSavedClinicDocuments([...data.savedClinicDocuments].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
-      }
-
-      const now = new Date().toLocaleString('pt-BR');
-      setLastCheckpointTime(now);
-      localStorage.setItem('dentispro_last_checkpoint_timestamp', now);
-      return true;
-    } catch (e) {
-      console.error("Erro ao importar backup:", e);
-      return false;
-    }
-  };
+  const importDatabaseBackupJSON = (_jsonString: string): boolean => false;
 
   return (
-    <AppContext.Provider
+    <WorkspaceStorageContext.Provider value={storage}><AppContext.Provider
       value={{
         activeTab,
         setActiveTab,
@@ -1484,7 +1410,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }}
     >
       {children}
-    </AppContext.Provider>
+    </AppContext.Provider></WorkspaceStorageContext.Provider>
   );
 };
 

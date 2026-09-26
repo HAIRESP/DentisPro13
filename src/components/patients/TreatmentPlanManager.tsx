@@ -1,3 +1,4 @@
+import { useWorkspaceStorage } from '../../context/WorkspaceStorage';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getPatientAgeAndBirthDate } from '../../utils/patientUtils';
@@ -513,6 +514,7 @@ export const PAYMENT_CONDITIONS_CATEGORIES = [
 ];
 
 export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ patientId }) => {
+  const workspaceStorage = useWorkspaceStorage();
   const { 
     patients, 
     treatmentPlans, 
@@ -555,7 +557,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
 
   // Correlation Rules State
   const [correlationRules, setCorrelationRules] = useState<CorrelationRule[]>(() => {
-    const saved = localStorage.getItem('clinic_correlation_rules');
+    const saved = workspaceStorage.getItem('clinic_correlation_rules');
     if (!saved) return DEFAULT_CORRELATION_RULES;
     try {
       const parsed: CorrelationRule[] = JSON.parse(saved);
@@ -598,7 +600,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('clinic_correlation_rules', JSON.stringify(correlationRules));
+    workspaceStorage.setItem('clinic_correlation_rules', JSON.stringify(correlationRules));
   }, [correlationRules]);
 
   const resetRuleForm = () => {

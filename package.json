@@ -13,7 +13,8 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "node -e \"for (const path of ['dist', 'server.js']) require('node:fs').rmSync(path, { recursive: true, force: true })\"",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -21,7 +22,7 @@
     "@types/pg": "^8.21.0",
     "@vitejs/plugin-react": "^5.0.4",
     "dotenv": "^17.2.3",
-    "drizzle-kit": "^0.31.10",
+    "drizzle-kit": "^0.31.11",
     "drizzle-orm": "^0.45.2",
     "express": "^4.21.2",
     "firebase": "^12.17.1",

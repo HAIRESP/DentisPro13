@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useDocumentDomain } from '../../context/DomainContexts';
 import { RELATIONAL_DOCUMENT_VARIABLES } from '../../data/documentTemplatesCatalog';
 import { CustomDocumentTemplate } from '../../types';
 import { 
@@ -20,8 +20,8 @@ import {
   Plus
 } from 'lucide-react';
 
-export const DocumentTemplatesManager: React.FC = () => {
-  const { documentTemplates, updateDocumentTemplate, resetDocumentTemplates } = useApp();
+export const DocumentTemplatesManager: React.FC = React.memo(() => {
+  const { documentTemplates, updateDocumentTemplate, resetDocumentTemplates } = useDocumentDomain();
   
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(documentTemplates[0]?.id || 'atestado_medico');
   const activeTemplate = documentTemplates.find(t => t.id === selectedTemplateId) || documentTemplates[0];
@@ -383,4 +383,4 @@ export const DocumentTemplatesManager: React.FC = () => {
       </div>
     </div>
   );
-};
+});

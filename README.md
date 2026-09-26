@@ -1,5 +1,7 @@
 # DentisPro
 
+> Esta branch contém o atendimento protegido em revisão. Não substituir a instalação clínica em uso antes da homologação. Leia [estado da revisão e ativação](docs/security/REVISAO-E-ATIVACAO.md). O login abre uma verificação de infraestrutura; a configuração abaixo não basta para liberar prontuários.
+
 ## Instalação local
 
 Use **Node.js 24.x e npm 11.x**. O Docker e o arquivo `.nvmrc` usam a mesma versão principal do Node. Dependências atuais, incluindo o leitor de PDF, não são compatíveis com Node 20.

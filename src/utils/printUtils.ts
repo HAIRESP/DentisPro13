@@ -1,3 +1,4 @@
+import { authorizeWorkspaceAction } from './workspaceActions';
 /**
  * DentisPro - Utilitário de Impressão e Nomenclatura Padronizada de Documentos
  * 
@@ -82,10 +83,12 @@ export function formatSafeFilename(
  * @param filenameOrConfig Nome do arquivo sanitizado ou opções detalhadas
  * @param printCallback Callback de disparo customizado (opcional, padrão window.print)
  */
-export function printDocumentWithTitle(
+export async function printDocumentWithTitle(
   filenameOrConfig: string | { docTitle: string; patientName?: string; date?: string | Date },
   printCallback?: () => void
-): void {
+): Promise<void> {
+  try { await authorizeWorkspaceAction('print'); }
+  catch (e) { window.alert(e instanceof Error ? e.message : 'Impressão não autorizada.'); return; }
   const originalTitle = document.title;
   
   let targetFilename = '';

@@ -1,5 +1,6 @@
+import { useWorkspaceStorage } from '../../context/WorkspaceStorage';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useClinicDomain, useInventoryDomain, useAppointmentDomain, useTussDomain } from '../../context/DomainContexts';
 import { InventoryItem, InventoryItemType, InventoryOwnerScope, Appointment } from '../../types';
 import { CameraModal } from '../common/CameraModal';
 import { DailyClinicMaterialsReportModal } from './DailyClinicMaterialsReportModal';
@@ -351,21 +352,19 @@ export const getItemReadinessInfo = (item: InventoryItem): ReadinessInfo => {
 };
 
 export const InventoryManager: React.FC = () => {
-  const { 
+  const workspaceStorage = useWorkspaceStorage();
+  const {
     inventory, 
     addInventoryItem, 
     importInventoryBatch,
     updateInventoryItem, 
     adjustStockQuantity, 
     deleteInventoryItem, 
-    clearInventory, 
-    clinicInfo,
-    clinics,
-    professionals,
-    appointments,
-    tussProcedures,
-    layoutTheme
-  } = useApp();
+    clearInventory
+  } = useInventoryDomain();
+  const { clinicInfo, clinics, professionals, layoutTheme } = useClinicDomain();
+  const { appointments } = useAppointmentDomain();
+  const { tussProcedures } = useTussDomain();
 
   const t = getThemeStyles(layoutTheme);
 
@@ -433,17 +432,17 @@ export const InventoryManager: React.FC = () => {
   // Autoclave Sterilization Control Database State
   const [autoclaveLogs, setAutoclaveLogs] = useState<AutoclaveLog[]>(() => {
     try {
-      const saved = localStorage.getItem('dental_autoclave_logs_v1');
+      const saved = workspaceStorage.getItem('dental_autoclave_logs_v1');
       if (saved) return JSON.parse(saved);
     } catch (e) {
       console.error('Error reading autoclave logs', e);
     }
-    return INITIAL_AUTOCLAVE_LOGS;
+    return [];
   });
 
   useEffect(() => {
     try {
-      localStorage.setItem('dental_autoclave_logs_v1', JSON.stringify(autoclaveLogs));
+      workspaceStorage.setItem('dental_autoclave_logs_v1', JSON.stringify(autoclaveLogs));
     } catch (e) {
       console.error('Error saving autoclave logs', e);
     }
@@ -5694,7 +5693,7 @@ export const InventoryManager: React.FC = () => {
           clinics={clinics}
           professionals={professionals}
           clinicName={clinicInfo?.name || 'Clínica MARV Odontologia & Gestão'}
-          technicalResponsible={clinicInfo?.technicalManager ? `${clinicInfo.technicalManager} — ${clinicInfo.croTechnicalManager || 'CRO'}` : 'Dr. Hugo Andres Iglesias Ricoy — CRO/CE 5925'}
+          technicalResponsible={clinicInfo?.technicalManager ? `${clinicInfo.technicalManager} — ${clinicInfo.croNumber || clinicInfo.cro || 'CRO'}` : 'Dr. Hugo Andres Iglesias Ricoy — CRO/CE 5925'}
           autoclaveModel="Autoclave Cristófoli Vitale Class 12L"
         />
       )}
