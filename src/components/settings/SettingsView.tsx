@@ -527,7 +527,8 @@ export const SettingsView: React.FC = () => {
       name: newClinicNameInput.trim(),
       phone: newClinicPhoneInput.trim() || clinicPhone,
       email: clinicEmail,
-      address: 'Endereço a definir'
+      address: '',
+      city: ''
     });
     setSelectedClinicDropdownId(newC.id);
     setActiveClinicId(newC.id);
@@ -544,10 +545,11 @@ export const SettingsView: React.FC = () => {
   const handleCreateNewDentistQuick = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!newDentistNameInput.trim()) return;
-    const fullCro = newDentistCroInput.trim() ? (newDentistCroInput.startsWith('CRO') ? newDentistCroInput : `CRO/${croUf} ${newDentistCroInput}`) : 'CRO/CE 123456';
+    const fullCro = newDentistCroInput.trim() ? (newDentistCroInput.startsWith('CRO') ? newDentistCroInput : `CRO/${croUf} ${newDentistCroInput}`) : '';
     const newP = addProfessional({
       name: newDentistNameInput.trim(),
       cro: fullCro,
+      clinicIds: clinics.some(c => c.id === activeClinicId) ? [activeClinicId] : [],
       specialty: dentistSpecialty || 'Clínica Geral'
     });
     setSelectedDentistDropdownId(newP.id);

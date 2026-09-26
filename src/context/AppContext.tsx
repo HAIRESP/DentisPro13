@@ -1,3 +1,4 @@
+import { normalizePatientRecord } from '../utils/clinicalRecordSummary';
 import { WorkspaceStorageContext } from './WorkspaceStorage';
 import { memoryWorkspace, SecureWorkspaceSession } from '../utils/secureWorkspace';
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
@@ -322,7 +323,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode; secure: SecureWo
     const existingIds = new Set(list.map(p => p.id));
     const missing = INITIAL_PATIENTS.filter(p => !existingIds.has(p.id));
     const merged = missing.length > 0 ? [...list, ...missing] : list;
-    return merged.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
+    return merged.map(normalizePatientRecord).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
   });
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
     const list = loadInitial<Appointment[]>(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS);
@@ -1112,22 +1113,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode; secure: SecureWo
     return {
       patientId: pId,
       updatedAt: new Date().toISOString(),
-      extraoral: {
-        faceSymmetry: 'Simétrica',
-        neckLymphNodes: 'Sem enfartamento ganglionar ou dor à palpação',
-        atmJoints: 'Abertura de boca conservada (45mm), sem ruídos ou desvio',
-        lipsAndProfile: 'Lábios selados em repouso, perfil harmônico',
-        images: patientMedia
-      },
-      intraoral: {
-        buccalMucosa: 'Mucosa rosada, úmida e sem lesões',
-        tongueAndFloor: 'Língua com mobilidade normal, assoalho sem nódulos',
-        palateHardSoft: 'Palato duro e mole sem alterações morfológicas',
-        gingivaPeriodontum: 'Gengiva rosada e firme, sem sangramento abundante',
-        alveolarRidge: 'Integridade óssea preservada',
-        oropharynx: 'Amígdalas sem hiperemia',
-        images: patientMedia
-      },
+      extraoral: { images: patientMedia },
+      intraoral: { images: patientMedia },
       odontogramImages: patientMedia
     };
   };

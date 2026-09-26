@@ -169,7 +169,7 @@ export class ClinicalSecurity {
             const v = await transaction(tx => tx.get(this.path('patients', patientId) + `/versions/${identifier(input.versionId)}`));
             requireThat(v, 404, 'Versão não encontrada.'); reference = v.blob;
           }
-          const workspace = reference ? await this.store.getBlob(reference) : {dentispro_patients_v2: [{id: patientId, ...p.demographics, status: 'ativo', createdAt: new Date(p.createdAt).toISOString(), healthInsurance: 'Particular'}]};
+          const workspace = reference ? await this.store.getBlob(reference) : {dentispro_patients_v2: [{id: patientId, ...p.demographics, status: 'ativo', createdAt: new Date(p.createdAt).toISOString(), healthInsurance: '', gender: '', address: {street:'',number:'',neighborhood:'',city:'',state:'',cep:''}, anamnesis: {}}]};
           if (action === 'clinical.read') workspace.dentispro_patients_v2[0] = {...workspace.dentispro_patients_v2[0], ...p.demographics};
           // Recheck after potentially slow blob retrieval; revocation must win before delivery.
           await transaction(async tx => requireThat(canRead(await patient(tx) as any, actor, this.clock()), 403, 'Acesso suspenso.'));

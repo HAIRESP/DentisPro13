@@ -5562,7 +5562,7 @@ export const InventoryManager: React.FC = () => {
           onClose={() => setSelectedAppointmentForReport(null)}
           onDeductStock={(materialsToDeduct) => {
             materialsToDeduct.forEach(item => {
-              adjustStockQuantity(item.inventoryItemId, -item.quantityToDeduct);
+              adjustStockQuantity(item.itemId, -item.qty);
             });
             setSelectedAppointmentForReport(null);
           }}

@@ -44,7 +44,7 @@ npm start
 
 `lint` verifica os tipos TypeScript. `build` gera a aplicação em `dist`; `start` executa o servidor compilado na porta 3000. Encerre o servidor de desenvolvimento antes de executar `npm start`.
 
-Pendência conhecida: a verificação `npm run lint` ainda aponta inconsistências nos módulos da aplicação, como campos obrigatórios ausentes. A compilação do Vite não verifica tipos, por isso seu sucesso não significa que essas inconsistências foram corrigidas.
+A revisão de 26/09/2026 passou em `npm run lint`, `npm test` (32 testes) e `npm run build`. Esses resultados não substituem a homologação das telas e da infraestrutura de segurança.
 
 Para servir somente os arquivos compilados, defina `NODE_ENV=production` antes de `npm start`. No PowerShell, use `$env:NODE_ENV = "production"`; no Linux/macOS, execute `NODE_ENV=production npm start`. O Docker já define essa variável.
 

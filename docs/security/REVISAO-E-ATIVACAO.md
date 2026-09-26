@@ -25,9 +25,9 @@ A sessão ao fechar a aba e o bloqueio por inatividade continuam adiados por dec
 
 ## Validação feita
 
-- `npm test`: 30 testes passaram, incluindo bloqueios por perfil, suspensão, código expirado/reutilizado, tentativas concorrentes, falha de auditoria, falha de entrega, importação sem sobrescrita e conflito entre salvamentos.
+- `npm test`: 32 testes passaram, incluindo bloqueios por perfil, suspensão, código expirado/reutilizado, tentativas concorrentes, falha de auditoria, falha de entrega, importação sem sobrescrita e conflito entre salvamentos.
 - `npm run build`: passou; permanece aviso de bundle grande.
-- `npm run lint`: ainda encontra erros de tipos nos módulos legados. Não foi suprimido.
+- `npm run lint`: passou sem erros em 26/09/2026. Os 56 erros identificados foram corrigidos sem supressão da verificação.
 - Nenhum envio real de código, acesso a prontuário real, mudança de regra publicada ou criação de bucket foi realizado por esta revisão.
 - Teste visual automatizado não concluído: o executável de Chromium não estava disponível e seu download falhou. Build e testes de serviço não substituem teste de navegador.
 - Os testes de serviço usam armazenamento em memória com transações serializadas e proibição de leitura após escrita. Ainda falta executar o fluxo no Firestore/Storage real ou em ambiente de homologação.
@@ -74,3 +74,11 @@ Não use imediatamente a pasta Windows em que está atendendo. Faça uma cópia 
 - Etapa 4: ativação clínica supervisionada, com backup e plano de recuperação — pendente.
 
 Referências técnicas: https://firebase.google.com/docs/admin/setup ; https://firebase.google.com/docs/firestore/manage-data/transactions ; https://cloud.google.com/storage/docs/bucket-lock .
+
+## Correções de 26/09/2026
+
+- Corrigidos campos de documentos, anamnese, cadastros, baixa de estoque e ordenação de materiais.
+- Laudos não criam mais consulta/evolução fictícias na ausência de eventos; o resumo do exame utiliza observações registradas. O exame inicial não é preenchido com achados normais.
+- Cadastros mínimos recebem estruturas vazias para renderização; respostas médicas ausentes permanecem desconhecidas. Importação CSV não inventa CPF, telefone, e-mail, nascimento ou endereço.
+- Sugestões de procedimentos usam o catálogo cadastrado, sem acrescentar exemplos fixos.
+- Dois testes de regressão cobrem ausência de achados e preservação de respostas médicas. Ainda é necessário revisar todos os textos padrão dos modelos legados: esta etapa não certifica integralmente o conteúdo de todos os documentos.

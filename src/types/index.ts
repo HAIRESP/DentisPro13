@@ -83,10 +83,10 @@ export interface Anamnesis {
   hasGoodHealth?: boolean; // Você goza de boa saúde?
   isUndergoingMedicalTreatment?: boolean; // Está atualmente fazendo qualquer tratamento médico?
   medicalTreatmentDetails?: string;
-  hasAllergies: boolean;
+  hasAllergies?: boolean; // Ausente significa não informado, nunca uma resposta negativa.
   allergyDetails?: string; // Ex: Penicilina, anestésicos, látex, AINEs
   bloodPressureStatus?: 'normal' | 'alta' | 'baixa' | 'controlada_medicamento'; // Pressão arterial
-  hasHeartDisease: boolean; // Doença do coração / infarto / sopro
+  hasHeartDisease?: boolean; // Ausente significa não informado, nunca uma resposta negativa. // Doença do coração / infarto / sopro
   hasRheumaticFever?: boolean; // Febre reumática
   hasAsthma?: boolean; // Asma
   hasArthritis?: boolean; // Artrite
@@ -104,10 +104,10 @@ export interface Anamnesis {
   otherUnlistedDiseasesDetails?: string;
   hasPacemaker?: boolean; // Marca-passo ou próteses cardíacas/valvulares
   hasShortnessOfBreath?: boolean; // Sente falta de ar com frequência / dispneia
-  hasDiabetes: boolean;
+  hasDiabetes?: boolean; // Ausente significa não informado, nunca uma resposta negativa.
   diabetesType?: 'tipo1' | 'tipo2' | 'gestacional' | 'controlada';
-  hasHypertension: boolean;
-  bleedingDisorder: boolean; // Distúrbios de coagulação / hemorragia
+  hasHypertension?: boolean; // Ausente significa não informado, nunca uma resposta negativa.
+  bleedingDisorder?: boolean; // Ausente significa não informado, nunca uma resposta negativa. // Distúrbios de coagulação / hemorragia
   bleedingType?: 'normal' | 'excessivo'; // Sangramento ao corte
   healingType?: 'normal' | 'complicada'; // Cicatrização
   usesAnticoagulants?: boolean; // Uso de AAS, Marevan, Xarelto, Clopidogrel
@@ -120,7 +120,7 @@ export interface Anamnesis {
   hasHadSurgery?: boolean; // Já realizou alguma cirurgia
   surgeryDetails?: string;
   pastHealthProblems?: string; // Outros problemas de saúde e internações
-  isPregnant: boolean;
+  isPregnant?: boolean; // Ausente significa não informado, nunca uma resposta negativa.
   pregnancyWeeks?: string; // Semanas ou trimestre da gestação
   isBreastfeeding?: boolean; // Amamentando
   climactericOrMenopause?: 'nenhum' | 'climaterio' | 'menopausa' | 'pos_menopausa';
@@ -758,7 +758,7 @@ export interface SavedClinicDocument {
   formattedDateStr: string;
   title: string;
   subtitle?: string;
-  category: 'atestado' | 'declaracao' | 'solicitacao' | 'receita' | 'outro';
+  category: 'atestado' | 'declaracao' | 'solicitacao' | 'receita' | 'prontuario' | 'outro';
   patientId?: string;
   patientName: string;
   professionalName: string;

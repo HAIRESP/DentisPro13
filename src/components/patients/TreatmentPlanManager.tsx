@@ -2691,7 +2691,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                   onClick={() => printDocumentWithTitle({
                     docTitle: 'Plano_de_Tratamento',
                     patientName: patient?.name,
-                    date: activePrintPlan?.createdAt || new Date()
+                    date: activePrintPlan?.date || new Date()
                   })}
                   className={`px-4 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold rounded-xl flex items-center gap-2 shadow-2xs cursor-pointer transition`}
                 >
@@ -2899,7 +2899,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                 onClick={() => printDocumentWithTitle({
                   docTitle: 'Plano_de_Tratamento',
                   patientName: patient?.name,
-                  date: activePrintPlan?.createdAt || new Date()
+                  date: activePrintPlan?.date || new Date()
                 })}
                 className={`px-5 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-xl flex items-center gap-2 shadow-2xs cursor-pointer transition`}
               >
@@ -3870,7 +3870,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                                     <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-200 rounded text-[10px] font-bold">
                                       🦷 Por Dente
                                     </span>
-                                    {rule.teethGroup && rule.teethGroup !== 'todos' && rule.teethGroup !== 'custom' && (
+                                    {rule.teethGroup && rule.teethGroup !== 'todos' && rule.teethGroup !== 'personalizado' && (
                                       <span className="text-[10px] text-emerald-800 font-medium">
                                         {rule.teethGroup === 'molares' ? 'Molares' : rule.teethGroup === 'anteriores' ? 'Anteriores' : rule.teethGroup === 'pre_molares' ? 'Pré-molares' : rule.teethGroup === 'sisos' ? 'Sisos' : 'Odontopediatria'}
                                       </span>
