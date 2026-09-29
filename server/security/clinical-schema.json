@@ -1,0 +1,2348 @@
+{
+  "version": 1,
+  "roots": {
+    "dentispro_patients_v2": "Patient",
+    "dentispro_prescriptions_v2": "Prescription",
+    "dentispro_evolutions_v2": "ClinicalEvolutionEntry",
+    "dentispro_treatment_plans_v2": "TreatmentPlan",
+    "dentispro_patient_payments_v2": "PatientPayment",
+    "dentispro_financial_v2": "FinancialTransaction",
+    "dentispro_insurance_guides_v2": "InsuranceGuide",
+    "dentispro_saved_documents_v2": "SavedClinicDocument",
+    "dentispro_odontograms_v2": "ToothCondition",
+    "dentispro_odontogram_snapshots_v2": "OdontogramSnapshot",
+    "dentispro_clinical_exams_v2": "ClinicalExam"
+  },
+  "definitions": {
+    "Patient": {
+      "kind": "object",
+      "properties": {
+        "id": {
+          "kind": "string"
+        },
+        "name": {
+          "kind": "string"
+        },
+        "cpf": {
+          "kind": "string"
+        },
+        "rg": {
+          "kind": "string"
+        },
+        "birthDate": {
+          "kind": "string"
+        },
+        "gender": {
+          "kind": "ref",
+          "name": "Gender"
+        },
+        "phone": {
+          "kind": "string"
+        },
+        "email": {
+          "kind": "string"
+        },
+        "profession": {
+          "kind": "string"
+        },
+        "ethnicity": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "branca"
+            },
+            {
+              "kind": "literal",
+              "value": "preta"
+            },
+            {
+              "kind": "literal",
+              "value": "parda"
+            },
+            {
+              "kind": "literal",
+              "value": "amarela"
+            },
+            {
+              "kind": "literal",
+              "value": "indigena"
+            },
+            {
+              "kind": "literal",
+              "value": "outra"
+            }
+          ]
+        },
+        "previousResidence": {
+          "kind": "string"
+        },
+        "address": {
+          "kind": "object",
+          "properties": {
+            "street": {
+              "kind": "string"
+            },
+            "number": {
+              "kind": "string"
+            },
+            "neighborhood": {
+              "kind": "string"
+            },
+            "city": {
+              "kind": "string"
+            },
+            "state": {
+              "kind": "string"
+            },
+            "cep": {
+              "kind": "string"
+            },
+            "complement": {
+              "kind": "string"
+            }
+          },
+          "required": [
+            "street",
+            "number",
+            "neighborhood",
+            "city",
+            "state",
+            "cep"
+          ]
+        },
+        "healthInsurance": {
+          "kind": "string"
+        },
+        "insuranceNumber": {
+          "kind": "string"
+        },
+        "anamnesis": {
+          "kind": "ref",
+          "name": "Anamnesis"
+        },
+        "status": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "ativo"
+            },
+            {
+              "kind": "literal",
+              "value": "inativo"
+            }
+          ]
+        },
+        "createdAt": {
+          "kind": "string"
+        },
+        "avatarUrl": {
+          "kind": "string"
+        },
+        "photoUrl": {
+          "kind": "string"
+        },
+        "images": {
+          "kind": "array",
+          "item": {
+            "kind": "string"
+          }
+        },
+        "preferredClinicId": {
+          "kind": "string"
+        },
+        "preferredClinicName": {
+          "kind": "string"
+        },
+        "preferredDentistName": {
+          "kind": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "cpf",
+        "birthDate",
+        "gender",
+        "phone",
+        "email",
+        "address",
+        "anamnesis",
+        "status",
+        "createdAt"
+      ]
+    },
+    "Gender": {
+      "kind": "union",
+      "options": [
+        {
+          "kind": "literal",
+          "value": "cisgenero"
+        },
+        {
+          "kind": "literal",
+          "value": "transgenero"
+        },
+        {
+          "kind": "literal",
+          "value": "nao_binario"
+        },
+        {
+          "kind": "literal",
+          "value": "masculino"
+        },
+        {
+          "kind": "literal",
+          "value": "feminino"
+        },
+        {
+          "kind": "literal",
+          "value": "outro"
+        },
+        {
+          "kind": "string"
+        }
+      ]
+    },
+    "Anamnesis": {
+      "kind": "object",
+      "properties": {
+        "gender": {
+          "kind": "ref",
+          "name": "Gender"
+        },
+        "ageAndBiologicalSexNotes": {
+          "kind": "string"
+        },
+        "ethnicity": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "branca"
+            },
+            {
+              "kind": "literal",
+              "value": "preta"
+            },
+            {
+              "kind": "literal",
+              "value": "parda"
+            },
+            {
+              "kind": "literal",
+              "value": "amarela"
+            },
+            {
+              "kind": "literal",
+              "value": "indigena"
+            },
+            {
+              "kind": "literal",
+              "value": "outra"
+            }
+          ]
+        },
+        "ethnicityDetails": {
+          "kind": "string"
+        },
+        "profession": {
+          "kind": "string"
+        },
+        "occupationalRisks": {
+          "kind": "string"
+        },
+        "currentResidence": {
+          "kind": "string"
+        },
+        "previousResidence": {
+          "kind": "string"
+        },
+        "endemicAreaExposure": {
+          "kind": "string"
+        },
+        "vaccinationStatus": {
+          "kind": "string"
+        },
+        "vaccinationDetails": {
+          "kind": "string"
+        },
+        "hasVaccinationUpToDate": {
+          "kind": "boolean"
+        },
+        "comorbiditiesSummary": {
+          "kind": "string"
+        },
+        "previousInfectionsHistory": {
+          "kind": "string"
+        },
+        "travelHistory": {
+          "kind": "string"
+        },
+        "closeContactsInfectious": {
+          "kind": "boolean"
+        },
+        "closeContactsDetails": {
+          "kind": "string"
+        },
+        "lifestyleDiet": {
+          "kind": "string"
+        },
+        "physicalActivityLevel": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "sedentario"
+            },
+            {
+              "kind": "literal",
+              "value": "leve"
+            },
+            {
+              "kind": "literal",
+              "value": "moderado"
+            },
+            {
+              "kind": "literal",
+              "value": "intenso"
+            }
+          ]
+        },
+        "sexualHealthBehavior": {
+          "kind": "string"
+        },
+        "environmentalExposure": {
+          "kind": "boolean"
+        },
+        "environmentalExposureDetails": {
+          "kind": "string"
+        },
+        "geneticMarkers": {
+          "kind": "boolean"
+        },
+        "geneticMarkersDetails": {
+          "kind": "string"
+        },
+        "hasGoodHealth": {
+          "kind": "boolean"
+        },
+        "isUndergoingMedicalTreatment": {
+          "kind": "boolean"
+        },
+        "medicalTreatmentDetails": {
+          "kind": "string"
+        },
+        "hasAllergies": {
+          "kind": "boolean"
+        },
+        "allergyDetails": {
+          "kind": "string"
+        },
+        "bloodPressureStatus": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "normal"
+            },
+            {
+              "kind": "literal",
+              "value": "alta"
+            },
+            {
+              "kind": "literal",
+              "value": "baixa"
+            },
+            {
+              "kind": "literal",
+              "value": "controlada_medicamento"
+            }
+          ]
+        },
+        "hasHeartDisease": {
+          "kind": "boolean"
+        },
+        "hasRheumaticFever": {
+          "kind": "boolean"
+        },
+        "hasAsthma": {
+          "kind": "boolean"
+        },
+        "hasArthritis": {
+          "kind": "boolean"
+        },
+        "hasFaintingSpells": {
+          "kind": "boolean"
+        },
+        "hasSinusitis": {
+          "kind": "boolean"
+        },
+        "hasHepatitis": {
+          "kind": "boolean"
+        },
+        "hasOtherInfections": {
+          "kind": "boolean"
+        },
+        "otherInfectionsDetails": {
+          "kind": "string"
+        },
+        "hasRadiationTherapyFaceJaw": {
+          "kind": "boolean"
+        },
+        "hasFaceJawTrauma": {
+          "kind": "boolean"
+        },
+        "faceJawTraumaDetails": {
+          "kind": "string"
+        },
+        "hasAdverseDentalReaction": {
+          "kind": "boolean"
+        },
+        "adverseDentalReactionDetails": {
+          "kind": "string"
+        },
+        "hasOtherUnlistedDiseases": {
+          "kind": "boolean"
+        },
+        "otherUnlistedDiseasesDetails": {
+          "kind": "string"
+        },
+        "hasPacemaker": {
+          "kind": "boolean"
+        },
+        "hasShortnessOfBreath": {
+          "kind": "boolean"
+        },
+        "hasDiabetes": {
+          "kind": "boolean"
+        },
+        "diabetesType": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "tipo1"
+            },
+            {
+              "kind": "literal",
+              "value": "tipo2"
+            },
+            {
+              "kind": "literal",
+              "value": "gestacional"
+            },
+            {
+              "kind": "literal",
+              "value": "controlada"
+            }
+          ]
+        },
+        "hasHypertension": {
+          "kind": "boolean"
+        },
+        "bleedingDisorder": {
+          "kind": "boolean"
+        },
+        "bleedingType": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "normal"
+            },
+            {
+              "kind": "literal",
+              "value": "excessivo"
+            }
+          ]
+        },
+        "healingType": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "normal"
+            },
+            {
+              "kind": "literal",
+              "value": "complicada"
+            }
+          ]
+        },
+        "usesAnticoagulants": {
+          "kind": "boolean"
+        },
+        "hasRespiratoryDisease": {
+          "kind": "boolean"
+        },
+        "hasRenalOrHepatic": {
+          "kind": "boolean"
+        },
+        "hasThyroidDisorder": {
+          "kind": "boolean"
+        },
+        "hasSeizures": {
+          "kind": "boolean"
+        },
+        "hasCancerHistory": {
+          "kind": "boolean"
+        },
+        "usesBisphosphonates": {
+          "kind": "boolean"
+        },
+        "hasHadSurgery": {
+          "kind": "boolean"
+        },
+        "surgeryDetails": {
+          "kind": "string"
+        },
+        "pastHealthProblems": {
+          "kind": "string"
+        },
+        "isPregnant": {
+          "kind": "boolean"
+        },
+        "pregnancyWeeks": {
+          "kind": "string"
+        },
+        "isBreastfeeding": {
+          "kind": "boolean"
+        },
+        "climactericOrMenopause": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "nenhum"
+            },
+            {
+              "kind": "literal",
+              "value": "climaterio"
+            },
+            {
+              "kind": "literal",
+              "value": "menopausa"
+            },
+            {
+              "kind": "literal",
+              "value": "pos_menopausa"
+            }
+          ]
+        },
+        "hasAndropause": {
+          "kind": "boolean"
+        },
+        "andropauseStatus": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "nenhum"
+            },
+            {
+              "kind": "literal",
+              "value": "andropausa"
+            },
+            {
+              "kind": "literal",
+              "value": "reposicao_hormonal_trh"
+            }
+          ]
+        },
+        "andropauseDetails": {
+          "kind": "string"
+        },
+        "continuousMedication": {
+          "kind": "string"
+        },
+        "usesHerbalOrSupplements": {
+          "kind": "boolean"
+        },
+        "herbalDetails": {
+          "kind": "string"
+        },
+        "familyMedicalHistory": {
+          "kind": "boolean"
+        },
+        "familyHistoryDetails": {
+          "kind": "string"
+        },
+        "generalHealthRating": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "excelente"
+            },
+            {
+              "kind": "literal",
+              "value": "muito_boa"
+            },
+            {
+              "kind": "literal",
+              "value": "boa"
+            },
+            {
+              "kind": "literal",
+              "value": "razoavel"
+            },
+            {
+              "kind": "literal",
+              "value": "precaria"
+            }
+          ]
+        },
+        "waterIntakeFrequency": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "baixa"
+            },
+            {
+              "kind": "literal",
+              "value": "normal"
+            },
+            {
+              "kind": "literal",
+              "value": "alta"
+            }
+          ]
+        },
+        "isSmoker": {
+          "kind": "boolean"
+        },
+        "smokingFrequency": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "social"
+            },
+            {
+              "kind": "literal",
+              "value": "diario_ate_10"
+            },
+            {
+              "kind": "literal",
+              "value": "diario_10_20"
+            },
+            {
+              "kind": "literal",
+              "value": "diario_mais_20"
+            },
+            {
+              "kind": "literal",
+              "value": "vape_eletronico"
+            },
+            {
+              "kind": "literal",
+              "value": "ex_fumante"
+            }
+          ]
+        },
+        "smokingDetails": {
+          "kind": "string"
+        },
+        "usesRecreationalDrugs": {
+          "kind": "boolean"
+        },
+        "drugUsageFrequency": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "ocasional_social"
+            },
+            {
+              "kind": "literal",
+              "value": "semanal"
+            },
+            {
+              "kind": "literal",
+              "value": "diario"
+            },
+            {
+              "kind": "literal",
+              "value": "ex_usuario"
+            }
+          ]
+        },
+        "drugDetails": {
+          "kind": "string"
+        },
+        "drugUsageNotes": {
+          "kind": "string"
+        },
+        "habitsNotes": {
+          "kind": "string"
+        },
+        "consumesAlcohol": {
+          "kind": "boolean"
+        },
+        "hasBruxism": {
+          "kind": "boolean"
+        },
+        "nailBitingOrHabits": {
+          "kind": "string"
+        },
+        "breathingType": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "nasal"
+            },
+            {
+              "kind": "literal",
+              "value": "bucal"
+            },
+            {
+              "kind": "literal",
+              "value": "mista"
+            }
+          ]
+        },
+        "respiratoryPattern": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "diafragmatica"
+            },
+            {
+              "kind": "literal",
+              "value": "toracica_apical"
+            },
+            {
+              "kind": "literal",
+              "value": "mista_nao_avaliado"
+            }
+          ]
+        },
+        "sleepingPosture": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "decubito_dorsal"
+            },
+            {
+              "kind": "literal",
+              "value": "decubito_lateral"
+            },
+            {
+              "kind": "literal",
+              "value": "decubito_ventral"
+            },
+            {
+              "kind": "literal",
+              "value": "mudanca_decubito_nao_sabe"
+            }
+          ]
+        },
+        "sleepQuality": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "reparador"
+            },
+            {
+              "kind": "literal",
+              "value": "nao_reparador"
+            },
+            {
+              "kind": "literal",
+              "value": "insonia"
+            },
+            {
+              "kind": "literal",
+              "value": "sono_leve"
+            }
+          ]
+        },
+        "hasSnoringOrApnea": {
+          "kind": "boolean"
+        },
+        "sleepHoursPerNight": {
+          "kind": "string"
+        },
+        "usesNightGuardOrCpap": {
+          "kind": "boolean"
+        },
+        "psychologicalState": {
+          "kind": "string"
+        },
+        "hasFaceOrAtmPainLastMonth": {
+          "kind": "boolean"
+        },
+        "hasAtmLocking": {
+          "kind": "boolean"
+        },
+        "atmLockingDetails": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "aberta"
+            },
+            {
+              "kind": "literal",
+              "value": "fechada"
+            },
+            {
+              "kind": "literal",
+              "value": "ambas"
+            }
+          ]
+        },
+        "hasAtmPainOrClicking": {
+          "kind": "boolean"
+        },
+        "hasTinnitusOrEarRinging": {
+          "kind": "boolean"
+        },
+        "entEvaluated": {
+          "kind": "boolean"
+        },
+        "hasJawFatigueWakingUp": {
+          "kind": "boolean"
+        },
+        "hasOcclusalDiscomfort": {
+          "kind": "boolean"
+        },
+        "painEvaScore": {
+          "kind": "number"
+        },
+        "chiefComplaint": {
+          "kind": "string"
+        },
+        "lastDentalVisit": {
+          "kind": "string"
+        },
+        "oralHealthRating": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "excelente"
+            },
+            {
+              "kind": "literal",
+              "value": "muito_boa"
+            },
+            {
+              "kind": "literal",
+              "value": "boa"
+            },
+            {
+              "kind": "literal",
+              "value": "razoavel"
+            },
+            {
+              "kind": "literal",
+              "value": "precaria"
+            }
+          ]
+        },
+        "hasAnesthesiaReaction": {
+          "kind": "boolean"
+        },
+        "anesthesiaReactionDetails": {
+          "kind": "string"
+        },
+        "hasGingivalBleeding": {
+          "kind": "boolean"
+        },
+        "hasToothSensitivity": {
+          "kind": "boolean"
+        },
+        "hasLooseTeeth": {
+          "kind": "boolean"
+        },
+        "dryMouthOrBadTaste": {
+          "kind": "boolean"
+        },
+        "hasFaceOrLipSores": {
+          "kind": "boolean"
+        },
+        "usesDentalProsthesis": {
+          "kind": "boolean"
+        },
+        "orthodonticTreatment": {
+          "kind": "boolean"
+        },
+        "brushingFrequency": {
+          "kind": "string"
+        },
+        "usesDentalFloss": {
+          "kind": "boolean"
+        },
+        "notes": {
+          "kind": "string"
+        }
+      },
+      "required": []
+    },
+    "Prescription": {
+      "kind": "object",
+      "properties": {
+        "id": {
+          "kind": "string"
+        },
+        "patientId": {
+          "kind": "string"
+        },
+        "patientName": {
+          "kind": "string"
+        },
+        "patientCpf": {
+          "kind": "string"
+        },
+        "date": {
+          "kind": "string"
+        },
+        "medications": {
+          "kind": "array",
+          "item": {
+            "kind": "ref",
+            "name": "MedicationItem"
+          }
+        },
+        "type": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "simples"
+            },
+            {
+              "kind": "literal",
+              "value": "controlada"
+            }
+          ]
+        },
+        "observations": {
+          "kind": "string"
+        },
+        "dentistName": {
+          "kind": "string"
+        },
+        "dentistCro": {
+          "kind": "string"
+        },
+        "clinicName": {
+          "kind": "string"
+        },
+        "clinicLogoUrl": {
+          "kind": "string"
+        }
+      },
+      "required": [
+        "id",
+        "patientId",
+        "patientName",
+        "date",
+        "medications",
+        "type",
+        "dentistName",
+        "dentistCro"
+      ]
+    },
+    "MedicationItem": {
+      "kind": "object",
+      "properties": {
+        "id": {
+          "kind": "string"
+        },
+        "name": {
+          "kind": "string"
+        },
+        "dosage": {
+          "kind": "string"
+        },
+        "instructions": {
+          "kind": "string"
+        },
+        "quantity": {
+          "kind": "string"
+        },
+        "presentation": {
+          "kind": "string"
+        },
+        "interval": {
+          "kind": "string"
+        },
+        "duration": {
+          "kind": "string"
+        },
+        "condition": {
+          "kind": "string"
+        },
+        "category": {
+          "kind": "string"
+        },
+        "contraindications": {
+          "kind": "string"
+        },
+        "interactions": {
+          "kind": "string"
+        },
+        "tips": {
+          "kind": "string"
+        }
+      },
+      "required": [
+        "name",
+        "dosage",
+        "instructions",
+        "quantity"
+      ]
+    },
+    "ClinicalEvolutionEntry": {
+      "kind": "object",
+      "properties": {
+        "id": {
+          "kind": "string"
+        },
+        "patientId": {
+          "kind": "string"
+        },
+        "date": {
+          "kind": "string"
+        },
+        "dentistName": {
+          "kind": "string"
+        },
+        "clinicName": {
+          "kind": "string"
+        },
+        "toothNumber": {
+          "kind": "number"
+        },
+        "procedure": {
+          "kind": "string"
+        },
+        "description": {
+          "kind": "string"
+        },
+        "cost": {
+          "kind": "number"
+        },
+        "images": {
+          "kind": "array",
+          "item": {
+            "kind": "string"
+          }
+        },
+        "status": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "pendente"
+            },
+            {
+              "kind": "literal",
+              "value": "em_andamento"
+            },
+            {
+              "kind": "literal",
+              "value": "concluido"
+            },
+            {
+              "kind": "literal",
+              "value": "encaminhado"
+            }
+          ]
+        },
+        "treatmentPlanId": {
+          "kind": "string"
+        },
+        "treatmentItemId": {
+          "kind": "string"
+        },
+        "authorUid": {
+          "kind": "string"
+        },
+        "recordedAt": {
+          "kind": "string"
+        }
+      },
+      "required": [
+        "id",
+        "patientId",
+        "date",
+        "dentistName",
+        "procedure",
+        "description"
+      ]
+    },
+    "TreatmentPlan": {
+      "kind": "object",
+      "properties": {
+        "id": {
+          "kind": "string"
+        },
+        "patientId": {
+          "kind": "string"
+        },
+        "patientName": {
+          "kind": "string"
+        },
+        "title": {
+          "kind": "string"
+        },
+        "date": {
+          "kind": "string"
+        },
+        "dentistName": {
+          "kind": "string"
+        },
+        "clinicId": {
+          "kind": "string"
+        },
+        "clinicName": {
+          "kind": "string"
+        },
+        "priceTableId": {
+          "kind": "string"
+        },
+        "priceTableName": {
+          "kind": "string"
+        },
+        "status": {
+          "kind": "ref",
+          "name": "TreatmentPlanStatus"
+        },
+        "items": {
+          "kind": "array",
+          "item": {
+            "kind": "ref",
+            "name": "TreatmentPlanItem"
+          }
+        },
+        "totalValue": {
+          "kind": "number"
+        },
+        "discountValue": {
+          "kind": "number"
+        },
+        "finalValue": {
+          "kind": "number"
+        },
+        "paymentConditions": {
+          "kind": "string"
+        },
+        "notes": {
+          "kind": "string"
+        },
+        "consentAccepted": {
+          "kind": "boolean"
+        },
+        "consentAcceptedAt": {
+          "kind": "string"
+        },
+        "consentSignatureType": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "digital"
+            },
+            {
+              "kind": "literal",
+              "value": "manual_upload"
+            },
+            {
+              "kind": "literal",
+              "value": "presencial"
+            }
+          ]
+        },
+        "consentSignedDocumentUrl": {
+          "kind": "string"
+        },
+        "consentAttachments": {
+          "kind": "array",
+          "item": {
+            "kind": "ref",
+            "name": "TreatmentConsentAttachment"
+          }
+        },
+        "consentSelectedOptionTitle": {
+          "kind": "string"
+        },
+        "consentFinancialSummary": {
+          "kind": "object",
+          "properties": {
+            "totalBudget": {
+              "kind": "number"
+            },
+            "discount": {
+              "kind": "number"
+            },
+            "finalAgreed": {
+              "kind": "number"
+            },
+            "paymentMethod": {
+              "kind": "string"
+            },
+            "installments": {
+              "kind": "number"
+            },
+            "installmentValue": {
+              "kind": "number"
+            },
+            "notes": {
+              "kind": "string"
+            }
+          },
+          "required": [
+            "totalBudget",
+            "discount",
+            "finalAgreed",
+            "paymentMethod"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "patientId",
+        "patientName",
+        "title",
+        "date",
+        "dentistName",
+        "status",
+        "items",
+        "totalValue",
+        "discountValue",
+        "finalValue"
+      ]
+    },
+    "TreatmentPlanStatus": {
+      "kind": "union",
+      "options": [
+        {
+          "kind": "literal",
+          "value": "proposto"
+        },
+        {
+          "kind": "literal",
+          "value": "aprovado"
+        },
+        {
+          "kind": "literal",
+          "value": "em_andamento"
+        },
+        {
+          "kind": "literal",
+          "value": "concluido"
+        },
+        {
+          "kind": "literal",
+          "value": "cancelado"
+        }
+      ]
+    },
+    "TreatmentPlanItem": {
+      "kind": "object",
+      "properties": {
+        "id": {
+          "kind": "string"
+        },
+        "tussCode": {
+          "kind": "string"
+        },
+        "procedureName": {
+          "kind": "string"
+        },
+        "specialty": {
+          "kind": "string"
+        },
+        "toothNumber": {
+          "kind": "number"
+        },
+        "toothSurface": {
+          "kind": "string"
+        },
+        "regionCode": {
+          "kind": "string"
+        },
+        "regionDescription": {
+          "kind": "string"
+        },
+        "cost": {
+          "kind": "number"
+        },
+        "discountPercentage": {
+          "kind": "number"
+        },
+        "finalCost": {
+          "kind": "number"
+        },
+        "notes": {
+          "kind": "string"
+        },
+        "fullProcedureDetails": {
+          "kind": "string"
+        },
+        "status": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "pendente"
+            },
+            {
+              "kind": "literal",
+              "value": "em_andamento"
+            },
+            {
+              "kind": "literal",
+              "value": "concluido"
+            }
+          ]
+        },
+        "selectedForPlan": {
+          "kind": "boolean"
+        },
+        "alternativeOptions": {
+          "kind": "array",
+          "item": {
+            "kind": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "procedureName",
+        "specialty",
+        "cost",
+        "finalCost",
+        "status"
+      ]
+    },
+    "TreatmentConsentAttachment": {
+      "kind": "object",
+      "properties": {
+        "id": {
+          "kind": "string"
+        },
+        "name": {
+          "kind": "string"
+        },
+        "fileUrl": {
+          "kind": "string"
+        },
+        "fileType": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "image"
+            },
+            {
+              "kind": "literal",
+              "value": "pdf"
+            },
+            {
+              "kind": "literal",
+              "value": "document"
+            }
+          ]
+        },
+        "uploadedAt": {
+          "kind": "string"
+        },
+        "notes": {
+          "kind": "string"
+        },
+        "signedByPatient": {
+          "kind": "boolean"
+        },
+        "signatureDate": {
+          "kind": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "fileUrl",
+        "fileType",
+        "uploadedAt"
+      ]
+    },
+    "PatientPayment": {
+      "kind": "object",
+      "properties": {
+        "id": {
+          "kind": "string"
+        },
+        "patientId": {
+          "kind": "string"
+        },
+        "patientName": {
+          "kind": "string"
+        },
+        "date": {
+          "kind": "string"
+        },
+        "amount": {
+          "kind": "number"
+        },
+        "paymentMethod": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "pix"
+            },
+            {
+              "kind": "literal",
+              "value": "cartao_credito"
+            },
+            {
+              "kind": "literal",
+              "value": "cartao_debito"
+            },
+            {
+              "kind": "literal",
+              "value": "dinheiro"
+            },
+            {
+              "kind": "literal",
+              "value": "boleto"
+            },
+            {
+              "kind": "literal",
+              "value": "convenio"
+            }
+          ]
+        },
+        "description": {
+          "kind": "string"
+        },
+        "treatmentPlanId": {
+          "kind": "string"
+        },
+        "treatmentPlanTitle": {
+          "kind": "string"
+        },
+        "receiptNumber": {
+          "kind": "string"
+        },
+        "clinicId": {
+          "kind": "string"
+        },
+        "clinicName": {
+          "kind": "string"
+        },
+        "notes": {
+          "kind": "string"
+        }
+      },
+      "required": [
+        "id",
+        "patientId",
+        "patientName",
+        "date",
+        "amount",
+        "paymentMethod",
+        "description"
+      ]
+    },
+    "FinancialTransaction": {
+      "kind": "object",
+      "properties": {
+        "id": {
+          "kind": "string"
+        },
+        "type": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "receita"
+            },
+            {
+              "kind": "literal",
+              "value": "despesa"
+            }
+          ]
+        },
+        "category": {
+          "kind": "string"
+        },
+        "description": {
+          "kind": "string"
+        },
+        "amount": {
+          "kind": "number"
+        },
+        "date": {
+          "kind": "string"
+        },
+        "patientId": {
+          "kind": "string"
+        },
+        "clinicId": {
+          "kind": "string"
+        },
+        "clinicName": {
+          "kind": "string"
+        },
+        "paymentMethod": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "pix"
+            },
+            {
+              "kind": "literal",
+              "value": "cartao_credito"
+            },
+            {
+              "kind": "literal",
+              "value": "cartao_debito"
+            },
+            {
+              "kind": "literal",
+              "value": "dinheiro"
+            },
+            {
+              "kind": "literal",
+              "value": "boleto"
+            },
+            {
+              "kind": "literal",
+              "value": "convenio"
+            }
+          ]
+        },
+        "status": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "pago"
+            },
+            {
+              "kind": "literal",
+              "value": "pendente"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "category",
+        "description",
+        "amount",
+        "date",
+        "paymentMethod",
+        "status"
+      ]
+    },
+    "InsuranceGuide": {
+      "kind": "object",
+      "properties": {
+        "id": {
+          "kind": "string"
+        },
+        "guideNumber": {
+          "kind": "string"
+        },
+        "insuranceName": {
+          "kind": "string"
+        },
+        "patientName": {
+          "kind": "string"
+        },
+        "procedureName": {
+          "kind": "string"
+        },
+        "tussCode": {
+          "kind": "string"
+        },
+        "submissionDate": {
+          "kind": "string"
+        },
+        "valueClaimed": {
+          "kind": "number"
+        },
+        "valueApproved": {
+          "kind": "number"
+        },
+        "disallowanceValue": {
+          "kind": "number"
+        },
+        "status": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "enviada"
+            },
+            {
+              "kind": "literal",
+              "value": "aprovada"
+            },
+            {
+              "kind": "literal",
+              "value": "glosada"
+            },
+            {
+              "kind": "literal",
+              "value": "paga"
+            }
+          ]
+        },
+        "disallowanceReason": {
+          "kind": "string"
+        },
+        "notes": {
+          "kind": "string"
+        },
+        "patientId": {
+          "kind": "string"
+        }
+      },
+      "required": [
+        "id",
+        "guideNumber",
+        "insuranceName",
+        "patientName",
+        "procedureName",
+        "submissionDate",
+        "valueClaimed",
+        "valueApproved",
+        "disallowanceValue",
+        "status",
+        "patientId"
+      ]
+    },
+    "SavedClinicDocument": {
+      "kind": "object",
+      "properties": {
+        "id": {
+          "kind": "string"
+        },
+        "createdAt": {
+          "kind": "string"
+        },
+        "formattedDateStr": {
+          "kind": "string"
+        },
+        "title": {
+          "kind": "string"
+        },
+        "subtitle": {
+          "kind": "string"
+        },
+        "category": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "atestado"
+            },
+            {
+              "kind": "literal",
+              "value": "declaracao"
+            },
+            {
+              "kind": "literal",
+              "value": "solicitacao"
+            },
+            {
+              "kind": "literal",
+              "value": "receita"
+            },
+            {
+              "kind": "literal",
+              "value": "prontuario"
+            },
+            {
+              "kind": "literal",
+              "value": "outro"
+            }
+          ]
+        },
+        "patientId": {
+          "kind": "string"
+        },
+        "patientName": {
+          "kind": "string"
+        },
+        "professionalName": {
+          "kind": "string"
+        },
+        "cidCode": {
+          "kind": "string"
+        },
+        "summary": {
+          "kind": "string"
+        },
+        "status": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "gerado"
+            },
+            {
+              "kind": "literal",
+              "value": "impresso"
+            }
+          ]
+        },
+        "templateId": {
+          "kind": "string"
+        },
+        "templateData": {
+          "kind": "record",
+          "key": {
+            "kind": "string"
+          },
+          "value": {
+            "kind": "json"
+          }
+        },
+        "htmlSnapshot": {
+          "kind": "string"
+        }
+      },
+      "required": [
+        "id",
+        "createdAt",
+        "formattedDateStr",
+        "title",
+        "category",
+        "patientName",
+        "professionalName",
+        "summary",
+        "status"
+      ]
+    },
+    "ToothCondition": {
+      "kind": "object",
+      "properties": {
+        "toothNumber": {
+          "kind": "number"
+        },
+        "surfaces": {
+          "kind": "record",
+          "key": {
+            "kind": "ref",
+            "name": "ToothSurface"
+          },
+          "value": {
+            "kind": "ref",
+            "name": "ToothConditionType"
+          }
+        },
+        "wholeToothCondition": {
+          "kind": "ref",
+          "name": "ToothConditionType"
+        },
+        "isGirovertido": {
+          "kind": "boolean"
+        },
+        "hasCalculoSupra": {
+          "kind": "boolean"
+        },
+        "hasCalculoSub": {
+          "kind": "boolean"
+        },
+        "notes": {
+          "kind": "string"
+        },
+        "isDeciduous": {
+          "kind": "boolean"
+        }
+      },
+      "required": [
+        "toothNumber"
+      ]
+    },
+    "ToothSurface": {
+      "kind": "union",
+      "options": [
+        {
+          "kind": "literal",
+          "value": "mesial"
+        },
+        {
+          "kind": "literal",
+          "value": "distal"
+        },
+        {
+          "kind": "literal",
+          "value": "oclusal"
+        },
+        {
+          "kind": "literal",
+          "value": "incisal"
+        },
+        {
+          "kind": "literal",
+          "value": "vestibular"
+        },
+        {
+          "kind": "literal",
+          "value": "lingual"
+        },
+        {
+          "kind": "literal",
+          "value": "palatina"
+        }
+      ]
+    },
+    "ToothConditionType": {
+      "kind": "union",
+      "options": [
+        {
+          "kind": "literal",
+          "value": "sio"
+        },
+        {
+          "kind": "literal",
+          "value": "carie"
+        },
+        {
+          "kind": "literal",
+          "value": "restauracao"
+        },
+        {
+          "kind": "literal",
+          "value": "restauracao_insatisfatoria"
+        },
+        {
+          "kind": "literal",
+          "value": "girovertido"
+        },
+        {
+          "kind": "literal",
+          "value": "canal"
+        },
+        {
+          "kind": "literal",
+          "value": "endodontia_insatisfatoria"
+        },
+        {
+          "kind": "literal",
+          "value": "necessidade_endodontica"
+        },
+        {
+          "kind": "literal",
+          "value": "endodontia_satisfatoria"
+        },
+        {
+          "kind": "literal",
+          "value": "extracao_indicada"
+        },
+        {
+          "kind": "literal",
+          "value": "ausente"
+        },
+        {
+          "kind": "literal",
+          "value": "implante"
+        },
+        {
+          "kind": "literal",
+          "value": "protese"
+        },
+        {
+          "kind": "literal",
+          "value": "calculo_supragengival"
+        },
+        {
+          "kind": "literal",
+          "value": "calculo_subgengival"
+        }
+      ]
+    },
+    "OdontogramSnapshot": {
+      "kind": "object",
+      "properties": {
+        "id": {
+          "kind": "string"
+        },
+        "patientId": {
+          "kind": "string"
+        },
+        "date": {
+          "kind": "string"
+        },
+        "title": {
+          "kind": "string"
+        },
+        "conditions": {
+          "kind": "array",
+          "item": {
+            "kind": "ref",
+            "name": "ToothCondition"
+          }
+        },
+        "notes": {
+          "kind": "string"
+        },
+        "dentistName": {
+          "kind": "string"
+        },
+        "createdAt": {
+          "kind": "string"
+        }
+      },
+      "required": [
+        "id",
+        "patientId",
+        "date",
+        "title",
+        "conditions"
+      ]
+    },
+    "ClinicalExam": {
+      "kind": "object",
+      "properties": {
+        "patientId": {
+          "kind": "string"
+        },
+        "updatedAt": {
+          "kind": "string"
+        },
+        "extraoral": {
+          "kind": "ref",
+          "name": "ExtraoralExam"
+        },
+        "intraoral": {
+          "kind": "ref",
+          "name": "IntraoralExam"
+        },
+        "painExam": {
+          "kind": "ref",
+          "name": "PainEvaluationExam"
+        },
+        "odontogramImages": {
+          "kind": "array",
+          "item": {
+            "kind": "string"
+          }
+        },
+        "generalNotes": {
+          "kind": "string"
+        }
+      },
+      "required": [
+        "patientId",
+        "updatedAt",
+        "extraoral",
+        "intraoral"
+      ]
+    },
+    "ExtraoralExam": {
+      "kind": "object",
+      "properties": {
+        "faceSymmetry": {
+          "kind": "string"
+        },
+        "neckLymphNodes": {
+          "kind": "string"
+        },
+        "atmJoints": {
+          "kind": "string"
+        },
+        "lipsAndProfile": {
+          "kind": "string"
+        },
+        "skinObservations": {
+          "kind": "string"
+        },
+        "andropauseOrHormonalObs": {
+          "kind": "string"
+        },
+        "substanceUsageObs": {
+          "kind": "string"
+        },
+        "images": {
+          "kind": "array",
+          "item": {
+            "kind": "string"
+          }
+        },
+        "notes": {
+          "kind": "string"
+        }
+      },
+      "required": []
+    },
+    "IntraoralExam": {
+      "kind": "object",
+      "properties": {
+        "buccalMucosa": {
+          "kind": "string"
+        },
+        "tongueAndFloor": {
+          "kind": "string"
+        },
+        "palateHardSoft": {
+          "kind": "string"
+        },
+        "gingivaPeriodontum": {
+          "kind": "string"
+        },
+        "alveolarRidge": {
+          "kind": "string"
+        },
+        "oropharynx": {
+          "kind": "string"
+        },
+        "smokingOralImpact": {
+          "kind": "string"
+        },
+        "substanceOralImpact": {
+          "kind": "string"
+        },
+        "images": {
+          "kind": "array",
+          "item": {
+            "kind": "string"
+          }
+        },
+        "notes": {
+          "kind": "string"
+        }
+      },
+      "required": []
+    },
+    "PainEvaluationExam": {
+      "kind": "object",
+      "properties": {
+        "id": {
+          "kind": "string"
+        },
+        "patientId": {
+          "kind": "string"
+        },
+        "examType": {
+          "kind": "ref",
+          "name": "ExamCategoryType"
+        },
+        "examDate": {
+          "kind": "string"
+        },
+        "chiefComplaint": {
+          "kind": "string"
+        },
+        "painCharacteristics": {
+          "kind": "ref",
+          "name": "PainCharacteristics"
+        },
+        "swelling": {
+          "kind": "ref",
+          "name": "SwellingEvaluation"
+        },
+        "hda": {
+          "kind": "string"
+        },
+        "affectedArea": {
+          "kind": "ref",
+          "name": "AffectedAreaEvaluation"
+        },
+        "supplementary": {
+          "kind": "ref",
+          "name": "SupplementaryExams"
+        },
+        "toothSummaries": {
+          "kind": "array",
+          "item": {
+            "kind": "ref",
+            "name": "ToothPainSummaryItem"
+          }
+        },
+        "diagnostico": {
+          "kind": "string"
+        },
+        "tratamentoUrgenciaProposto": {
+          "kind": "string"
+        },
+        "tratamentoExecutado": {
+          "kind": "string"
+        },
+        "updatedAt": {
+          "kind": "string"
+        }
+      },
+      "required": [
+        "patientId",
+        "examType",
+        "examDate",
+        "painCharacteristics",
+        "swelling",
+        "hda",
+        "affectedArea",
+        "supplementary",
+        "toothSummaries"
+      ]
+    },
+    "ExamCategoryType": {
+      "kind": "union",
+      "options": [
+        {
+          "kind": "literal",
+          "value": "rotina"
+        },
+        {
+          "kind": "literal",
+          "value": "urgencia"
+        }
+      ]
+    },
+    "PainCharacteristics": {
+      "kind": "object",
+      "properties": {
+        "provocada": {
+          "kind": "boolean"
+        },
+        "espontanea": {
+          "kind": "boolean"
+        },
+        "intermitente": {
+          "kind": "boolean"
+        },
+        "intensa": {
+          "kind": "boolean"
+        },
+        "moderada": {
+          "kind": "boolean"
+        },
+        "precipitadaFrio": {
+          "kind": "boolean"
+        },
+        "precipitadaCalor": {
+          "kind": "boolean"
+        },
+        "precipitadaMastigacao": {
+          "kind": "boolean"
+        }
+      },
+      "required": []
+    },
+    "SwellingEvaluation": {
+      "kind": "object",
+      "properties": {
+        "localizacao": {
+          "kind": "string"
+        },
+        "duracao": {
+          "kind": "string"
+        },
+        "consistencia": {
+          "kind": "string"
+        }
+      },
+      "required": []
+    },
+    "AffectedAreaEvaluation": {
+      "kind": "object",
+      "properties": {
+        "inspecaoSign": {
+          "kind": "ref",
+          "name": "SplitSignValue"
+        },
+        "inspecaoNotes": {
+          "kind": "string"
+        },
+        "percussaoSign": {
+          "kind": "ref",
+          "name": "SplitSignValue"
+        },
+        "percussaoNotes": {
+          "kind": "string"
+        },
+        "palpacaoSign": {
+          "kind": "ref",
+          "name": "SplitSignValue"
+        },
+        "palpacaoNotes": {
+          "kind": "string"
+        },
+        "mobilidadeClasse": {
+          "kind": "ref",
+          "name": "MobilityClass"
+        },
+        "mobilidadeNotes": {
+          "kind": "string"
+        },
+        "outrosAchados": {
+          "kind": "string"
+        }
+      },
+      "required": []
+    },
+    "SplitSignValue": {
+      "kind": "union",
+      "options": [
+        {
+          "kind": "literal",
+          "value": ""
+        },
+        {
+          "kind": "literal",
+          "value": "+"
+        },
+        {
+          "kind": "literal",
+          "value": "++"
+        },
+        {
+          "kind": "literal",
+          "value": "+++"
+        },
+        {
+          "kind": "literal",
+          "value": "-"
+        },
+        {
+          "kind": "literal",
+          "value": "--"
+        },
+        {
+          "kind": "literal",
+          "value": "---"
+        }
+      ]
+    },
+    "MobilityClass": {
+      "kind": "union",
+      "options": [
+        {
+          "kind": "literal",
+          "value": "0"
+        },
+        {
+          "kind": "literal",
+          "value": "1"
+        },
+        {
+          "kind": "literal",
+          "value": "2"
+        },
+        {
+          "kind": "literal",
+          "value": "3"
+        },
+        {
+          "kind": "literal",
+          "value": ""
+        }
+      ]
+    },
+    "SupplementaryExams": {
+      "kind": "object",
+      "properties": {
+        "radiografia": {
+          "kind": "string"
+        },
+        "outrosSolicitados": {
+          "kind": "string"
+        }
+      },
+      "required": []
+    },
+    "ToothPainSummaryItem": {
+      "kind": "object",
+      "properties": {
+        "id": {
+          "kind": "string"
+        },
+        "toothNumber": {
+          "kind": "number"
+        },
+        "calor": {
+          "kind": "boolean"
+        },
+        "frio": {
+          "kind": "boolean"
+        },
+        "sensibilidadePulpar": {
+          "kind": "boolean"
+        },
+        "percussao": {
+          "kind": "boolean"
+        },
+        "palpacao": {
+          "kind": "boolean"
+        },
+        "mobilidade": {
+          "kind": "ref",
+          "name": "MobilityClass"
+        },
+        "bolsaV": {
+          "kind": "boolean"
+        },
+        "bolsaM": {
+          "kind": "boolean"
+        },
+        "bolsaD": {
+          "kind": "boolean"
+        },
+        "bolsaL": {
+          "kind": "boolean"
+        },
+        "bolsaProfundidade": {
+          "kind": "ref",
+          "name": "PocketDepth"
+        },
+        "fratura": {
+          "kind": "boolean"
+        },
+        "carie": {
+          "kind": "boolean"
+        },
+        "fistula": {
+          "kind": "boolean"
+        },
+        "notes": {
+          "kind": "string"
+        }
+      },
+      "required": [
+        "id",
+        "toothNumber"
+      ]
+    },
+    "PocketDepth": {
+      "kind": "union",
+      "options": [
+        {
+          "kind": "literal",
+          "value": "0"
+        },
+        {
+          "kind": "literal",
+          "value": "1"
+        },
+        {
+          "kind": "literal",
+          "value": "2"
+        },
+        {
+          "kind": "literal",
+          "value": "3"
+        },
+        {
+          "kind": "literal",
+          "value": ""
+        }
+      ]
+    }
+  }
+}

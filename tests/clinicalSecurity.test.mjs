@@ -43,12 +43,12 @@ test('wrong attempts persist, new challenges are rate limited and expiry rejects
 test('versions are immutable, changes require reason and concurrent saves conflict', async () => {
   const f=fixture(), {id}=await f.create();
   const read=await f.api.run(f.actors.owner,'clinical.read',id);
-  const workspace={...read.workspace,dentispro_evolutions_v2:[{id:'e1',patientId:id,text:'original'}]};
+  const workspace={...read.workspace,dentispro_evolutions_v2:[{id:'e1',patientId:id,date:'2026-09-29',dentistName:'Owner',procedure:'Consulta',description:'original'}]};
   const results=await Promise.allSettled([1,2].map(() => f.api.run(f.actors.owner,'clinical.save',id,{workspace,revision:0,reason:'Atendimento inicial'})));
   assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
   const current=await f.api.run(f.actors.owner,'clinical.read',id);
   assert.equal(current.revision,1); assert.equal(current.workspace.dentispro_evolutions_v2[0].authorUid,'owner');
-  current.workspace.dentispro_evolutions_v2[0].text='overwritten';
+  current.workspace.dentispro_evolutions_v2[0].description='overwritten';
   await assert.rejects(f.api.run(f.actors.owner,'clinical.save',id,{workspace:current.workspace,revision:1,reason:'Correction'}),/complemento/);
   const history=await f.api.run(f.actors.owner,'clinical.history',id); assert.equal(history.length,1);
   await assert.rejects(f.api.run(f.actors.owner,'clinical.save',id,{workspace,revision:1,reason:''}),/campos/);
@@ -94,7 +94,7 @@ test('revocation while blob is loading denies response', async () => {
 
 test('migration requires admin reauthentication, preserves IDs and cannot overwrite an import', async () => {
   const f=fixture();
-  const input={patientId:'legacy-1',ownerUid:'owner',demographics:{name:'Patient',email:'patient@test.invalid'},workspace:{dentispro_patients_v2:[{id:'legacy-1',name:'Patient',email:'patient@test.invalid'}]},acknowledged:true,reason:'Importação autorizada do cadastro antigo'};
+  const input={patientId:'legacy-1',ownerUid:'owner',demographics:{name:'Patient',email:'patient@test.invalid'},workspace:{dentispro_patients_v2:[{id:'legacy-1',name:'Patient',email:'patient@test.invalid',cpf:'',phone:'',birthDate:'',gender:'',status:'ativo',createdAt:'2026-09-29',address:{street:'',number:'',neighborhood:'',city:'',state:'',cep:''},anamnesis:{}}]},acknowledged:true,reason:'Importação autorizada do cadastro antigo'};
   await assert.rejects(f.api.run(f.actors.other,'migration.import',undefined,input),/administração/);
   await assert.rejects(f.api.run({...f.actors.admin,authTime:0},'migration.import',undefined,input),/senha/);
   await f.api.run(f.actors.admin,'migration.import',undefined,input);

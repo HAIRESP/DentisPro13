@@ -1,3 +1,4 @@
+import {validateClinicalStructure} from './clinicalValidation';
 import { createHash, createHmac, randomInt, randomBytes, timingSafeEqual } from 'node:crypto';
 
 export type Role = 'admin' | 'dentist' | 'receptionist';
@@ -67,6 +68,7 @@ export function validateWorkspace(input: any, patientId: string, previous?: Reco
     result[key] = value;
   }
   requireThat(result.dentispro_patients_v2?.length === 1, 400, 'O prontuário deve conter exatamente um paciente.');
+  validateClinicalStructure(result, patientId);
   // Every previously saved evolution is final. Corrections are new signed entries.
   for (const old of previous?.dentispro_evolutions_v2 || []) {
     const current = result.dentispro_evolutions_v2?.find((row: any) => row.id === old.id);
