@@ -17,6 +17,10 @@
     "Patient": {
       "kind": "object",
       "properties": {
+        "provenance": {
+          "kind": "ref",
+          "name": "ClinicalProvenance"
+        },
         "id": {
           "kind": "string"
         },
@@ -171,6 +175,67 @@
         "anamnesis",
         "status",
         "createdAt"
+      ]
+    },
+    "ClinicalProvenance": {
+      "kind": "object",
+      "properties": {
+        "source": {
+          "kind": "union",
+          "options": [
+            {
+              "kind": "literal",
+              "value": "server"
+            },
+            {
+              "kind": "literal",
+              "value": "legacy_unverified"
+            }
+          ]
+        },
+        "authorUid": {
+          "kind": "string"
+        },
+        "authorName": {
+          "kind": "string"
+        },
+        "authorCro": {
+          "kind": "string"
+        },
+        "recordedAt": {
+          "kind": "string"
+        },
+        "importedBy": {
+          "kind": "string"
+        },
+        "importedAt": {
+          "kind": "string"
+        },
+        "lastModifiedBy": {
+          "kind": "string"
+        },
+        "lastModifiedName": {
+          "kind": "string"
+        },
+        "lastModifiedCro": {
+          "kind": "string"
+        },
+        "lastModifiedAt": {
+          "kind": "string"
+        }
+      },
+      "required": [
+        "source",
+        "authorUid",
+        "authorName",
+        "authorCro",
+        "recordedAt",
+        "importedBy",
+        "importedAt",
+        "lastModifiedBy",
+        "lastModifiedName",
+        "lastModifiedCro",
+        "lastModifiedAt"
       ]
     },
     "Gender": {
@@ -890,6 +955,10 @@
     "Prescription": {
       "kind": "object",
       "properties": {
+        "provenance": {
+          "kind": "ref",
+          "name": "ClinicalProvenance"
+        },
         "id": {
           "kind": "string"
         },
@@ -1005,6 +1074,10 @@
     "ClinicalEvolutionEntry": {
       "kind": "object",
       "properties": {
+        "provenance": {
+          "kind": "ref",
+          "name": "ClinicalProvenance"
+        },
         "id": {
           "kind": "string"
         },
@@ -1084,6 +1157,10 @@
     "TreatmentPlan": {
       "kind": "object",
       "properties": {
+        "provenance": {
+          "kind": "ref",
+          "name": "ClinicalProvenance"
+        },
         "id": {
           "kind": "string"
         },
@@ -1379,6 +1456,10 @@
     "PatientPayment": {
       "kind": "object",
       "properties": {
+        "provenance": {
+          "kind": "ref",
+          "name": "ClinicalProvenance"
+        },
         "id": {
           "kind": "string"
         },
@@ -1458,6 +1539,10 @@
     "FinancialTransaction": {
       "kind": "object",
       "properties": {
+        "provenance": {
+          "kind": "ref",
+          "name": "ClinicalProvenance"
+        },
         "id": {
           "kind": "string"
         },
@@ -1552,6 +1637,10 @@
     "InsuranceGuide": {
       "kind": "object",
       "properties": {
+        "provenance": {
+          "kind": "ref",
+          "name": "ClinicalProvenance"
+        },
         "id": {
           "kind": "string"
         },
@@ -1630,6 +1719,10 @@
     "SavedClinicDocument": {
       "kind": "object",
       "properties": {
+        "provenance": {
+          "kind": "ref",
+          "name": "ClinicalProvenance"
+        },
         "id": {
           "kind": "string"
         },
@@ -1733,6 +1826,10 @@
     "ToothCondition": {
       "kind": "object",
       "properties": {
+        "provenance": {
+          "kind": "ref",
+          "name": "ClinicalProvenance"
+        },
         "toothNumber": {
           "kind": "number"
         },
@@ -1872,6 +1969,10 @@
     "OdontogramSnapshot": {
       "kind": "object",
       "properties": {
+        "provenance": {
+          "kind": "ref",
+          "name": "ClinicalProvenance"
+        },
         "id": {
           "kind": "string"
         },
@@ -1912,6 +2013,10 @@
     "ClinicalExam": {
       "kind": "object",
       "properties": {
+        "provenance": {
+          "kind": "ref",
+          "name": "ClinicalProvenance"
+        },
         "patientId": {
           "kind": "string"
         },

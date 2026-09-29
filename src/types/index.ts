@@ -186,6 +186,7 @@ export interface Anamnesis {
 }
 
 export interface PatientPayment {
+  provenance?: ClinicalProvenance;
   id: string;
   patientId: string;
   patientName: string;
@@ -202,6 +203,7 @@ export interface PatientPayment {
 }
 
 export interface Patient {
+  provenance?: ClinicalProvenance;
   id: string;
   name: string;
   cpf: string;
@@ -302,6 +304,7 @@ export interface CorrelationRule {
 }
 
 export interface ToothCondition {
+  provenance?: ClinicalProvenance;
   toothNumber: number; // e.g. 18 to 48 or 55 to 85
   surfaces?: Partial<Record<ToothSurface, ToothConditionType>>;
   wholeToothCondition?: ToothConditionType;
@@ -313,6 +316,7 @@ export interface ToothCondition {
 }
 
 export interface OdontogramSnapshot {
+  provenance?: ClinicalProvenance;
   id: string;
   patientId: string;
   date: string;
@@ -324,6 +328,7 @@ export interface OdontogramSnapshot {
 }
 
 export interface ClinicalEvolutionEntry {
+  provenance?: ClinicalProvenance;
   id: string;
   patientId: string;
   date: string;
@@ -396,6 +401,7 @@ export interface InventoryItem {
 }
 
 export interface FinancialTransaction {
+  provenance?: ClinicalProvenance;
   id: string;
   type: 'receita' | 'despesa';
   category: string; // Ex: 'Atendimento', 'Material', 'Aluguel', 'Salários', 'Comissões', 'Manutenção'
@@ -433,6 +439,7 @@ export interface DentistCommissionRecord {
 }
 
 export interface InsuranceGuide {
+  provenance?: ClinicalProvenance;
   id: string;
   guideNumber: string; // Número da Guia TISS
   insuranceName: string; // e.g. 'Unimed Odonto', 'Amil Dental', 'Bradesco Dental', 'SulAmérica', 'OdontoPrev'
@@ -465,6 +472,7 @@ export interface MedicationItem {
 }
 
 export interface Prescription {
+  provenance?: ClinicalProvenance;
   id: string;
   patientId: string;
   patientName: string;
@@ -603,6 +611,7 @@ export interface TreatmentConsentAttachment {
 }
 
 export interface TreatmentPlan {
+  provenance?: ClinicalProvenance;
   id: string;
   patientId: string;
   patientName: string;
@@ -743,6 +752,7 @@ export interface PainEvaluationExam {
 }
 
 export interface ClinicalExam {
+  provenance?: ClinicalProvenance;
   patientId: string;
   updatedAt: string;
   extraoral: ExtraoralExam;
@@ -753,6 +763,7 @@ export interface ClinicalExam {
 }
 
 export interface SavedClinicDocument {
+  provenance?: ClinicalProvenance;
   id: string;
   createdAt: string; // ISO date string
   formattedDateStr: string;
@@ -770,3 +781,18 @@ export interface SavedClinicDocument {
   htmlSnapshot?: string;
 }
 
+
+// Persistence provenance is written by the clinical server, not document forms.
+export interface ClinicalProvenance {
+  source: 'server' | 'legacy_unverified';
+  authorUid: string;
+  authorName: string;
+  authorCro: string;
+  recordedAt: string;
+  importedBy: string;
+  importedAt: string;
+  lastModifiedBy: string;
+  lastModifiedName: string;
+  lastModifiedCro: string;
+  lastModifiedAt: string;
+}

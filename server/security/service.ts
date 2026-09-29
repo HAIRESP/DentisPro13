@@ -1,3 +1,4 @@
+import {clinicalIdentity, applyClinicalAuthorship, markImportedAuthorship} from './clinicalAuthorship';
 import { randomUUID } from 'node:crypto';
 import { Actor, AccessError, canRead, code, codeDigest, digest, equalDigest, identifier, requireRecentPassword, requireThat, secret, textField, validateDemographics, validateWorkspace, validateClinicWorkspace, treatmentMonthExpiresAt } from './policy';
 import type { Document, SecureStore, UnitOfWork } from './store';
@@ -122,7 +123,7 @@ export class ClinicalSecurity {
         requireRecentPassword(actor, this.clock());
         requireThat(input.acknowledged === true, 400, 'Confirme o vínculo profissional e a origem dos dados.');
         const demographics = validateDemographics(input.demographics), ownerUid = identifier(input.ownerUid), id = identifier(input.patientId);
-        const workspace = validateWorkspace(input.workspace, id), reason = textField(input.reason, 500, 15);
+        const workspace = markImportedAuthorship(validateWorkspace(input.workspace, id), actor, this.clock()), reason = textField(input.reason, 500, 15);
         const blob = await this.store.putBlob(workspace);
         await transaction(async tx => {
           const owner = await tx.get(this.path('members', ownerUid));
@@ -177,21 +178,22 @@ export class ClinicalSecurity {
         }
       } else if (action === 'clinical.save') {
         const reason = textField(input.reason, 500, 5);
-        const before = await transaction(async tx => { const p = await patient(tx); requireThat(canRead(p as any, actor, this.clock(), true), 403, 'Sem autorização para alterar este prontuário.'); return p; });
+        const {before, identity} = await transaction(async tx => { const p = await patient(tx); requireThat(canRead(p as any, actor, this.clock(), true), 403, 'Sem autorização para alterar este prontuário.'); const profile = await tx.get(`users/${actor.uid}`); return {before:p, identity:clinicalIdentity(actor,profile)}; });
         const previous = before.blob ? await this.store.getBlob(before.blob) : undefined;
-        const workspace = validateWorkspace(input.workspace, patientId!, previous);
+        let workspace = validateWorkspace(input.workspace, patientId!, previous);
         // Patient demographic contact and ownership cannot be changed through clinical payloads.
         for (const [field, value] of Object.entries(before.demographics)) requireThat((workspace.dentispro_patients_v2[0][field] || '') === value, 409, 'Cadastro divergente. Atualize os dados na seção Editar cadastro e reabra o prontuário.');
         workspace.dentispro_patients_v2[0] = {...workspace.dentispro_patients_v2[0], ...before.demographics, id: patientId};
-        const previousIds = new Set((previous?.dentispro_evolutions_v2 || []).map((r: any) => r.id));
-        for (const row of workspace.dentispro_evolutions_v2 || []) if (!previousIds.has(row.id)) {
-          row.authorUid = actor.uid; row.recordedAt = new Date(this.clock()).toISOString();
-        }
+        workspace = applyClinicalAuthorship(workspace, previous, identity, this.clock());
         const blob = await this.store.putBlob(workspace);
         details = {reason, changedResources: Object.keys(workspace).filter(k => JSON.stringify(previous?.[k]) !== JSON.stringify(workspace[k])), beforeDigest: previous ? digest(JSON.stringify(previous)) : null, afterDigest: digest(JSON.stringify(workspace))};
         result = await transaction(async tx => {
           const p = await patient(tx);
           requireThat(canRead(p as any, actor, this.clock(), true), 403, 'Acesso suspenso. Alteração não salva.');
+          const profile = await tx.get(`users/${actor.uid}`);
+          const member = await tx.get(this.path('members', actor.uid));
+          const currentIdentity = clinicalIdentity({...actor, name:member!.name},profile);
+          requireThat(JSON.stringify(currentIdentity) === JSON.stringify(identity),409,'O perfil profissional mudou. Reabra o prontuário antes de salvar.');
           requireThat(Number.isInteger(input.revision) && p.revision === input.revision && before.revision === p.revision, 409, 'Outra pessoa salvou alterações. Reabra o prontuário antes de continuar.');
           const revision = p.revision + 1;
           tx.set(this.path('patients', patientId), {...p, blob, revision});

@@ -19,13 +19,13 @@ function calendarDate(value:string) {
   const day=new Date(value.slice(0,10)+'T00:00:00.000Z');
   return Number.isFinite(day.getTime()) && day.toISOString().slice(0,10)===value.slice(0,10) && Number.isFinite(Date.parse(value));
 }
-const dateFields=new Set(['date','birthDate','createdAt','updatedAt','recordedAt','examDate','submissionDate','uploadedAt','signatureDate','consentAcceptedAt']);
+const dateFields=new Set(['date','birthDate','createdAt','updatedAt','recordedAt','importedAt','lastModifiedAt','examDate','submissionDate','uploadedAt','signatureDate','consentAcceptedAt']);
 const amounts=new Set(['amount','cost','finalCost','totalValue','discountValue','finalValue','valueClaimed','valueApproved','disallowanceValue','totalBudget','discount','finalAgreed','installmentValue']);
 function semantic(value:unknown,key:string,path:string,optional:boolean,patientId:string) {
   if(typeof value==='string') {
-    if((key==='id'||key==='patientId'||key==='authorUid') && !safeKey(value))invalid(path,'identificador ausente ou inválido');
+    if((key==='id'||key==='patientId'||(key==='authorUid'&&value!=='')) && !safeKey(value))invalid(path,'identificador ausente ou inválido');
     if(key==='patientId' && value!==patientId)invalid(path,'dados de outro paciente');
-    if(dateFields.has(key) && !(value===''&&(optional||key==='birthDate')) && !calendarDate(value))invalid(path,'data inválida; use data ISO válida');
+    if(dateFields.has(key) && !(value===''&&(optional||key==='birthDate'||key==='recordedAt'||key==='importedAt')) && !calendarDate(value))invalid(path,'data inválida; use data ISO válida');
     if(['name','title','procedureName','procedure','description'].includes(key) && !optional && !value.trim())invalid(path,'campo obrigatório vazio');
   }
   if(typeof value==='number') {

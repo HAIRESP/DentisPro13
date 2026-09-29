@@ -29,6 +29,7 @@ export function fixture() {
   const api = new ClinicalSecurity(store,'clinic','a'.repeat(32),'http://localhost:3000', () => now);
   const actors = Object.fromEntries(['owner','other','admin','reception'].map(uid => [uid,{uid,name:uid,role:uid === 'admin' ? 'admin' : uid === 'reception' ? 'receptionist' : 'dentist',authTime:now/1000}]));
   for (const actor of Object.values(actors)) docs.set(api.path('members',actor.uid),{...actor,active:true});
+  for (const actor of Object.values(actors)) docs.set(`users/${actor.uid}`,{uid:actor.uid,name:actor.name,role:actor.role,cro:'CRO/CE 12345'});
   const create = () => api.run(actors.reception,'patients.create',undefined,{ownerUid:'owner',demographics:{name:'Patient',email:'patient@test.invalid'}});
   const token = () => messages.at(-1).message.match(/patient-access#([\w-]+)/)[1];
   const otp = () => messages.at(-1).message.match(/Código: (\d{6})/)[1];
