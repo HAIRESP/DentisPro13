@@ -117,7 +117,7 @@ export class ClinicalSecurity {
         result = {ok: true};
       } else if (action === 'patients.list') {
         const rows = await this.store.list(this.path('patients'), 100, input.after ? identifier(input.after) : undefined);
-        result = {items: rows.map(r => ({id: r.id, ...r.demographics, ownerUid: r.ownerUid, contactVerified: !!r.contactVerifiedAt, canRead: canRead(r as any, actor, this.clock()), revision: r.revision})), next: rows.length === 100 ? rows.at(-1)!.id : null};
+        result = {items: rows.map(r => ({id: r.id, ...r.demographics, ownerUid: r.ownerUid, contactVerified: !!r.contactVerifiedAt, canRead: canRead(r as any, actor, this.clock()), revision: r.revision, demographicsRevision: r.demographicsRevision || 0})), next: rows.length === 100 ? rows.at(-1)!.id : null};
       } else if (action === 'migration.import') {
         requireThat(actor.role === 'admin', 403, 'Importação restrita à administração.');
         requireRecentPassword(actor, this.clock());
@@ -149,7 +149,8 @@ export class ClinicalSecurity {
         await transaction(async tx => {
           const p = await patient(tx);
           requireThat(demographics.email === p.demographics.email, 409, 'A troca do contato de autorização exige um procedimento de verificação; não é permitida nesta tela.');
-          tx.set(this.path('patients', patientId), {...p, demographics});
+          requireThat(Number.isInteger(input.demographicsRevision) && input.demographicsRevision === (p.demographicsRevision || 0), 409, 'O cadastro foi atualizado por outra sessão. Seus dados não foram gravados. Consulte o cadastro atual antes de reaplicar a alteração.');
+          tx.set(this.path('patients', patientId), {...p, demographics, demographicsRevision: (p.demographicsRevision || 0) + 1});
           tx.create(this.path('demographic_versions', randomUUID()), {patientId, before: p.demographics, after: demographics, authorUid: actor.uid, at: this.clock(), intentId});
         }); result = {ok: true};
       } else if (action === 'access.status' || action === 'clinical.read' || action === 'clinical.history' || action === 'clinical.version' || action === 'clinical.print' || action === 'clinical.export') {
@@ -194,6 +195,7 @@ export class ClinicalSecurity {
           const member = await tx.get(this.path('members', actor.uid));
           const currentIdentity = clinicalIdentity({...actor, name:member!.name},profile);
           requireThat(JSON.stringify(currentIdentity) === JSON.stringify(identity),409,'O perfil profissional mudou. Reabra o prontuário antes de salvar.');
+          requireThat((p.demographicsRevision || 0) === (before.demographicsRevision || 0), 409, 'O cadastro mudou durante o salvamento. A versão clínica não foi gravada; preserve suas anotações e confira o cadastro atualizado.');
           requireThat(Number.isInteger(input.revision) && p.revision === input.revision && before.revision === p.revision, 409, 'Outra pessoa salvou alterações. Reabra o prontuário antes de continuar.');
           const revision = p.revision + 1;
           tx.set(this.path('patients', patientId), {...p, blob, revision});
