@@ -214,6 +214,7 @@ export const SettingsView: React.FC = () => {
   const [backupRestored, setBackupRestored] = useState(false);
   const [isFolderExplorerOpen, setIsFolderExplorerOpen] = useState(false);
   const [activeFolderTab, setActiveFolderTab] = useState<'banco' | 'prontuarios' | 'imagens' | 'backups'>('banco');
+  const [storageMode, setStorageMode] = useState<'cloud' | 'local' | 'hybrid'>('cloud');
   const [copiedPath, setCopiedPath] = useState(false);
 
   // Quick Add Modals
@@ -2142,6 +2143,25 @@ export const SettingsView: React.FC = () => {
           </button>
         </div>
 
+        {/* Storage mode selector */}
+        <div className="bg-white border border-[#e5e5d1] rounded-2xl p-4 space-y-3">
+          <div>
+            <h3 className={`text-sm font-bold ${t.headingText}`}>Modo de armazenamento</h3>
+            <p className="text-xs text-gray-500">
+              Escolha onde o DentisPro deverá manter os dados. Nesta etapa, a opção ainda não altera o salvamento real.
+            </p>
+          </div>
+
+          <select
+            value={storageMode}
+            onChange={e => setStorageMode(e.target.value as 'cloud' | 'local' | 'hybrid')}
+            className={`w-full sm:max-w-md p-2.5 rounded-xl border ${t.inputBorder} ${t.inputBg}`}
+          >
+            <option value="cloud">Nuvem</option>
+            <option value="local">Local</option>
+            <option value="hybrid">Híbrido — Local + Nuvem</option>
+          </select>
+        </div>
         {/* USB Export Card (Conserved) */}
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2 text-xs">
           <div className="flex items-center gap-2 font-bold text-emerald-900">
@@ -2567,3 +2587,5 @@ export const SettingsView: React.FC = () => {
     </div>
   );
 };
+
+
