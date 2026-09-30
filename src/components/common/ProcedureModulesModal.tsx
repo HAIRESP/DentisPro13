@@ -1,3 +1,4 @@
+import { authorizeWorkspaceAction } from '../../utils/workspaceActions';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { TUSSProcedure } from '../../types';
@@ -110,7 +111,8 @@ export const ProcedureModulesModal: React.FC<ProcedureModulesModalProps> = ({
     });
   };
 
-  const handleExecutePrint = (selectedOnly: boolean = false) => {
+  const handleExecutePrint = async (selectedOnly: boolean = false) => {
+    try {await authorizeWorkspaceAction('print');} catch(e) {alert(e instanceof Error ? e.message : 'Impressão não autorizada.'); return;}
     const printM1 = selectedOnly ? (activeTab === 'modulo1') : printSelection.modulo1;
     const printM2 = selectedOnly ? (activeTab === 'modulo2') : printSelection.modulo2;
     const printM3 = selectedOnly ? (activeTab === 'modulo3') : printSelection.modulo3;

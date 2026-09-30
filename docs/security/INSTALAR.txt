@@ -1,0 +1,38 @@
+DENTISPRO — PACOTE DE CONTAS E APIs
+
+INSTALAÇÃO
+1. Pare o servidor com Ctrl+C.
+2. Faça uma cópia do projeto fora da pasta atual (exclua node_modules e dist se desejar).
+3. Extraia o ZIP numa pasta temporária.
+4. Copie src, server, server.ts e firestore.rules para C:\Users\douto\DentisPro13. Mescle pastas e substitua arquivos de mesmo nome. Não exclua pastas existentes.
+5. Rode npm run dev. Não há dependências novas.
+O arquivo firestore.rules agora acompanha a regra que você publicou; esta cópia local não publica nada no Firebase.
+
+TESTES NO SEU COMPUTADOR
+- Entre com sua conta administradora.
+- Cadastre UMA conta de teste de dentista, com e-mail sob seu controle e senha escolhida por você. A conta mostrada no cabeçalho deve continuar sendo a administradora.
+- Confira se a nova conta existe no Firebase Authentication e se users/UID no Firestore contém o mesmo UID e role dentist. Não divulgue a senha.
+- Saia e entre com a conta de teste. A lista de usuários não deve conter contas de demonstração adicionadas artificialmente.
+- Volte à conta administradora. Teste a leitura de documento por IA e o comando de voz se já usa essas funções; o servidor agora exige um token e consulta o perfil no Firebase a cada requisição. Isso requer conexão e pode acrescentar latência.
+- Não cadastre pacientes reais na conta de teste: isolamento dos dados clínicos locais por usuário e unidade ainda não está concluído.
+
+PÁGINA COM CONFIRMAÇÃO DE SENHA
+Nova rota: /auth/action. Ela é pública para permitir redefinição sem login, mas exige um código de redefinição válido do Firebase para salvar uma senha.
+Possui Nova senha + Confirme a nova senha; rejeita divergência; verifica os requisitos configurados no Firebase; trata link inválido/expirado; remove o código da barra de endereço. Recarregar essa página exige abrir novamente o link original do e-mail.
+Apenas instalar este pacote NÃO muda o destino dos e-mails. Precisamos publicar a página num endereço HTTPS estável e configurar esse endereço no modelo de redefinição de senha do Firebase. Não troque o destino por localhost para usuários externos. Não cole código de redefinição nem link real no modelo.
+O endereço de ação terá o formato https://SEU-DOMINIO/auth/action. O parâmetro continueUrl não substitui a configuração da página de ação. A página implementa somente resetPassword; não direcione outros tipos de ação para ela.
+
+PERMISSÕES DAS APIs
+OCR cadastral: administrador, dentista e recepcionista.
+Comando clínico de voz: administrador e dentista.
+Envio/resposta de WhatsApp: administrador e recepcionista.
+Status WhatsApp: todos os três perfis.
+Exportação SQL: administrador.
+Rotas desconhecidas e webhook antigo: bloqueados. O webhook não implementava validação do provedor; integração externa real precisa de autenticação própria antes de ser ativada.
+Nenhuma regra clínica do Firestore foi ampliada: dentistas/recepcionistas continuam lendo apenas o próprio perfil na nuvem. A interface usa muitos dados locais compartilhados; filtros visuais não constituem isolamento dos pacientes.
+
+VALIDAÇÃO E LIMITES
+13 testes automatizados passaram, incluindo divergência de senha, compensação de cadastro incompleto, recusas por perfil/token e leitura do perfil no servidor. Requisições Firebase foram simuladas nesses testes: cadastro real e link real precisam de teste no seu ambiente.
+Build concluído. A verificação TypeScript global ainda possui erros anteriores em outros módulos; build não equivale a aprovação da tipagem global.
+Pendências: isolamento dos dados clínicos e anexos por clínica/usuário, limpeza dos campos password antigos, política de permissões clínicas, limitação de requisições e integração WhatsApp real. Não é uma certificação de segurança completa.
+Nenhuma alteração foi enviada ao GitHub nem publicada num site durante a preparação.

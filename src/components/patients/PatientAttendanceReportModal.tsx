@@ -116,21 +116,21 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
     };
 
     // 0. Prontuário Médico e Anamnese Integrada
-    if (patient.anamnesis) {
+    if (patient.anamnesis && Object.keys(patient.anamnesis).length > 0) {
       const anamDate = patient.createdAt ? patient.createdAt.split('T')[0] : new Date().toISOString().split('T')[0];
       const key = `anam_${patient.id}`;
       const anam = patient.anamnesis;
       
       const alertsSummary = [
         anam.hasAllergies && `Alergias: ${anam.allergyDetails || 'Presente'}`,
-        anam.takesContinuousMedication && `Medicações: ${anam.continuousMedicationDetails || 'Em uso'}`,
-        anam.takesBisphosphonates && 'Uso de Bisfosfonatos (Alerta Risco de Osteonecrose)',
-        anam.takesAnticoagulants && 'Uso de Anticoagulantes (Risco Hemorrágico)',
+        anam.continuousMedication && `Medicações: ${anam.continuousMedication || 'Em uso'}`,
+        anam.usesBisphosphonates && 'Uso de Bisfosfonatos (Alerta Risco de Osteonecrose)',
+        anam.usesAnticoagulants && 'Uso de Anticoagulantes (Risco Hemorrágico)',
         anam.hasHypertension && 'Hipertensão Arterial',
         anam.hasDiabetes && 'Diabetes Mellitus',
         anam.hasHeartDisease && 'Cardiopatia / Risco Cardíaco',
         anam.hasPacemaker && 'Portador de Marca-passo Cardíaco',
-        anam.hasBleedingTendency && 'Tendência a Sangramento Prolongado',
+        anam.bleedingDisorder && 'Tendência a Sangramento Prolongado',
         anam.hasAnesthesiaReaction && `Reação Anestésica: ${anam.anesthesiaReactionDetails || 'Relatada'}`,
         anam.isSmoker && `Ex-fumante / Tabagista (${anam.smokingFrequency || 'Registrado'})`,
         anam.usesRecreationalDrugs && `Substâncias Recreativas: ${anam.drugDetails || 'Registrado'} (${anam.drugUsageFrequency || ''})`
@@ -192,7 +192,7 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
     myPlans.forEach(plan => {
       const key = `plan_${plan.id}`;
       if (!eventMap.has(key)) {
-        const planDate = plan.date || plan.createdAt || new Date().toISOString().split('T')[0];
+        const planDate = plan.date || new Date().toISOString().split('T')[0];
         const itemDetails = plan.items && plan.items.length > 0 
           ? plan.items.map(i => `• ${i.procedureName} ${i.toothNumber ? `(Dente #${i.toothNumber})` : ''} - Status: ${i.status}`).join('\n')
           : undefined;
@@ -235,7 +235,7 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
     myDocs.forEach(doc => {
       const key = `doc_${doc.id}`;
       if (!eventMap.has(key)) {
-        const docDate = doc.date || doc.createdAt || new Date().toISOString().split('T')[0];
+        const docDate = doc.createdAt || new Date().toISOString().split('T')[0];
         eventMap.set(key, {
           id: key,
           type: 'document',
@@ -243,7 +243,7 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
           timestamp: parseTimestamp(docDate),
           title: `Documento Emitido: ${doc.title}`,
           subtitle: doc.subtitle || `Categoria: ${doc.category}`,
-          details: doc.summary || doc.content,
+          details: doc.summary,
           professionalName: doc.professionalName,
           categoryTag: 'Documento'
         });
@@ -620,18 +620,18 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
                   </div>
 
                   {/* Bisfosfonatos */}
-                  <div className={`p-2.5 rounded-xl border ${patient.anamnesis.takesBisphosphonates ? 'bg-rose-50/80 border-rose-200 text-rose-900 font-bold' : 'bg-white border-[#e5e5d1] text-stone-700'}`}>
+                  <div className={`p-2.5 rounded-xl border ${patient.anamnesis.usesBisphosphonates ? 'bg-rose-50/80 border-rose-200 text-rose-900 font-bold' : 'bg-white border-[#e5e5d1] text-stone-700'}`}>
                     <strong className="block text-[11px]">Uso de Bisfosfonatos:</strong>
                     <span className="text-[11.5px] font-medium">
-                      {patient.anamnesis.takesBisphosphonates ? `SIM (Risco de Osteonecrose): ${patient.anamnesis.bisphosphonatesDetails || 'Em uso'}` : 'Não faz uso'}
+                      {patient.anamnesis.usesBisphosphonates ? `SIM (Risco de Osteonecrose): Em uso; detalhes não registrados` : patient.anamnesis.usesBisphosphonates === false ? 'Não faz uso' : 'Uso não informado'}
                     </span>
                   </div>
 
                   {/* Anticoagulantes */}
-                  <div className={`p-2.5 rounded-xl border ${patient.anamnesis.takesAnticoagulants ? 'bg-amber-50 border-amber-200 text-amber-900 font-bold' : 'bg-white border-[#e5e5d1] text-stone-700'}`}>
+                  <div className={`p-2.5 rounded-xl border ${patient.anamnesis.usesAnticoagulants ? 'bg-amber-50 border-amber-200 text-amber-900 font-bold' : 'bg-white border-[#e5e5d1] text-stone-700'}`}>
                     <strong className="block text-[11px]">Uso de Anticoagulantes:</strong>
                     <span className="text-[11.5px] font-medium">
-                      {patient.anamnesis.takesAnticoagulants ? `SIM (Risco Hemorrágico): ${patient.anamnesis.anticoagulantsDetails || 'Em uso'}` : 'Não faz uso'}
+                      {patient.anamnesis.usesAnticoagulants ? `SIM (Risco Hemorrágico): Em uso; detalhes não registrados` : patient.anamnesis.usesAnticoagulants === false ? 'Não faz uso' : 'Uso não informado'}
                     </span>
                   </div>
 
@@ -660,7 +660,7 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
                   <div className="bg-white p-2.5 rounded-xl border border-[#e5e5d1] text-stone-700">
                     <strong className="block text-[11px]">Medicações Contínuas:</strong>
                     <span className="text-[11.5px] font-medium">
-                      {patient.anamnesis.takesContinuousMedication ? patient.anamnesis.continuousMedicationDetails || 'Em uso' : 'Nenhuma medicação contínua'}
+                      {patient.anamnesis.continuousMedication ? patient.anamnesis.continuousMedication || 'Em uso' : 'Medicação não informada'}
                     </span>
                   </div>
                 </div>

@@ -373,6 +373,7 @@ export const FinancialReports: React.FC = () => {
         patientName: r.paciente,
         procedureName: r.procedimento,
         valueClaimed: valNum,
+        valueApproved: 0,
         submissionDate: r.data || new Date().toISOString().split('T')[0],
         status: 'enviada',
         disallowanceValue: 0

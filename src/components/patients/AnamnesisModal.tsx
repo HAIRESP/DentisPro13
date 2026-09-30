@@ -624,17 +624,13 @@ export const AnamnesisModal: React.FC<AnamnesisModalProps> = ({
       addSavedClinicDocument({
         patientId: patient.id,
         patientName: patient.name,
-        patientCpf: patient.cpf,
-        patientPhone: patient.phone,
         title: 'Prontuário Médico e Histórico Clínico Completo',
         subtitle: 'Anamnese Geral, Doenças Sistêmicas, Alertas e Hábitos',
         category: 'prontuario',
         templateId: 'prontuario_medico_anamnese',
-        date: new Date().toISOString().split('T')[0],
         professionalName: activeProfessional?.name || clinicInfo.dentistName || 'Dr. Hugo Andres',
-        professionalCro: activeProfessional?.cro || clinicInfo.cro || 'CRO/CE 5925',
         summary: `Mapeamento e atualização do prontuário médico e histórico clínico de ${patient.name}.`,
-        content: JSON.stringify(updatedAnamnesis)
+        templateData: { anamnesis: updatedAnamnesis, patientCpf: patient.cpf, patientPhone: patient.phone, professionalCro: activeProfessional?.cro || clinicInfo.cro || '' }
       });
     } catch (e) {
       console.error('Erro ao registrar documento salvo da anamnese:', e);

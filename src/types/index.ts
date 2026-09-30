@@ -83,10 +83,10 @@ export interface Anamnesis {
   hasGoodHealth?: boolean; // Você goza de boa saúde?
   isUndergoingMedicalTreatment?: boolean; // Está atualmente fazendo qualquer tratamento médico?
   medicalTreatmentDetails?: string;
-  hasAllergies: boolean;
+  hasAllergies?: boolean; // Ausente significa não informado, nunca uma resposta negativa.
   allergyDetails?: string; // Ex: Penicilina, anestésicos, látex, AINEs
   bloodPressureStatus?: 'normal' | 'alta' | 'baixa' | 'controlada_medicamento'; // Pressão arterial
-  hasHeartDisease: boolean; // Doença do coração / infarto / sopro
+  hasHeartDisease?: boolean; // Ausente significa não informado, nunca uma resposta negativa. // Doença do coração / infarto / sopro
   hasRheumaticFever?: boolean; // Febre reumática
   hasAsthma?: boolean; // Asma
   hasArthritis?: boolean; // Artrite
@@ -104,10 +104,10 @@ export interface Anamnesis {
   otherUnlistedDiseasesDetails?: string;
   hasPacemaker?: boolean; // Marca-passo ou próteses cardíacas/valvulares
   hasShortnessOfBreath?: boolean; // Sente falta de ar com frequência / dispneia
-  hasDiabetes: boolean;
+  hasDiabetes?: boolean; // Ausente significa não informado, nunca uma resposta negativa.
   diabetesType?: 'tipo1' | 'tipo2' | 'gestacional' | 'controlada';
-  hasHypertension: boolean;
-  bleedingDisorder: boolean; // Distúrbios de coagulação / hemorragia
+  hasHypertension?: boolean; // Ausente significa não informado, nunca uma resposta negativa.
+  bleedingDisorder?: boolean; // Ausente significa não informado, nunca uma resposta negativa. // Distúrbios de coagulação / hemorragia
   bleedingType?: 'normal' | 'excessivo'; // Sangramento ao corte
   healingType?: 'normal' | 'complicada'; // Cicatrização
   usesAnticoagulants?: boolean; // Uso de AAS, Marevan, Xarelto, Clopidogrel
@@ -120,7 +120,7 @@ export interface Anamnesis {
   hasHadSurgery?: boolean; // Já realizou alguma cirurgia
   surgeryDetails?: string;
   pastHealthProblems?: string; // Outros problemas de saúde e internações
-  isPregnant: boolean;
+  isPregnant?: boolean; // Ausente significa não informado, nunca uma resposta negativa.
   pregnancyWeeks?: string; // Semanas ou trimestre da gestação
   isBreastfeeding?: boolean; // Amamentando
   climactericOrMenopause?: 'nenhum' | 'climaterio' | 'menopausa' | 'pos_menopausa';
@@ -186,6 +186,7 @@ export interface Anamnesis {
 }
 
 export interface PatientPayment {
+  provenance?: ClinicalProvenance;
   id: string;
   patientId: string;
   patientName: string;
@@ -202,6 +203,7 @@ export interface PatientPayment {
 }
 
 export interface Patient {
+  provenance?: ClinicalProvenance;
   id: string;
   name: string;
   cpf: string;
@@ -302,6 +304,7 @@ export interface CorrelationRule {
 }
 
 export interface ToothCondition {
+  provenance?: ClinicalProvenance;
   toothNumber: number; // e.g. 18 to 48 or 55 to 85
   surfaces?: Partial<Record<ToothSurface, ToothConditionType>>;
   wholeToothCondition?: ToothConditionType;
@@ -313,6 +316,7 @@ export interface ToothCondition {
 }
 
 export interface OdontogramSnapshot {
+  provenance?: ClinicalProvenance;
   id: string;
   patientId: string;
   date: string;
@@ -324,6 +328,7 @@ export interface OdontogramSnapshot {
 }
 
 export interface ClinicalEvolutionEntry {
+  provenance?: ClinicalProvenance;
   id: string;
   patientId: string;
   date: string;
@@ -396,6 +401,7 @@ export interface InventoryItem {
 }
 
 export interface FinancialTransaction {
+  provenance?: ClinicalProvenance;
   id: string;
   type: 'receita' | 'despesa';
   category: string; // Ex: 'Atendimento', 'Material', 'Aluguel', 'Salários', 'Comissões', 'Manutenção'
@@ -433,6 +439,7 @@ export interface DentistCommissionRecord {
 }
 
 export interface InsuranceGuide {
+  provenance?: ClinicalProvenance;
   id: string;
   guideNumber: string; // Número da Guia TISS
   insuranceName: string; // e.g. 'Unimed Odonto', 'Amil Dental', 'Bradesco Dental', 'SulAmérica', 'OdontoPrev'
@@ -465,6 +472,7 @@ export interface MedicationItem {
 }
 
 export interface Prescription {
+  provenance?: ClinicalProvenance;
   id: string;
   patientId: string;
   patientName: string;
@@ -603,6 +611,7 @@ export interface TreatmentConsentAttachment {
 }
 
 export interface TreatmentPlan {
+  provenance?: ClinicalProvenance;
   id: string;
   patientId: string;
   patientName: string;
@@ -743,6 +752,7 @@ export interface PainEvaluationExam {
 }
 
 export interface ClinicalExam {
+  provenance?: ClinicalProvenance;
   patientId: string;
   updatedAt: string;
   extraoral: ExtraoralExam;
@@ -753,12 +763,13 @@ export interface ClinicalExam {
 }
 
 export interface SavedClinicDocument {
+  provenance?: ClinicalProvenance;
   id: string;
   createdAt: string; // ISO date string
   formattedDateStr: string;
   title: string;
   subtitle?: string;
-  category: 'atestado' | 'declaracao' | 'solicitacao' | 'receita' | 'outro';
+  category: 'atestado' | 'declaracao' | 'solicitacao' | 'receita' | 'prontuario' | 'outro';
   patientId?: string;
   patientName: string;
   professionalName: string;
@@ -770,3 +781,18 @@ export interface SavedClinicDocument {
   htmlSnapshot?: string;
 }
 
+
+// Persistence provenance is written by the clinical server, not document forms.
+export interface ClinicalProvenance {
+  source: 'server' | 'legacy_unverified';
+  authorUid: string;
+  authorName: string;
+  authorCro: string;
+  recordedAt: string;
+  importedBy: string;
+  importedAt: string;
+  lastModifiedBy: string;
+  lastModifiedName: string;
+  lastModifiedCro: string;
+  lastModifiedAt: string;
+}

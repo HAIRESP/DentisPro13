@@ -186,7 +186,7 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
       isAvailable,
       status: isAvailable ? 'available' : (availableQty > 0 ? 'low' : 'missing')
     };
-  }).sort((a, b) => a.materialName.localeCompare(b.materialName, 'pt-BR'));
+  }).sort((a, b) => a.requirement.materialName.localeCompare(b.requirement.materialName, 'pt-BR'));
 
   const availableCount = resolvedMaterialsReport.filter(r => r.isAvailable).length;
   const missingCount = resolvedMaterialsReport.filter(r => r.status === 'missing').length;

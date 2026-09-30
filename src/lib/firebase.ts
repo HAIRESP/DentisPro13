@@ -1,3 +1,4 @@
+import { sanitizeProfileWrite } from '../utils/authSession';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getAuth, 
@@ -23,6 +24,7 @@ import firebaseConfigData from '../../firebase-applet-config.json';
 const app = !getApps().length ? initializeApp(firebaseConfigData) : getApp();
 
 export const auth = getAuth(app);
+auth.languageCode = 'pt-BR';
 export const db = getFirestore(app, firebaseConfigData.firestoreDatabaseId || undefined);
 
 export enum OperationType {
@@ -91,7 +93,7 @@ export interface UserProfile {
 export const ROLE_PERMISSIONS: Record<UserRole, { label: string; description: string; allowedTabs: string[]; canManageSettings: boolean; canViewFinancial: boolean; canManageUsers: boolean }> = {
   admin: {
     label: 'Administrador(a)',
-    description: 'Acesso irrestrito a todos os módulos, parâmetros do sistema, finanças e gestão de usuários.',
+    description: 'Gestão da clínica e da equipe. Dados clínicos exigem autorização do paciente ou acesso excepcional auditado.',
     allowedTabs: ['dashboard', 'pacientes', 'agendamento', 'relatorios', 'documentos', 'laudos', 'triagem', 'exame_clinico', 'odontograma', 'estoque', 'financeiro', 'configuracoes'],
     canManageSettings: true,
     canViewFinancial: true,
@@ -108,79 +110,12 @@ export const ROLE_PERMISSIONS: Record<UserRole, { label: string; description: st
   receptionist: {
     label: 'Recepcionista / Atendente',
     description: 'Acesso à gestão de agenda, cadastro de pacientes, envio de WhatsApp e recepção.',
-    allowedTabs: ['dashboard', 'pacientes', 'agendamento', 'triagem', 'documentos', 'laudos'],
+    allowedTabs: ['dashboard', 'pacientes', 'agendamento'],
     canManageSettings: false,
     canViewFinancial: false,
     canManageUsers: false
   }
 };
-
-// Default system accounts for quick login & demo
-export const DEMO_USERS: UserProfile[] = [
-  {
-    uid: 'demo_admin_01',
-    email: 'admin@dentispro.com.br',
-    name: 'Hugo Andres Iglesias Ricoy (Administrador)',
-    role: 'admin',
-    cro: 'CRO/CE 5925',
-    specialty: 'Implantodontia & Gestão',
-    phone: '(85) 99999-0001',
-    password: 'admin123',
-    professionalId: 'prof-hugo'
-  },
-  {
-    uid: 'demo_dentist_02',
-    email: 'dentista@dentispro.com.br',
-    name: 'Dra. Camila Vasconcelos',
-    role: 'dentist',
-    cro: 'CRO-CE 54321',
-    specialty: 'Ortodontia',
-    phone: '(85) 98888-0002',
-    password: '123456',
-    professionalId: 'prof-2'
-  },
-  {
-    uid: 'demo_dentist_03',
-    email: 'lucas@dentispro.com.br',
-    name: 'Dr. Lucas Mendes',
-    role: 'dentist',
-    cro: 'CRO/CE 4120',
-    specialty: 'Endodontia',
-    phone: '(85) 98711-2233',
-    password: '123456',
-    professionalId: 'prof-1'
-  },
-  {
-    uid: 'demo_dentist_04',
-    email: 'roberto@dentispro.com.br',
-    name: 'Dr. Roberto Fonseca',
-    role: 'dentist',
-    cro: 'CRO/CE 7890',
-    specialty: 'Periodontia',
-    phone: '(85) 98822-3344',
-    password: '123456',
-    professionalId: 'prof-3'
-  },
-  {
-    uid: 'demo_dentist_05',
-    email: 'juliana@dentispro.com.br',
-    name: 'Dra. Juliana Costa',
-    role: 'dentist',
-    cro: 'CRO/CE 9876',
-    specialty: 'Odontopediatria',
-    phone: '(85) 98933-4455',
-    password: '123456',
-    professionalId: 'prof-4'
-  },
-  {
-    uid: 'demo_reception_03',
-    email: 'recepcao@dentispro.com.br',
-    name: 'Mariana Souza (Recepção)',
-    role: 'receptionist',
-    phone: '(85) 97777-0003',
-    password: 'recepcao123'
-  }
-];
 
 // Save or sync user profile in Firestore
 export async function saveUserProfileToFirestore(profile: UserProfile): Promise<void> {
@@ -189,26 +124,12 @@ export async function saveUserProfileToFirestore(profile: UserProfile): Promise<
   try {
     const userRef = doc(db, 'users', profile.uid);
     await setDoc(userRef, {
-      ...profile,
+      ...sanitizeProfileWrite({ ...profile }),
       updatedAt: new Date().toISOString()
     }, { merge: true });
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
-  }
-}
-
-// Update user password specifically
-export async function updateUserPasswordInFirestore(uid: string, newPassword: string): Promise<void> {
-  if (!uid) return;
-  const path = `users/${uid}`;
-  try {
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
-      password: newPassword,
-      updatedAt: new Date().toISOString()
-    });
-  } catch (err) {
-    handleFirestoreError(err, OperationType.UPDATE, path);
+    throw err;
   }
 }
 
@@ -236,12 +157,13 @@ export async function fetchAllUsersFromFirestore(): Promise<UserProfile[]> {
     const snap = await getDocs(colRef);
     const users: UserProfile[] = [];
     snap.forEach((docSnap) => {
-      users.push(docSnap.data() as UserProfile);
+      const { password: _password, ...profile } = docSnap.data();
+      users.push(profile as UserProfile);
     });
-    return users.length > 0 ? users : DEMO_USERS;
+    return users;
   } catch (err) {
     handleFirestoreError(err, OperationType.LIST, path);
-    return DEMO_USERS;
+    return [];
   }
 }
 

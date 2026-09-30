@@ -1,3 +1,4 @@
+import { securityRouter, patientPortalRouter, protectedLegacyApi } from './server/security/routes';
 import express from "express";
 import path from "path";
 import fs from "fs";
@@ -10,6 +11,15 @@ dotenv.config();
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  app.use('/api/secure', securityRouter());
+  app.use('/api/patient-access', patientPortalRouter());
+  app.use('/api', protectedLegacyApi());
+  app.use(['/auth/action', '/patient-access'], (_req, res, next) => {
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  });
 
   app.use(express.json({ limit: "25mb" }));
 
@@ -316,15 +326,6 @@ Diretrizes para resposta:
         engine: "Fallback de Segurança"
       });
     }
-  });
-
-  app.post("/api/whatsapp/webhook", (req, res) => {
-    console.log("[WHATSAPP WEBHOOK INCOMING]", req.body);
-    return res.json({
-      success: true,
-      status: "received",
-      timestamp: new Date().toISOString()
-    });
   });
 
   app.get("/api/whatsapp/status", (req, res) => {

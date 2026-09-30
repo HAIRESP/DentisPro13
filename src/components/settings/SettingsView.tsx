@@ -108,7 +108,6 @@ export const SettingsView: React.FC = () => {
   } = useApp();
 
   const t = getThemeStyles(layoutTheme);
-  const { updateUserPassword, allUsers } = useAuth();
 
   // Active settings tab selection
   const [activeSettingsTab, setActiveSettingsTab] = useState<
@@ -123,6 +122,9 @@ export const SettingsView: React.FC = () => {
   // Form buffering state for active clinic / professional
   const activeClinicObj = clinics.find(c => c.id === selectedClinicDropdownId) || clinics[0];
   const activeDentistObj = professionals.find(p => p.id === selectedDentistDropdownId) || professionals[0];
+  const availableClinicsForSelectedDentist = clinics.filter(clinic =>
+    activeDentistObj?.clinicIds?.includes(clinic.id)
+  );
 
   // Clinic fields
   const [clinicName, setClinicName] = useState(activeClinicObj?.name || clinicInfo.name || '');
@@ -150,8 +152,6 @@ export const SettingsView: React.FC = () => {
   const [dentistSpecialty, setDentistSpecialty] = useState(activeDentistObj?.specialty || clinicInfo.specialty || 'Clínica Geral');
   const [dentistPhone, setDentistPhone] = useState(activeDentistObj?.phone || clinicInfo.phone || '');
   const [dentistEmail, setDentistEmail] = useState(activeDentistObj?.email || clinicInfo.email || '');
-  const [dentistPassword, setDentistPassword] = useState<string>(activeDentistObj?.password || '123456');
-  const [showDentistPassword, setShowDentistPassword] = useState<boolean>(false);
   const [dentistPrimaryClinicId, setDentistPrimaryClinicId] = useState<string>(activeDentistObj?.primaryClinicId || activeClinicId || 'cli-aldeota');
   const [dentistClinicIds, setDentistClinicIds] = useState<string[]>(activeDentistObj?.clinicIds || ['cli-aldeota', 'cli-sul']);
   const [dentistAddressObj, setDentistAddressObj] = useState<AddressData>({
@@ -309,11 +309,14 @@ export const SettingsView: React.FC = () => {
       if (found.cpf) setDentistCpf(formatCPF(found.cpf));
       if (found.phone) setDentistPhone(found.phone);
       if (found.email) setDentistEmail(found.email);
-      if (found.password) setDentistPassword(found.password);
-      const primaryId = found.primaryClinicId || found.clinicIds?.[0] || clinics[0]?.id || '';
+      const linkedClinicIds = (found.clinicIds || []).filter(clinicId =>
+        clinics.some(clinic => clinic.id === clinicId)
+      );
+      const primaryId = linkedClinicIds.includes(found.primaryClinicId || '')
+        ? found.primaryClinicId || ''
+        : linkedClinicIds[0] || '';
       setDentistPrimaryClinicId(primaryId);
-      const linked = found.clinicIds && found.clinicIds.length > 0 ? found.clinicIds : (primaryId ? [primaryId] : []);
-      setDentistClinicIds(linked);
+      setDentistClinicIds(linkedClinicIds);
       if (primaryId) {
         setSelectedClinicDropdownId(primaryId);
         setActiveClinicId(primaryId);
@@ -347,7 +350,7 @@ export const SettingsView: React.FC = () => {
       }
 
       // Sincronizar automaticamente a Unidade/Consultório onde este profissional trabalha
-      const targetClinicId = found.primaryClinicId || (found.clinicIds && found.clinicIds.length > 0 ? found.clinicIds[0] : null);
+      const targetClinicId = primaryId || null;
       if (targetClinicId && targetClinicId !== 'todas') {
         setSelectedClinicDropdownId(targetClinicId);
         setActiveClinicId(targetClinicId);
@@ -402,21 +405,18 @@ export const SettingsView: React.FC = () => {
   };
 
   const handleToggleDentistClinic = (clinicId: string, isChecked: boolean) => {
-    let nextIds: string[];
-    if (isChecked) {
-      nextIds = Array.from(new Set([...dentistClinicIds, clinicId, dentistPrimaryClinicId].filter(Boolean)));
-    } else {
-      if (clinicId === dentistPrimaryClinicId) return;
-      nextIds = dentistClinicIds.filter(id => id !== clinicId);
-      if (dentistPrimaryClinicId && !nextIds.includes(dentistPrimaryClinicId)) {
-        nextIds.push(dentistPrimaryClinicId);
-      }
-    }
+    const nextIds = isChecked
+      ? Array.from(new Set([...dentistClinicIds, clinicId].filter(Boolean)))
+      : dentistClinicIds.filter(id => id !== clinicId);
+    const nextPrimaryClinicId = nextIds.includes(dentistPrimaryClinicId)
+      ? dentistPrimaryClinicId
+      : nextIds[0] || '';
     setDentistClinicIds(nextIds);
+    setDentistPrimaryClinicId(nextPrimaryClinicId);
     if (selectedDentistDropdownId) {
       updateProfessional(selectedDentistDropdownId, {
         clinicIds: nextIds,
-        primaryClinicId: dentistPrimaryClinicId
+        primaryClinicId: nextPrimaryClinicId
       });
     }
   };
@@ -510,19 +510,10 @@ export const SettingsView: React.FC = () => {
         croUf: croUf,
         primaryClinicId: dentistPrimaryClinicId || selectedClinicDropdownId,
         clinicIds: updatedClinicIds,
-        password: dentistPassword || '123456'
       });
       setActiveProfessionalId(selectedDentistDropdownId);
 
-      // Sincronizar senha no AuthContext para o usuário vinculado
-      const matchingUser = allUsers.find(u => 
-        u.professionalId === selectedDentistDropdownId || 
-        (u.email && dentistEmail && u.email.toLowerCase() === dentistEmail.toLowerCase()) ||
-        (u.name && dentistName && u.name.toLowerCase() === dentistName.toLowerCase())
-      );
-      if (matchingUser && dentistPassword) {
-        updateUserPassword(matchingUser.uid, dentistPassword);
-      }
+
     }
 
     setCadastroSaved(true);
@@ -536,7 +527,8 @@ export const SettingsView: React.FC = () => {
       name: newClinicNameInput.trim(),
       phone: newClinicPhoneInput.trim() || clinicPhone,
       email: clinicEmail,
-      address: 'Endereço a definir'
+      address: '',
+      city: ''
     });
     setSelectedClinicDropdownId(newC.id);
     setActiveClinicId(newC.id);
@@ -553,10 +545,11 @@ export const SettingsView: React.FC = () => {
   const handleCreateNewDentistQuick = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!newDentistNameInput.trim()) return;
-    const fullCro = newDentistCroInput.trim() ? (newDentistCroInput.startsWith('CRO') ? newDentistCroInput : `CRO/${croUf} ${newDentistCroInput}`) : 'CRO/CE 123456';
+    const fullCro = newDentistCroInput.trim() ? (newDentistCroInput.startsWith('CRO') ? newDentistCroInput : `CRO/${croUf} ${newDentistCroInput}`) : '';
     const newP = addProfessional({
       name: newDentistNameInput.trim(),
       cro: fullCro,
+      clinicIds: clinics.some(c => c.id === activeClinicId) ? [activeClinicId] : [],
       specialty: dentistSpecialty || 'Clínica Geral'
     });
     setSelectedDentistDropdownId(newP.id);
@@ -718,33 +711,11 @@ export const SettingsView: React.FC = () => {
     }
   };
 
-  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const backupData = JSON.parse(ev.target?.result as string);
-        if (window.confirm('Substituir os dados atuais pelo backup selecionado?')) {
-          Object.keys(backupData).forEach((key) => {
-            const val = backupData[key];
-            localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val));
-          });
-          setBackupRestored(true);
-          setTimeout(() => window.location.reload(), 1500);
-        }
-      } catch (err) {
-        alert('Arquivo de backup inválido.');
-      }
-    };
-    reader.readAsText(file);
+  const handleImportBackup = (_e: React.ChangeEvent<HTMLInputElement>) => {
+    alert('A restauração global foi substituída pela importação controlada de pacientes, com auditoria.');
   };
-
   const handleResetDefaults = () => {
-    if (window.confirm('Restaurar dados de exemplo do sistema?')) {
-      resetToDefaultData();
-      window.location.reload();
-    }
+    alert('Dados de demonstração não são inseridos no ambiente protegido.');
   };
 
   return (
@@ -878,174 +849,11 @@ export const SettingsView: React.FC = () => {
         </button>
       </div>
 
-      {/* TAB: WHATSAPP API & CONEXÃO */}
-      {activeSettingsTab === 'whatsapp_api' && (
-        <div className="bg-white border border-[#e5e5d1] rounded-[28px] p-6 shadow-sm space-y-6">
-          <div className="border-b border-[#e5e5d1] pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold bg-[#075e54] text-white px-2.5 py-0.5 rounded-md uppercase">
-                  CENTRAL DE COMUNICAÇÃO
-                </span>
-                <span className="text-[10px] font-bold bg-emerald-100 text-[#075e54] px-2.5 py-0.5 rounded-md flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  API OPERACIONAL
-                </span>
-              </div>
-              <h2 className="text-base font-bold text-[#5a5a40] mt-1 flex items-center gap-2">
-                <Bot className="w-5 h-5 text-[#25d366]" />
-                Configuração da API WhatsApp &amp; Conexão em Nuvem
-              </h2>
-              <p className="text-xs text-gray-500">Parâmetros do gateway de conexão para envio de pré-cadastros, lembretes de consultas e notificações da recepção.</p>
-            </div>
-          </div>
-
-          <div className="bg-[#fcfbf9] border border-[#e5e5d1] p-5 rounded-2xl space-y-4">
-            <h3 className="font-bold text-xs text-[#5a5a40] uppercase tracking-wider flex items-center gap-2">
-              <Key className="w-4 h-4 text-[#d4a373]" />
-              Parâmetros da Meta Cloud API / Evolution API
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Meta App ID (Cloud API)
-                </label>
-                <input
-                  type="text"
-                  defaultValue="1092837492837412"
-                  className="w-full bg-white border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-900 focus:outline-none focus:border-[#5a5a40]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Phone Number ID
-                </label>
-                <input
-                  type="text"
-                  defaultValue="55119987654321"
-                  className="w-full bg-white border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-900 focus:outline-none focus:border-[#5a5a40]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  WABA ID (WhatsApp Business Account)
-                </label>
-                <input
-                  type="text"
-                  defaultValue="987654321098765"
-                  className="w-full bg-white border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-900 focus:outline-none focus:border-[#5a5a40]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Webhook Verify Token
-                </label>
-                <input
-                  type="text"
-                  defaultValue="dentispro_wh_secret_2026"
-                  className="w-full bg-white border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-900 focus:outline-none focus:border-[#5a5a40]"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Permanent Access Token (Meta System User Token)
-                </label>
-                <input
-                  type="password"
-                  defaultValue="EAAG_dentispro_token_prod_2026"
-                  className="w-full bg-white border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-900 focus:outline-none focus:border-[#5a5a40]"
-                />
-              </div>
-
-              <div className="sm:col-span-2 bg-emerald-50 border border-emerald-200 p-4 rounded-xl space-y-2">
-                <label className="block text-xs font-bold text-emerald-950">
-                  URL do Webhook do Servidor (Sincronização Ativa):
-                </label>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white border border-emerald-300 px-3 py-2 rounded-lg text-xs font-mono text-emerald-950 font-bold select-all break-all">
-                    {typeof window !== 'undefined' ? `${window.location.origin}/api/whatsapp/webhook` : 'https://suaclinica.com.br/api/whatsapp/webhook'}
-                  </code>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const url = typeof window !== 'undefined' ? `${window.location.origin}/api/whatsapp/webhook` : 'https://suaclinica.com.br/api/whatsapp/webhook';
-                      navigator.clipboard.writeText(url);
-                      alert('URL do Webhook copiada com sucesso para a área de transferência!');
-                    }}
-                    className="px-3.5 py-2 bg-[#075e54] text-white rounded-lg text-xs font-bold hover:bg-[#128c7e] cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs"
-                  >
-                    <Copy className="w-3.5 h-3.5" /> Copiar URL
-                  </button>
-                </div>
-                <p className="text-[11px] text-emerald-800 leading-relaxed">
-                  💡 Esta URL deve ser cadastrada na plataforma da Meta Cloud API ou Evolution API para receber as mensagens enviadas pelos pacientes.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={() => alert('🧹 Reinstalação limpa da API realizada com sucesso! Conexão reiniciada e pronta.')}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-              >
-                <RefreshCw className="w-3.5 h-3.5" /> 🧹 Reinstalação Limpa do WhatsApp
-              </button>
-
-              <button
-                type="button"
-                onClick={() => alert('Credenciais da API WhatsApp salvas com sucesso!')}
-                className="px-5 py-2 bg-[#5a5a40] hover:bg-[#7a7a5a] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-              >
-                <Save className="w-3.5 h-3.5 text-[#d4a373]" /> Salvar Configuração da API
-              </button>
-            </div>
-          </div>
-
-          {/* Card de Suporte Técnico WhatsApp Oficial */}
-          <div className="bg-[#3b3b2a] text-white p-5 rounded-2xl border border-white/10 space-y-3 shadow-md">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#25D366]/20 flex items-center justify-center text-[#25D366]">
-                  <MessageCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
-                    Suporte WhatsApp DentisPro
-                  </h4>
-                  <p className="text-[11px] text-white/70">Atendimento e suporte técnico especializado</p>
-                </div>
-              </div>
-              <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-full">
-                <span className="w-2 h-2 rounded-full bg-[#25D366] animate-pulse" />
-                Online
-              </span>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-white/10">
-              <p className="text-white font-mono font-bold text-sm">
-                +55 (85) 98111-0826
-              </p>
-
-              <button 
-                type="button"
-                onClick={() => {
-                  window.open('https://wa.me/5585981110826?text=Ol%C3%A1%2C%20preciso%20de%20suporte%20no%20DentisPro', '_blank');
-                }}
-                className="bg-[#25D366] hover:bg-[#128C7E] text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-              >
-                <MessageCircle className="w-4 h-4 fill-white text-[#25D366]" />
-                Falar com Suporte no WhatsApp
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {activeSettingsTab === 'whatsapp_api' && <section className="bg-white border rounded-2xl p-6 space-y-3">
+        <h2 className="font-bold">Comunicação com pacientes</h2>
+        <p>O envio de códigos e notificações é configurado no servidor. Não há conexão automática de WhatsApp nem webhook de recebimento ativo nesta versão.</p>
+        <p>As credenciais ficam no servidor e não são armazenadas nestes formulários.</p>
+      </section>}
 
       {/* TAB: MODELOS DE DOCUMENTOS E TAGS SQL */}
       {activeSettingsTab === 'documentos' && (
@@ -1133,7 +941,10 @@ export const SettingsView: React.FC = () => {
                 onChange={(e) => handleSelectClinicDropdown(e.target.value)}
                 className="w-full bg-white border border-[#5a5a40]/30 rounded-xl px-3 py-2 text-xs font-bold text-[#2c2c2c] transition focus:outline-none focus:border-[#5a5a40] ring-1 ring-[#5a5a40]/10"
               >
-                {clinics.map((c) => (
+                {availableClinicsForSelectedDentist.length === 0 && (
+                  <option value="">Nenhuma unidade vinculada ao profissional</option>
+                )}
+                {availableClinicsForSelectedDentist.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name} {c.city ? `(${c.city})` : ''}
                   </option>
@@ -1311,32 +1122,7 @@ export const SettingsView: React.FC = () => {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1 flex items-center justify-between">
-                    <span className="flex items-center gap-1">
-                      <Lock className="w-3.5 h-3.5 text-[#d4a373]" />
-                      Senha de Acesso / Troca de Perfil *
-                    </span>
-                    <span className="text-[10px] text-gray-400">Proteção de troca</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showDentistPassword ? 'text' : 'password'}
-                      value={dentistPassword}
-                      onChange={(e) => setDentistPassword(e.target.value)}
-                      placeholder="Senha do profissional"
-                      className="w-full bg-white border border-[#e5e5d1] rounded-2xl pl-3 pr-10 py-2 text-xs text-[#2c2c2c] font-mono focus:outline-none focus:border-[#5a5a40]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowDentistPassword(!showDentistPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
-                      title={showDentistPassword ? 'Ocultar senha' : 'Ver senha'}
-                    >
-                      {showDentistPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
+                <p className="text-xs text-stone-600">Para redefinir sua senha, abra Sessão → Gestão de Senhas. A troca de profissional usa a senha da conta conectada.</p>
 
                 <div>
                   <label className="block text-xs font-semibold text-[#5a5a40] mb-1">CPF do Cirurgião-Dentista *</label>
@@ -1423,8 +1209,7 @@ export const SettingsView: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
                   {clinics.map((c) => {
-                    const isPrimary = dentistPrimaryClinicId === c.id;
-                    const isChecked = dentistClinicIds.includes(c.id) || isPrimary;
+                    const isChecked = dentistClinicIds.includes(c.id);
                     return (
                       <label
                         key={c.id}
@@ -1437,18 +1222,12 @@ export const SettingsView: React.FC = () => {
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          disabled={isPrimary}
                           onChange={(e) => handleToggleDentistClinic(c.id, e.target.checked)}
                           className="mt-0.5 rounded text-[#5a5a40] focus:ring-[#5a5a40]"
                         />
                         <div className="flex-1 min-w-0">
                           <p className="font-bold truncate text-[11.5px]">{c.name}</p>
                           <p className="text-[10px] text-stone-400">{c.city || c.address || 'Consultório'}</p>
-                          {isPrimary && (
-                            <span className="inline-block mt-1 text-[9px] font-bold text-[#5a5a40] bg-[#e5e5d1]/50 px-1.5 py-0.5 rounded border border-[#5a5a40]/30">
-                              ★ Unidade Principal
-                            </span>
-                          )}
                         </div>
                       </label>
                     );
@@ -1906,7 +1685,10 @@ export const SettingsView: React.FC = () => {
                     }}
                     className="w-full bg-white border border-[#5a5a40]/30 rounded-xl px-2.5 py-1.5 text-xs font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
                   >
-                    {clinics.map((c) => (
+                    {availableClinicsForSelectedDentist.length === 0 && (
+                      <option value="">Nenhuma unidade vinculada ao profissional</option>
+                    )}
+                    {availableClinicsForSelectedDentist.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
@@ -2576,7 +2358,7 @@ export const SettingsView: React.FC = () => {
 
       {/* SECTION 6: GESTÃO DE USUÁRIOS E PERMISSÕES */}
       {activeSettingsTab === 'usuarios' && (
-        <UserManagementSection />
+        <p>Use “Equipe e auditoria” no painel protegido para cadastrar e vincular usuários.</p>
       )}
 
       {/* QUICK ADD CLINIC MODAL */}

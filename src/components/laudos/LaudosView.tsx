@@ -1,3 +1,4 @@
+import { summarizeClinicalExam } from '../../utils/clinicalRecordSummary';
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
@@ -326,7 +327,7 @@ export const LaudosView: React.FC = () => {
           specialty: item.specialty || 'Clínica Geral',
           tussCode: item.tussCode || '81000030',
           severity: sev,
-          status: item.status || 'proposto',
+          status: item.status === 'pendente' ? 'proposto' : item.status || 'proposto',
           cost: item.finalCost || item.cost
         });
       });
@@ -446,39 +447,8 @@ export const LaudosView: React.FC = () => {
     patientAppts.forEach(a => addToDate(a.date, 'appts', a));
     patientEvos.forEach(e => addToDate(e.date, 'evos', e));
     patientPrescs.forEach(p => addToDate(p.date, 'prescs', p));
-    if (patientExamRecord && patientExamRecord.date) {
-      addToDate(patientExamRecord.date, 'exam', patientExamRecord);
-    }
-
-    // If patient has zero recorded events, create an initial entry
-    if (datesMap.size === 0) {
-      const todayStr = new Date().toISOString().split('T')[0];
-      datesMap.set(todayStr, {
-        appts: [{
-          id: `appt-init-${activePatient.id}`,
-          patientId: activePatient.id,
-          patientName: activePatient.name,
-          patientPhone: activePatient.phone,
-          dentistName: activeProfessionalEntity?.name || 'Dr. Hugo Andres Iglesias Ricoy',
-          clinicName: activeClinicEntity?.name || 'DentisPro Odontologia Especializada',
-          date: todayStr,
-          time: '09:00',
-          durationMinutes: 45,
-          procedure: 'Consulta Inicial / Diagnóstico e Plano de Tratamento',
-          status: 'concluido'
-        }],
-        evos: [{
-          id: `evo-init-${activePatient.id}`,
-          patientId: activePatient.id,
-          date: todayStr,
-          dentistName: activeProfessionalEntity?.name || 'Dr. Hugo Andres Iglesias Ricoy',
-          clinicName: activeClinicEntity?.name || 'DentisPro Odontologia Especializada',
-          procedure: 'Anamnese Completa e Exame Clínico Odontológico',
-          description: 'Realizada anamnese detalhada, inspeção extra e intraoral de tecidos moles e duros. Paciente orientado sobre o plano de tratamento proposto.',
-          status: 'concluido'
-        }],
-        prescs: []
-      });
+    if (patientExamRecord && patientExamRecord.updatedAt) {
+      addToDate(patientExamRecord.updatedAt, 'exam', patientExamRecord);
     }
 
     // Build consolidated list
@@ -511,13 +481,7 @@ export const LaudosView: React.FC = () => {
       if (activePatient?.anamnesis?.hasDiabetes) highlights.push('Diabetes Mellitus');
       if (activePatient?.anamnesis?.continuousMedication) highlights.push(`Medicação contínua: ${activePatient.anamnesis.continuousMedication}`);
 
-      // Exam notes
-      let examNotes = '';
-      if (data.exam) {
-        examNotes = `Inspeção clínica de tecidos moles e mucosas íntegras. Higiene bucal: ${data.exam.oralHygiene || 'Adequada'}. Oclusão: ${data.exam.occlusion || 'Classe I'}. Risco periodontal: ${data.exam.periodontalRisk || 'Baixo'}.`;
-      } else {
-        examNotes = 'Exame intraoral e extraoral executado. Tecidos moles normocorados e sem lesões visíveis. Higiene oral supervisionada.';
-      }
+      const examNotes = summarizeClinicalExam(data.exam);
 
       // Associated Treatment plan
       const associatedPlan = patientPlans.find(p => p.date === dateKey) || patientPlans[0] || null;
@@ -725,14 +689,13 @@ export const LaudosView: React.FC = () => {
 
     if (selectedSectionsForPrint.exameClinico) {
       text += `EXAME CLÍNICO EXTRAORAL, INTRAORAL E PERIODONTAL:\n`;
-      text += `Índice de Higiene: ${patientExam?.oralHygiene || 'Adequado'}\n`;
-      text += `Oclusão: ${patientExam?.occlusion || 'Classe I de Angle'}\n\n`;
+      text += summarizeClinicalExam(patientExam) + '\n\n';
     }
 
     if (selectedSectionsForPrint.tratamentosRealizados) {
       text += `TRATAMENTOS REALIZADOS:\n`;
       if (consolidatedTreatments.length === 0) {
-        text += `Elementos avaliados apresentam-se hígidos.\n\n`;
+        text += `Nenhum tratamento realizado registrado.\n\n`;
       } else {
         consolidatedTreatments.forEach(t => {
           text += `  - Dente ${t.toothNumber}: ${t.label}\n`;
@@ -1549,7 +1512,7 @@ export const LaudosView: React.FC = () => {
                 <div className="bg-white p-3 rounded-xl border border-blue-100 space-y-1">
                   <span className="font-bold text-blue-950 block text-[11px]">1. Tecidos Moles e Mucosas:</span>
                   <p className="text-stone-700 leading-relaxed text-[11px]">
-                    Lábios, mucosa jugal, assoalho bucal, palato duro e mole e língua sem alterações patológicas, feridas ou lesões suspeitas detectadas.
+                    {patientExam?.intraoral?.buccalMucosa || 'Mucosa bucal: não informado.'}
                   </p>
                 </div>
 
@@ -1557,7 +1520,7 @@ export const LaudosView: React.FC = () => {
                 <div className="bg-white p-3 rounded-xl border border-blue-100 space-y-1">
                   <span className="font-bold text-blue-950 block text-[11px]">2. Periodontia e Higiene Oral:</span>
                   <p className="text-stone-700 leading-relaxed text-[11px]">
-                    Índice de placa: {patientExam?.oralHygiene || 'Adequado'}. Sangramento à sondagem pontual. Ausência de bolsas periodontais profundas generalizadas.
+                    {patientExam?.intraoral?.gingivaPeriodontum || 'Condição periodontal não registrada.'}
                   </p>
                 </div>
 
@@ -1565,7 +1528,7 @@ export const LaudosView: React.FC = () => {
                 <div className="bg-white p-3 rounded-xl border border-blue-100 space-y-1">
                   <span className="font-bold text-blue-950 block text-[11px]">3. Oclusão e Relação Intermaxilar:</span>
                   <p className="text-stone-700 leading-relaxed text-[11px]">
-                    {patientExam?.occlusion ? `Relação oclusal: ${patientExam.occlusion}.` : 'Relação canina e molar Classe I de Angle.'} Guia canina funcional, sem interferências excêntricas graves.
+                    Avaliação oclusal não registrada neste exame.
                   </p>
                 </div>
               </div>
