@@ -49,5 +49,5 @@ definitions.InsuranceGuide.properties.patientId={kind:'string'};
 definitions.InsuranceGuide.required.push('patientId');
 const output=JSON.stringify({version:1,roots,definitions},null,2)+'\n';
 const target=new URL('../server/security/clinical-schema.json',import.meta.url);
-if(process.argv.includes('--check')){if(readFileSync(target,'utf8')!==output)throw Error('Clinical schema is stale: node scripts/clinical-schema.mjs');}
+if(process.argv.includes('--check')){if(readFileSync(target,'utf8').replace(/\r\n/g,'\n')!==output)throw Error('Clinical schema is stale: node scripts/clinical-schema.mjs');}
 else writeFileSync(target,output);
