@@ -72,3 +72,16 @@ export async function fetchUserListSafely<T>(fetchUsers: () => Promise<T[]>): Pr
     return { ok: false };
   }
 }
+
+
+export type PasswordResetFailureKind = 'network' | 'service' | 'unknown';
+
+export function classifyPasswordResetFailure(error: unknown): PasswordResetFailureKind {
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code || '')
+    : '';
+
+  if (code === 'auth/network-request-failed') return 'network';
+  if (['auth/too-many-requests', 'auth/internal-error'].includes(code)) return 'service';
+  return 'unknown';
+}
