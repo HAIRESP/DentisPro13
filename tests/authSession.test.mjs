@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { withDeadline, validateSessionProfile, canSelectProfessional, sanitizeProfileWrite, classifyLoginFailure, classifyProfileFailure } from '../src/utils/authSession.ts';
+import { withDeadline, validateSessionProfile, canSelectProfessional, sanitizeProfileWrite, classifyLoginFailure, classifyProfileFailure, fetchUserListSafely } from '../src/utils/authSession.ts';
 
 const user = { uid: 'real-user', email: 'user@example.test' };
 const profile = { uid: user.uid, name: 'Test', role: 'admin' };
@@ -57,4 +57,13 @@ test('profile confirmation failures distinguish timeout, invalid profile and inf
   assert.equal(classifyProfileFailure({ code: 'permission-denied' }), 'permission');
   assert.equal(classifyProfileFailure({ code: 'unavailable' }), 'network');
   assert.equal(classifyProfileFailure(new Error('unexpected')), 'unknown');
+});
+
+
+test('user list fetch failures are contained without inventing an empty list', async () => {
+  const failed = await fetchUserListSafely(async () => { throw new Error('firestore-unavailable'); });
+  assert.deepEqual(failed, { ok: false });
+
+  const users = [{ uid: 'u1' }];
+  assert.deepEqual(await fetchUserListSafely(async () => users), { ok: true, users });
 });
