@@ -18,7 +18,7 @@ import {
   onAuthStateChanged, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, getDocFromServer } from 'firebase/firestore';
-import { withDeadline, validateSessionProfile, canSelectProfessional, classifyLoginFailure } from '../utils/authSession';
+import { withDeadline, validateSessionProfile, canSelectProfessional, classifyLoginFailure, classifyProfileFailure } from '../utils/authSession';
 
 interface AuthContextType {
   currentUser: UserProfile | null;
@@ -152,10 +152,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (version !== sessionVersion.current || auth.currentUser?.uid !== signedInUser.uid) return false;
       setCurrentUser(profile);
       return true;
-    } catch {
+    } catch (error) {
+      const failure = classifyProfileFailure(error);
+      console.error('Falha ao confirmar perfil após autenticação:', failure);
       if (auth.currentUser?.uid === signedInUser.uid) {
         setCurrentUser(null);
-        setAuthError(`E-mail e senha aceitos, mas o perfil de acesso não pôde ser confirmado. Confira a conexão e o documento users/${signedInUser.uid} no Firestore (uid e role).`);
+        setAuthError(failure === 'timeout' || failure === 'network'
+          ? 'E-mail e senha aceitos, mas não foi possível confirmar o perfil por um problema de conexão. Tente novamente.'
+          : failure === 'invalid-profile' || failure === 'permission'
+            ? 'E-mail e senha aceitos, mas o perfil de acesso não está disponível ou não pôde ser validado. Solicite a verificação do cadastro.'
+            : 'E-mail e senha aceitos, mas o perfil de acesso não pôde ser confirmado. Tente novamente.');
       }
       return false;
     }
