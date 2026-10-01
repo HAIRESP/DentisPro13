@@ -93,7 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!disposed && version === sessionVersion.current && auth.currentUser?.uid === fbUser.uid) {
           setCurrentUser(profile);
         }
-      } catch {
+      } catch (error) {
+        console.error('Falha ao confirmar perfil da sessão:', error);
         if (!disposed && version === sessionVersion.current) {
           setAuthError('Não foi possível confirmar seu perfil. Confira a conexão e tente entrar novamente.');
         }
