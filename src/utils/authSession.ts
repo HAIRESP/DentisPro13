@@ -63,3 +63,12 @@ export function classifyProfileFailure(error: unknown): ProfileFailureKind {
   if (code === 'unavailable' || code === 'firestore/unavailable') return 'network';
   return 'unknown';
 }
+
+
+export async function fetchUserListSafely<T>(fetchUsers: () => Promise<T[]>): Promise<{ ok: true; users: T[] } | { ok: false }> {
+  try {
+    return { ok: true, users: await fetchUsers() };
+  } catch {
+    return { ok: false };
+  }
+}
