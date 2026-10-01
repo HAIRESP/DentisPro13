@@ -31,3 +31,19 @@ export function canSelectProfessional(profile: { role: string; professionalId?: 
 export function sanitizeProfileWrite(profile: Record<string, unknown>) {
   return Object.fromEntries(Object.entries(profile).filter(([key, value]) => key !== 'password' && value !== undefined));
 }
+
+
+export type LoginFailureKind = 'credentials' | 'network' | 'service' | 'unknown';
+
+export function classifyLoginFailure(error: unknown): LoginFailureKind {
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code || '')
+    : '';
+
+  if (['auth/invalid-credential', 'auth/invalid-login-credentials', 'auth/wrong-password', 'auth/user-not-found'].includes(code)) {
+    return 'credentials';
+  }
+  if (code === 'auth/network-request-failed') return 'network';
+  if (['auth/too-many-requests', 'auth/internal-error'].includes(code)) return 'service';
+  return 'unknown';
+}
