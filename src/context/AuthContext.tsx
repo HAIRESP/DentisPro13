@@ -18,7 +18,7 @@ import {
   onAuthStateChanged, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, getDocFromServer } from 'firebase/firestore';
-import { withDeadline, validateSessionProfile, canSelectProfessional } from '../utils/authSession';
+import { withDeadline, validateSessionProfile, canSelectProfessional, classifyLoginFailure } from '../utils/authSession';
 
 interface AuthContextType {
   currentUser: UserProfile | null;
@@ -134,8 +134,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let signedInUser;
     try {
       signedInUser = (await signInWithEmailAndPassword(auth, email.trim(), pass)).user;
-    } catch {
-      setAuthError('Não foi possível entrar. Confira o e-mail, a senha e a conexão. Se o navegador preencheu outra conta, substitua os dois campos.');
+    } catch (error) {
+      const failure = classifyLoginFailure(error);
+      if (failure !== 'credentials') {
+        console.error('Falha operacional durante autenticação:', failure, error);
+      }
+      setAuthError(failure === 'network'
+        ? 'Não foi possível conectar ao serviço de autenticação. Confira sua conexão e tente novamente.'
+        : failure === 'service'
+          ? 'O serviço de autenticação não está disponível no momento. Tente novamente em instantes.'
+          : 'Não foi possível entrar. Confira o e-mail e a senha. Se o navegador preencheu outra conta, substitua os dois campos.');
       return false;
     }
     const version = sessionVersion.current;
