@@ -47,3 +47,19 @@ export function classifyLoginFailure(error: unknown): LoginFailureKind {
   if (['auth/too-many-requests', 'auth/internal-error'].includes(code)) return 'service';
   return 'unknown';
 }
+
+
+export type ProfileFailureKind = 'timeout' | 'invalid-profile' | 'permission' | 'network' | 'unknown';
+
+export function classifyProfileFailure(error: unknown): ProfileFailureKind {
+  const message = error instanceof Error ? error.message : '';
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code || '')
+    : '';
+
+  if (message === 'profile-timeout') return 'timeout';
+  if (message === 'invalid-session-profile') return 'invalid-profile';
+  if (code === 'permission-denied' || code === 'firestore/permission-denied') return 'permission';
+  if (code === 'unavailable' || code === 'firestore/unavailable') return 'network';
+  return 'unknown';
+}
