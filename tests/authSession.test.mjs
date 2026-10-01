@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { withDeadline, validateSessionProfile, canSelectProfessional, sanitizeProfileWrite, classifyLoginFailure, classifyProfileFailure, fetchUserListSafely } from '../src/utils/authSession.ts';
+import { withDeadline, validateSessionProfile, canSelectProfessional, sanitizeProfileWrite, classifyLoginFailure, classifyProfileFailure, fetchUserListSafely, classifyPasswordResetFailure } from '../src/utils/authSession.ts';
 
 const user = { uid: 'real-user', email: 'user@example.test' };
 const profile = { uid: user.uid, name: 'Test', role: 'admin' };
@@ -66,4 +66,11 @@ test('user list fetch failures are contained without inventing an empty list', a
 
   const users = [{ uid: 'u1' }];
   assert.deepEqual(await fetchUserListSafely(async () => users), { ok: true, users });
+});
+
+
+test('password reset failures distinguish operational causes without exposing account details', () => {
+  assert.equal(classifyPasswordResetFailure({ code: 'auth/network-request-failed' }), 'network');
+  assert.equal(classifyPasswordResetFailure({ code: 'auth/too-many-requests' }), 'service');
+  assert.equal(classifyPasswordResetFailure(new Error('unexpected')), 'unknown');
 });
