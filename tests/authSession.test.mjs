@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { withDeadline, validateSessionProfile, canSelectProfessional, sanitizeProfileWrite, classifyLoginFailure } from '../src/utils/authSession.ts';
+import { withDeadline, validateSessionProfile, canSelectProfessional, sanitizeProfileWrite, classifyLoginFailure, classifyProfileFailure } from '../src/utils/authSession.ts';
 
 const user = { uid: 'real-user', email: 'user@example.test' };
 const profile = { uid: user.uid, name: 'Test', role: 'admin' };
@@ -48,4 +48,13 @@ test('login failures distinguish credentials from operational failures without e
   assert.equal(classifyLoginFailure({ code: 'auth/network-request-failed' }), 'network');
   assert.equal(classifyLoginFailure({ code: 'auth/too-many-requests' }), 'service');
   assert.equal(classifyLoginFailure(new Error('unexpected')), 'unknown');
+});
+
+
+test('profile confirmation failures distinguish timeout, invalid profile and infrastructure errors', () => {
+  assert.equal(classifyProfileFailure(new Error('profile-timeout')), 'timeout');
+  assert.equal(classifyProfileFailure(new Error('invalid-session-profile')), 'invalid-profile');
+  assert.equal(classifyProfileFailure({ code: 'permission-denied' }), 'permission');
+  assert.equal(classifyProfileFailure({ code: 'unavailable' }), 'network');
+  assert.equal(classifyProfileFailure(new Error('unexpected')), 'unknown');
 });
