@@ -18,7 +18,7 @@ import {
   onAuthStateChanged, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, getDocFromServer } from 'firebase/firestore';
-import { withDeadline, validateSessionProfile, canSelectProfessional, classifyLoginFailure, classifyProfileFailure } from '../utils/authSession';
+import { withDeadline, validateSessionProfile, canSelectProfessional, classifyLoginFailure, classifyProfileFailure, fetchUserListSafely } from '../utils/authSession';
 
 interface AuthContextType {
   currentUser: UserProfile | null;
@@ -120,8 +120,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const version = sessionVersion.current;
     if (!user || !currentUser) { setAllUsers([]); return; }
     if (currentUser.role !== 'admin') { setAllUsers([currentUser]); return; }
-    const users = await fetchAllUsersFromFirestore();
-    if (version === sessionVersion.current && auth.currentUser?.uid === user.uid) setAllUsers(users);
+    const result = await fetchUserListSafely(fetchAllUsersFromFirestore);
+    if (!result.ok) {
+      console.error('Falha ao atualizar a lista de usuários.');
+      return;
+    }
+    if (version === sessionVersion.current && auth.currentUser?.uid === user.uid) setAllUsers(result.users);
   };
 
   const loginWithDemoUser = (_role: UserRole) => {
