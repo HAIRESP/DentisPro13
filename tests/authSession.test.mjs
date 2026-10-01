@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { withDeadline, validateSessionProfile, canSelectProfessional, sanitizeProfileWrite } from '../src/utils/authSession.ts';
+import { withDeadline, validateSessionProfile, canSelectProfessional, sanitizeProfileWrite, classifyLoginFailure } from '../src/utils/authSession.ts';
 
 const user = { uid: 'real-user', email: 'user@example.test' };
 const profile = { uid: user.uid, name: 'Test', role: 'admin' };
@@ -40,4 +40,12 @@ test('profile writes discard passwords and undefined fields, preserving valid va
   const input = { uid: 'u', password: 'secret', cro: undefined, active: false, name: '' };
   assert.deepEqual(sanitizeProfileWrite(input), { uid: 'u', active: false, name: '' });
   assert.equal(input.password, 'secret');
+});
+
+
+test('login failures distinguish credentials from operational failures without exposing details', () => {
+  assert.equal(classifyLoginFailure({ code: 'auth/invalid-credential' }), 'credentials');
+  assert.equal(classifyLoginFailure({ code: 'auth/network-request-failed' }), 'network');
+  assert.equal(classifyLoginFailure({ code: 'auth/too-many-requests' }), 'service');
+  assert.equal(classifyLoginFailure(new Error('unexpected')), 'unknown');
 });
