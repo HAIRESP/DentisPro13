@@ -18,7 +18,7 @@ import {
   onAuthStateChanged, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, getDocFromServer } from 'firebase/firestore';
-import { withDeadline, validateSessionProfile, canSelectProfessional, classifyLoginFailure, classifyProfileFailure, fetchUserListSafely } from '../utils/authSession';
+import { withDeadline, validateSessionProfile, canSelectProfessional, classifyLoginFailure, classifyProfileFailure, fetchUserListSafely, classifyPasswordResetFailure } from '../utils/authSession';
 
 interface AuthContextType {
   currentUser: UserProfile | null;
@@ -252,7 +252,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await sendPasswordResetEmail(auth, user.email);
       return true;
-    } catch { return false; }
+    } catch (error) {
+      const failure = classifyPasswordResetFailure(error);
+      console.error('Falha ao solicitar redefinição de senha:', failure);
+      return false;
+    }
   };
 
   const verifyPasswordForProfessionalOrUser = async (target: string, password: string): Promise<boolean> => {
