@@ -1,3 +1,5 @@
+import type { MaterialTemplates } from '../utils/appointmentMaterials';
+import type { createAppointmentStockStore } from '../utils/appointmentStockStore';
 import { useAppointmentStockStore } from './useAppointmentStockStore';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
@@ -136,7 +138,9 @@ export interface AppContextType {
   
   // Inventory
   inventory: InventoryItem[];
-  deductAppointmentStock: (appointmentId: string, items: Array<{ itemId: string; qty: number }>) => Promise<void>;
+  materialTemplates: MaterialTemplates;
+  saveAppointmentMaterials: ReturnType<typeof createAppointmentStockStore>['saveMaterials'];
+  deductAppointmentStock: ReturnType<typeof createAppointmentStockStore>['deduct'];
   addInventoryItem: (item: Omit<InventoryItem, 'id' | 'lastUpdated'>) => void;
   importInventoryBatch: (items: Omit<InventoryItem, 'id' | 'lastUpdated'>[]) => void;
   updateInventoryItem: (id: string, item: Partial<InventoryItem>) => void;
@@ -328,7 +332,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const {
     appointments, inventory, setAppointments, setInventory,
-    deductAppointmentStock, replaceStockData
+    deductAppointmentStock, saveAppointmentMaterials, materialTemplates, replaceStockData
   } = useAppointmentStockStore(INITIAL_APPOINTMENTS, INITIAL_INVENTORY);
   const [financials, setFinancials] = useState<FinancialTransaction[]>(() => {
     const list = loadInitial<FinancialTransaction[]>(STORAGE_KEYS.FINANCIAL, INITIAL_FINANCIAL);
@@ -1159,7 +1163,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setActiveClinicId('todas');
     setLayoutTheme('natural');
     setPatients([...INITIAL_PATIENTS].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })));
-    replaceStockData({ appointments: [...INITIAL_APPOINTMENTS], inventory: [...INITIAL_INVENTORY] });
+    replaceStockData({ appointments: [...INITIAL_APPOINTMENTS], inventory: [...INITIAL_INVENTORY], materialTemplates: {} });
     setFinancials([...INITIAL_FINANCIAL].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setPrescriptions([...INITIAL_PRESCRIPTIONS].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setOdontograms(INITIAL_ODONTOGRAM_DATA);
@@ -1208,6 +1212,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       patients,
       appointments,
       inventory,
+      materialTemplates: materialTemplates || {},
       financials,
       prescriptions,
       odontograms,
@@ -1260,7 +1265,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (Array.isArray(data.appointments) || Array.isArray(data.inventory)) {
         replaceStockData({
           ...(Array.isArray(data.appointments) ? { appointments: data.appointments } : {}),
-          ...(Array.isArray(data.inventory) ? { inventory: data.inventory } : {})
+          ...(Array.isArray(data.inventory) ? { inventory: data.inventory } : {}),
+          ...(data.materialTemplates && typeof data.materialTemplates === 'object' && !Array.isArray(data.materialTemplates) && Object.values(data.materialTemplates).every(Array.isArray) ? { materialTemplates: data.materialTemplates } : {})
         });
       }
       if (data.financials && Array.isArray(data.financials)) {
@@ -1351,6 +1357,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateInventoryItem,
         adjustStockQuantity,
         deductAppointmentStock,
+        saveAppointmentMaterials,
+        materialTemplates: materialTemplates || {},
         deleteInventoryItem,
         clearInventory,
         financials,

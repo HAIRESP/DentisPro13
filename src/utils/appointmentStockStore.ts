@@ -1,4 +1,6 @@
-import type { Appointment, InventoryItem } from '../types';
+import { materialTemplateKey, validateMaterialRequirements } from './appointmentMaterials';
+import type { MaterialTemplates, MaterialSaveScope } from './appointmentMaterials';
+import type { Appointment, InventoryItem, ProcedureMaterialRequirement } from '../types';
 import { prepareAppointmentStockDeduction } from './appointmentStockDeduction';
 import { normalizeStockUnit, resolveStockUsage } from './stockUnits';
 import type { StockDeductionRequest } from './stockUnits';
@@ -9,6 +11,7 @@ export interface StockSnapshot {
   version: 1;
   appointments: Appointment[];
   inventory: InventoryItem[];
+  materialTemplates?: MaterialTemplates;
 }
 type StoragePort = Pick<Storage, 'getItem' | 'setItem'>;
 export type ExclusiveLock = (action: () => void) => Promise<void>;
@@ -26,6 +29,9 @@ export function readStockSnapshot(storage: StoragePort, defaults: StockSnapshot)
     const value = JSON.parse(raw) as StockSnapshot;
     if (!value || value.version !== 1 || !Array.isArray(value.appointments) || !Array.isArray(value.inventory)) {
       throw new Error('Registro local de estoque inválido. Não foi substituído por dados de demonstração.');
+    }
+    if (value.materialTemplates !== undefined && (!value.materialTemplates || Array.isArray(value.materialTemplates) || typeof value.materialTemplates !== 'object' || Object.values(value.materialTemplates).some(list => !Array.isArray(list)))) {
+      throw new Error('Listas de materiais inválidas.');
     }
     return value;
   }
@@ -73,11 +79,30 @@ export function createAppointmentStockStore(storage: StoragePort, lock: Exclusiv
     setInventory: (update: Update<InventoryItem[]>) => transact(current => ({
       ...current, inventory: resolve(update, current.inventory)
     })),
-    replaceData: (data: Partial<Pick<StockSnapshot, 'appointments' | 'inventory'>>) =>
+    replaceData: (data: Partial<Pick<StockSnapshot, 'appointments' | 'inventory' | 'materialTemplates'>>) =>
       transact(current => ({ ...current, ...data, version: 1 })),
-    deduct: (appointmentId: string, items: StockDeductionRequest[]) => transact(current => {
+    saveMaterials: (appointmentId: string, materials: ProcedureMaterialRequirement[], scope: MaterialSaveScope, expected: string) => transact(current => {
       const appointment = current.appointments.find(entry => entry.id === appointmentId);
       if (!appointment) throw new Error('Atendimento não encontrado.');
+      if (appointment.stockDeduction) throw new Error('Este atendimento já possui uma baixa registrada. A lista está bloqueada.');
+      const key = materialTemplateKey(appointment);
+      const revision = JSON.stringify([appointment.customRequiredMaterials, current.materialTemplates?.[key]]);
+      if (revision !== expected) throw new Error('A lista foi alterada em outra janela. Feche e reabra para conferir os dados atuais.');
+      validateMaterialRequirements(materials, current.inventory, appointment);
+      const saved = structuredClone(materials);
+      return {
+        ...current,
+        appointments: current.appointments.map(entry => entry.id === appointmentId ? { ...entry, customRequiredMaterials: saved } : entry),
+        ...(scope === 'procedure' ? { materialTemplates: { ...current.materialTemplates, [key]: saved } } : {})
+      };
+    }),
+    deduct: (appointmentId: string, items: StockDeductionRequest[], expectedMaterials?: string) => transact(current => {
+      const appointment = current.appointments.find(entry => entry.id === appointmentId);
+      if (!appointment) throw new Error('Atendimento não encontrado.');
+      const template = current.materialTemplates?.[materialTemplateKey(appointment)];
+      if (expectedMaterials !== undefined && JSON.stringify([appointment.customRequiredMaterials, template]) !== expectedMaterials) {
+        throw new Error('A lista foi alterada em outra janela. Feche e reabra antes de dar baixa.');
+      }
       // Revalidate units against the latest data while holding the same write lock.
       const validatedItems = items.map(request => {
         if (!request.consumption) return { itemId: request.itemId, qty: request.qty };
@@ -92,6 +117,9 @@ export function createAppointmentStockStore(storage: StoragePort, lock: Exclusiv
         return { itemId: request.itemId, qty: conversion.quantity };
       });
       const { updatedInventory, updatedAppointment } = prepareAppointmentStockDeduction(appointment, current.inventory, validatedItems);
+      if (!updatedAppointment.customRequiredMaterials && template) {
+        updatedAppointment.customRequiredMaterials = structuredClone(template);
+      }
       updatedAppointment.stockDeduction = {
         ...updatedAppointment.stockDeduction!,
         items: updatedAppointment.stockDeduction!.items.map(receipt => {
@@ -108,6 +136,7 @@ export function createAppointmentStockStore(storage: StoragePort, lock: Exclusiv
         })
       };
       return {
+        ...current,
         version: 1,
         inventory: updatedInventory,
         appointments: current.appointments.map(entry => entry.id === appointmentId ? updatedAppointment : entry)

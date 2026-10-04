@@ -1,3 +1,7 @@
+import { findMaterialProcedure, isMaterialInScope, isReusableMaterial, materialTemplateKey } from '../../utils/appointmentMaterials';
+import type { MaterialTemplates } from '../../utils/appointmentMaterials';
+import { resolveStockUsage } from '../../utils/stockUnits';
+import { getItemReadinessInfo } from '../../utils/inventoryReadiness';
 import React, { useState } from 'react';
 import { 
   Appointment, 
@@ -28,6 +32,7 @@ interface DailyClinicMaterialsReportModalProps {
   clinics: ClinicUnit[];
   professionals: Professional[];
   onClose: () => void;
+  materialTemplates: MaterialTemplates;
 }
 
 export const DailyClinicMaterialsReportModal: React.FC<DailyClinicMaterialsReportModalProps> = ({
@@ -36,7 +41,8 @@ export const DailyClinicMaterialsReportModal: React.FC<DailyClinicMaterialsRepor
   tussProcedures,
   clinics,
   professionals,
-  onClose
+  onClose,
+  materialTemplates
 }) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(todayStr);
@@ -67,35 +73,16 @@ export const DailyClinicMaterialsReportModal: React.FC<DailyClinicMaterialsRepor
 
   filteredAppointments.forEach(apt => {
     // Determine procedure requirement list
-    const procLower = apt.procedure.toLowerCase();
-    const matchingTuss = tussProcedures.find(t => 
-      t.code === apt.tussCode || 
-      t.description.toLowerCase().includes(procLower) ||
-      procLower.includes(t.description.toLowerCase())
-    );
-
-    const baseList = apt.customRequiredMaterials || (matchingTuss?.requiredMaterials && matchingTuss.requiredMaterials.length > 0 ? matchingTuss.requiredMaterials : []);
-
-    // Fallback if no specific list found
-    const listToUse = baseList.length > 0 ? baseList : [
-      { id: 'def-1', materialName: 'Anestésico Local', quantityNeeded: 1, unit: 'tubete' },
-      { id: 'def-2', materialName: 'Agulha Gengival', quantityNeeded: 1, unit: 'unidade' },
-      { id: 'def-3', materialName: 'Sugador Odontológico Descartável', quantityNeeded: 2, unit: 'unidade' },
-      { id: 'def-4', materialName: 'Luvas de Procedimento', quantityNeeded: 1, unit: 'par' },
-    ];
+    const matchingTuss = findMaterialProcedure(apt, tussProcedures);
+    const listToUse = apt.customRequiredMaterials ?? materialTemplates[materialTemplateKey(apt)] ?? matchingTuss?.requiredMaterials ?? [];
 
     listToUse.forEach(req => {
-      const key = req.materialName.toLowerCase().trim();
-
-      // Scoped stock check for this specific material
-      const matchingInventory = inventory.filter(i => {
-        // Strict scope check
-        if (i.ownerScope === 'clinica' && apt.clinicId && i.clinicId && i.clinicId !== apt.clinicId) return false;
-        if (i.ownerScope === 'profissional' && apt.professionalId && i.professionalId && i.professionalId !== apt.professionalId) return false;
-        return i.name.toLowerCase().includes(key) || key.includes(i.name.toLowerCase());
-      });
-
-      const scopedStockQty = matchingInventory.reduce((acc, curr) => acc + curr.quantity, 0);
+      const product = inventory.find(item => item.id === req.inventoryItemId && isMaterialInScope(item, apt));
+      const key = JSON.stringify([product?.id || materialTemplateKey(apt) + req.materialName, req.unit]);
+      const conversion = product && !isReusableMaterial(product) ? resolveStockUsage(product, 1, req.unit) : undefined;
+      const scopedStockQty = product && getItemReadinessInfo(product).isReady
+        ? (isReusableMaterial(product) ? product.quantity : conversion?.ok ? product.quantity / conversion.quantity : 0)
+        : 0;
 
       if (!aggregatedMap[key]) {
         let ownerTag = 'Geral';
@@ -108,7 +95,7 @@ export const DailyClinicMaterialsReportModal: React.FC<DailyClinicMaterialsRepor
         }
 
         aggregatedMap[key] = {
-          materialName: req.materialName,
+          materialName: product?.name || req.materialName,
           totalQuantityNeeded: 0,
           unit: req.unit,
           ownerScopeTag: ownerTag,

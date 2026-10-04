@@ -1,4 +1,4 @@
-import { InventoryItem } from '../types';
+import type { InventoryItem } from '../types';
 
 export type ReadinessInfo = {
   isReady: boolean;

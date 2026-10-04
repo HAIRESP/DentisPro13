@@ -41,6 +41,8 @@ export const AppointmentCalendar: React.FC = () => {
     clinicalEvolutions,
     adjustStockQuantity,
     deductAppointmentStock,
+    saveAppointmentMaterials,
+    materialTemplates,
     activeClinicId,
     setActiveClinicId,
     addAppointment, 
@@ -753,6 +755,7 @@ export const AppointmentCalendar: React.FC = () => {
       {/* Daily Clinic Materials Report Modal */}
       {isDailyReportOpen && (
         <DailyClinicMaterialsReportModal
+          materialTemplates={materialTemplates}
           appointments={appointments}
           inventory={inventory}
           tussProcedures={tussProcedures}
@@ -765,14 +768,17 @@ export const AppointmentCalendar: React.FC = () => {
       {/* Single Appointment Materials Report Modal */}
       {selectedAptForReport && (
         <AppointmentMaterialsReportModal
+          key={selectedAptForReport.id}
+          materialTemplates={materialTemplates}
+          onSaveMaterials={(materials, scope, expected) => saveAppointmentMaterials(selectedAptForReport.id, materials, scope, expected)}
           appointment={appointments.find(item => item.id === selectedAptForReport.id) || selectedAptForReport}
           inventory={inventory}
           tussProcedures={tussProcedures}
           clinics={clinics}
           professionals={professionals}
           onClose={() => setSelectedAptForReport(null)}
-          onDeductStock={(materialsToDeduct) =>
-            deductAppointmentStock(selectedAptForReport.id, materialsToDeduct)
+          onDeductStock={(materialsToDeduct, expectedMaterials) =>
+            deductAppointmentStock(selectedAptForReport.id, materialsToDeduct, expectedMaterials)
           }
         />
       )}

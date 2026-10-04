@@ -72,6 +72,8 @@ type InventoryDomain = Pick<
   | 'updateInventoryItem'
   | 'adjustStockQuantity'
   | 'deductAppointmentStock'
+  | 'saveAppointmentMaterials'
+  | 'materialTemplates'
   | 'deleteInventoryItem'
   | 'clearInventory'
 >;
@@ -199,9 +201,11 @@ export const DomainProviders: React.FC<{ children: React.ReactNode }> = ({ child
     updateInventoryItem: app.updateInventoryItem,
     adjustStockQuantity: app.adjustStockQuantity,
     deductAppointmentStock: app.deductAppointmentStock,
+    saveAppointmentMaterials: app.saveAppointmentMaterials,
+    materialTemplates: app.materialTemplates,
     deleteInventoryItem: app.deleteInventoryItem,
     clearInventory: app.clearInventory
-  }), [app.inventory]);
+  }), [app.inventory, app.materialTemplates]);
 
   const financeDomain = useMemo<FinanceDomain>(() => ({
     financials: app.financials,

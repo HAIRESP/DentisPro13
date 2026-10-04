@@ -34,6 +34,7 @@ export function useAppointmentStockStore(defaultAppointments: Appointment[], def
   return {
     ...snapshot, setAppointments, setInventory,
     deductAppointmentStock: store.deduct,
+    saveAppointmentMaterials: store.saveMaterials,
     replaceStockData: (data: Parameters<typeof store.replaceData>[0]) => {
       void store.replaceData(data).catch(reportError);
     }

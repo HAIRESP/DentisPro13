@@ -244,7 +244,9 @@ export const InventoryManager: React.FC = () => {
     importInventoryBatch,
     updateInventoryItem, 
     adjustStockQuantity,
-    deductAppointmentStock, 
+    deductAppointmentStock,
+    saveAppointmentMaterials,
+    materialTemplates,
     deleteInventoryItem, 
     clearInventory
   } = useInventoryDomain();
@@ -5558,6 +5560,7 @@ export const InventoryManager: React.FC = () => {
       {/* Daily Clinic Materials Report Modal */}
       {isDailyReportModalOpen && (
         <DailyClinicMaterialsReportModal
+          materialTemplates={materialTemplates}
           appointments={appointments}
           inventory={inventory}
           tussProcedures={tussProcedures}
@@ -5580,14 +5583,17 @@ export const InventoryManager: React.FC = () => {
       {/* Single Appointment Materials Report Modal */}
       {selectedAppointmentForReport && (
         <AppointmentMaterialsReportModal
+          key={selectedAppointmentForReport.id}
+          materialTemplates={materialTemplates}
+          onSaveMaterials={(materials, scope, expected) => saveAppointmentMaterials(selectedAppointmentForReport.id, materials, scope, expected)}
           appointment={appointments.find(item => item.id === selectedAppointmentForReport.id) || selectedAppointmentForReport}
           inventory={inventory}
           tussProcedures={tussProcedures}
           clinics={clinics}
           professionals={professionals}
           onClose={() => setSelectedAppointmentForReport(null)}
-          onDeductStock={(materialsToDeduct) =>
-            deductAppointmentStock(selectedAppointmentForReport.id, materialsToDeduct)
+          onDeductStock={(materialsToDeduct, expectedMaterials) =>
+            deductAppointmentStock(selectedAppointmentForReport.id, materialsToDeduct, expectedMaterials)
           }
         />
       )}
