@@ -316,6 +316,7 @@ export const ProcedureProtocolManager: React.FC = () => {
         addTussProcedure({
           code: row.code,
           description: row.description,
+          fullDescription: row.description,
           specialty: row.specialty || 'Dentística & Estética',
           suggestedCost: row.price,
           prices: { [importingConvenioId]: row.price },
@@ -2501,3 +2502,4 @@ export const ProcedureProtocolManager: React.FC = () => {
     </div>
   );
 };
+// DentisPro: correcao-lint50-v1

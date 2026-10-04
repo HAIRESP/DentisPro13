@@ -1,3 +1,5 @@
+import { authenticatedFetch } from './authenticatedFetch';
+import type { AIProvider } from '../context/AppContext';
 import { ToothConditionType, ToothSurface } from '../types';
 
 export interface VoiceOdontogramResult {
@@ -235,13 +237,14 @@ export function parseLocalDentalVoiceCommand(
  */
 export async function parseDentalVoiceCommandWithGemini(
   textCommand: string,
-  currentSelectedTeeth: number[] = []
+  currentSelectedTeeth: number[] = [],
+  provider: AIProvider = 'gemini'
 ): Promise<VoiceOdontogramResult> {
   try {
-    const response = await fetch('/api/gemini/parse-voice-odontogram', {
+    const response = await authenticatedFetch('/api/gemini/parse-voice-odontogram', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ textCommand, currentSelectedTeeth })
+      body: JSON.stringify({ textCommand, currentSelectedTeeth, provider })
     });
 
     if (response.ok) {

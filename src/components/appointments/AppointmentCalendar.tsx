@@ -40,6 +40,9 @@ export const AppointmentCalendar: React.FC = () => {
     tussProcedures,
     clinicalEvolutions,
     adjustStockQuantity,
+    deductAppointmentStock,
+    saveAppointmentMaterials,
+    materialTemplates,
     activeClinicId,
     setActiveClinicId,
     addAppointment, 
@@ -477,6 +480,7 @@ export const AppointmentCalendar: React.FC = () => {
                           id: alert.id,
                           patientId: alert.patientId,
                           patientName: alert.patientName,
+                          patientPhone: patients.find(patient => patient.id === alert.patientId)?.phone || '',
                           clinicId: clinics[0]?.id || 'cli-1',
                           dentistName: professionals[0]?.name || clinicInfo.dentistName,
                           date: todayStr,
@@ -751,6 +755,7 @@ export const AppointmentCalendar: React.FC = () => {
       {/* Daily Clinic Materials Report Modal */}
       {isDailyReportOpen && (
         <DailyClinicMaterialsReportModal
+          materialTemplates={materialTemplates}
           appointments={appointments}
           inventory={inventory}
           tussProcedures={tussProcedures}
@@ -763,21 +768,21 @@ export const AppointmentCalendar: React.FC = () => {
       {/* Single Appointment Materials Report Modal */}
       {selectedAptForReport && (
         <AppointmentMaterialsReportModal
-          appointment={selectedAptForReport}
+          key={selectedAptForReport.id}
+          materialTemplates={materialTemplates}
+          onSaveMaterials={(materials, scope, expected) => saveAppointmentMaterials(selectedAptForReport.id, materials, scope, expected)}
+          appointment={appointments.find(item => item.id === selectedAptForReport.id) || selectedAptForReport}
           inventory={inventory}
           tussProcedures={tussProcedures}
           clinics={clinics}
           professionals={professionals}
           onClose={() => setSelectedAptForReport(null)}
-          onDeductStock={(materialsToDeduct) => {
-            materialsToDeduct.forEach(item => {
-              adjustStockQuantity(item.inventoryItemId, -item.quantityToDeduct);
-            });
-            setSelectedAptForReport(null);
-          }}
+          onDeductStock={(materialsToDeduct, expectedMaterials) =>
+            deductAppointmentStock(selectedAptForReport.id, materialsToDeduct, expectedMaterials)
+          }
         />
       )}
     </div>
   );
 };
-
+// DentisPro: correcao-lint50-v1
