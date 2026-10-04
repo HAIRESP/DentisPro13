@@ -333,7 +333,7 @@ export const DashboardView: React.FC = () => {
                       </option>
                     ))}
                   </select>
-                  <Lock className="w-2.5 h-2.5 text-white/50 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" title="Troca protegida por senha" />
+                  <Lock className="w-2.5 h-2.5 text-white/50 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" aria-label="Troca protegida por senha"><title>Troca protegida por senha</title></Lock>
                 </div>
               </div>
             )}
@@ -488,3 +488,4 @@ export const DashboardView: React.FC = () => {
     </div>
   );
 };
+// DentisPro: correcao-lint50-v1

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   Appointment, 
   InventoryItem, 
@@ -8,6 +8,8 @@ import {
   ProcedureMaterialRequirement 
 } from '../../types';
 import { printDocumentWithTitle } from '../../utils/printUtils';
+import { getItemReadinessInfo } from '../../utils/inventoryReadiness';
+import { resolveStockUsage } from '../../utils/stockUnits';
 import { 
   X, 
   Printer, 
@@ -32,7 +34,7 @@ interface AppointmentMaterialsReportModalProps {
   clinics: ClinicUnit[];
   professionals: Professional[];
   onClose: () => void;
-  onDeductStock?: (itemsToDeduct: Array<{ itemId: string; qty: number }>) => void;
+  onDeductStock?: (itemsToDeduct: Array<{ itemId: string; qty: number }>) => Promise<void>;
 }
 
 export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsReportModalProps> = ({
@@ -46,7 +48,10 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
 }) => {
   const [copied, setCopied] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
-  const [stockDeducted, setStockDeducted] = useState(false);
+  const stockDeducted = Boolean(appointment.stockDeduction);
+  const [deducting, setDeducting] = useState(false);
+  const [deductionError, setDeductionError] = useState('');
+  const deductionInFlight = useRef(false);
 
   // Identify Clinic and Professional objects
   const targetClinic = clinics.find(c => c.id === appointment.clinicId) || {
@@ -79,7 +84,7 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
     { id: 'req-3', materialName: 'Sugador Odontológico Descartável', category: 'Descartáveis', quantityNeeded: 2, unit: 'unidade' },
     { id: 'req-4', materialName: 'Gaze Estéril Dobrada', category: 'Descartáveis', quantityNeeded: 1, unit: 'pacote' },
     { id: 'req-5', materialName: 'Luvas de Procedimento Nitrílicas/Látex', category: 'Descartáveis', quantityNeeded: 1, unit: 'par' },
-    { id: 'req-6', materialName: 'Bandeja & Espelho / Sonda / Pinça Клиnica', category: 'Instrumentais', quantityNeeded: 1, unit: 'conjunto' },
+    { id: 'req-6', materialName: 'Kit Clínico reutilizável (bandeja, espelho, pinça e explorador)', category: 'Instrumentais', quantityNeeded: 1, unit: 'conjunto' },
   ];
 
   // Specific additions based on procedure category
@@ -147,26 +152,46 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
 
   // 3. Match required items against scoped inventory
   const resolvedMaterialsReport = baseRequirementsList.map(req => {
-    // Find best match in scoped inventory by name or category
-    const exactNameMatch = scopedInventory.find(i => 
-      i.name.toLowerCase().includes(req.materialName.toLowerCase()) ||
-      req.materialName.toLowerCase().includes(i.name.toLowerCase())
+    const isClinicalKit = req.materialName.toLowerCase().includes('bandeja') &&
+      req.materialName.toLowerCase().includes('espelho') &&
+      req.materialName.toLowerCase().includes('pinça');
+    const linkedItem = req.inventoryItemId
+      ? scopedInventory.find(item => item.id === req.inventoryItemId)
+      : undefined;
+    const exactNameMatch = linkedItem || scopedInventory.find(item =>
+      item.name.toLowerCase().includes(req.materialName.toLowerCase()) ||
+      req.materialName.toLowerCase().includes(item.name.toLowerCase())
     );
 
-    const categoryMatch = !exactNameMatch && req.category 
-      ? scopedInventory.find(i => i.category.toLowerCase() === req.category?.toLowerCase())
-      : null;
+    let matchedItems: InventoryItem[] = exactNameMatch ? [exactNameMatch] : [];
+    if (!exactNameMatch && isClinicalKit) {
+      const kitItem = scopedInventory.find(item => /kit.*(cl[ií]nic|odont)|conjunto.*(cl[ií]nic|odont)/i.test(item.name));
+      if (kitItem) {
+        matchedItems = [kitItem];
+      } else {
+        const componentMatchers = [
+          (name: string) => name.includes('bandeja'),
+          (name: string) => name.includes('espelho') && (name.includes('clin') || name.includes('bucal')),
+          (name: string) => name.includes('pinça') || name.includes('pinca'),
+          (name: string) => name.includes('explorador') || name.includes('sonda exploradora')
+        ];
+        matchedItems = componentMatchers
+          .map(matches => scopedInventory.find(item => matches(item.name.toLowerCase())))
+          .filter((item): item is InventoryItem => Boolean(item));
+      }
+    }
 
-    const matchedItem = exactNameMatch || categoryMatch;
+    // Categoria sozinha nao identifica um material para consumo.
 
-    let availableQty = 0;
+    const matchedItem = matchedItems[0];
+    const availableQty = isClinicalKit && matchedItems.length > 1
+      ? Math.min(...matchedItems.map(item => item.quantity))
+      : matchedItem?.quantity || 0;
     let itemOwnerLabel = 'Não Cadastrado';
-    let matchedItemId: string | undefined = undefined;
-
     if (matchedItem) {
-      availableQty = matchedItem.quantity;
-      matchedItemId = matchedItem.id;
-      if (matchedItem.ownerScope === 'clinica') {
+      if (isClinicalKit && matchedItems.length > 1) {
+        itemOwnerLabel = `Kit composto por ${matchedItems.length} instrumental(is) reutilizável(is)`;
+      } else if (matchedItem.ownerScope === 'clinica') {
         itemOwnerLabel = `🏥 Clínica (${matchedItem.clinicName || targetClinic.name})`;
       } else if (matchedItem.ownerScope === 'profissional') {
         itemOwnerLabel = `👨‍⚕️ Profissional (${matchedItem.professionalName || targetProf.name})`;
@@ -175,21 +200,37 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
       }
     }
 
-    const isAvailable = availableQty >= req.quantityNeeded;
+    const readiness = matchedItems.map(item => ({ item, info: getItemReadinessInfo(item) }));
+    const isReady = matchedItems.length > 0 && readiness.every(entry => entry.info.isReady);
+    const isReusable = matchedItems.some(item => item.itemType === 'instrumental' || item.itemType === 'equipamento' || item.category === 'Equipamentos' || item.category === 'Instrumentais' || item.requiresSterilization === true);
+    const conversion = matchedItem && !isReusable
+      ? resolveStockUsage(matchedItem, req.quantityNeeded, req.unit)
+      : undefined;
+    const conversionError = conversion && conversion.ok === false ? conversion.error : '';
+    const stockQuantityNeeded = conversion?.ok ? conversion.quantity : req.quantityNeeded;
+    const hasQuantity = isClinicalKit && matchedItems.length > 1
+      ? matchedItems.length === 4 && matchedItems.every(item => item.quantity >= 1)
+      : availableQty >= stockQuantityNeeded;
+    const isAvailable = hasQuantity && isReady && !conversionError;
 
     return {
       requirement: req,
       matchedItem,
-      matchedItemId,
+      matchedItems,
       availableQty,
       itemOwnerLabel,
+      readiness,
       isAvailable,
-      status: isAvailable ? 'available' : (availableQty > 0 ? 'low' : 'missing')
+      isReusable,
+      conversionError,
+      stockQuantityNeeded,
+      status: !matchedItems.length ? 'missing' : conversionError ? 'unit_mismatch' : !hasQuantity ? 'low' : !isReady ? 'not_ready' : 'available'
     };
-  }).sort((a, b) => a.materialName.localeCompare(b.materialName, 'pt-BR'));
+  }).sort((a, b) => a.requirement.materialName.localeCompare(b.requirement.materialName, 'pt-BR'));
 
+  const unitMismatchMaterials = resolvedMaterialsReport.filter(r => r.matchedItem && !r.isReusable && r.conversionError);
   const availableCount = resolvedMaterialsReport.filter(r => r.isAvailable).length;
-  const missingCount = resolvedMaterialsReport.filter(r => r.status === 'missing').length;
+  const unavailableMaterials = resolvedMaterialsReport.filter(r => !r.isAvailable);
 
   const toggleCheck = (id: string) => {
     setCheckedItems(prev => ({ ...prev, [id]: !prev[id] }));
@@ -216,7 +257,7 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
       `📦 *LISTA DE MATERIAIS REQUISITADOS:*`,
       ...resolvedMaterialsReport.map((m, idx) => {
         const checkMark = checkedItems[m.requirement.id] ? '[X]' : '[ ]';
-        const statusText = m.isAvailable ? '✅ Disp.' : `⚠️ Falta (Estoque: ${m.availableQty})`;
+        const statusText = m.conversionError ? `⚠️ ${m.conversionError}` : m.isAvailable ? '✅ Disp.' : `⚠️ Indisponível (Estoque: ${m.availableQty} ${m.matchedItem?.unit || ''})`;
         return `${checkMark} ${idx + 1}. ${m.requirement.materialName} - Qtd: ${m.requirement.quantityNeeded} ${m.requirement.unit} (${m.itemOwnerLabel}) - ${statusText}`;
       }),
       `--------------------------------------------------`,
@@ -228,18 +269,49 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
     setTimeout(() => setCopied(false), 3500);
   };
 
-  const handleConfirmDeduct = () => {
-    if (!onDeductStock) return;
-    const itemsToDeduct = resolvedMaterialsReport
-      .filter(r => r.matchedItemId && r.requirement.quantityNeeded > 0)
-      .map(r => ({
-        itemId: r.matchedItemId!,
-        qty: r.requirement.quantityNeeded
-      }));
+  const handleConfirmDeduct = async () => {
+  if (!onDeductStock || stockDeducted || deductionInFlight.current) return;
 
-    onDeductStock(itemsToDeduct);
-    setStockDeducted(true);
-  };
+  if (unitMismatchMaterials.length > 0) {
+    setDeductionError('Baixa bloqueada: configure a conversão de unidades dos materiais indicados antes de continuar.');
+    return;
+  }
+  const itemsToDeduct = resolvedMaterialsReport.flatMap(r => {
+    if (
+      !r.matchedItem ||
+      r.isReusable ||
+      !r.isAvailable ||
+      !Number.isFinite(r.requirement.quantityNeeded) ||
+      r.requirement.quantityNeeded <= 0
+    ) {
+      return [];
+    }
+
+    return [{
+      itemId: r.matchedItem.id,
+      qty: r.stockQuantityNeeded,
+      stockUnit: r.matchedItem.unit,
+      consumption: { quantity: r.requirement.quantityNeeded, unit: r.requirement.unit }
+    }];
+  });
+
+  if (itemsToDeduct.length === 0) {
+    window.alert('Não há materiais consumíveis disponíveis para dar baixa.');
+    return;
+  }
+
+  deductionInFlight.current = true;
+  setDeducting(true);
+  setDeductionError('');
+  try {
+    await onDeductStock(itemsToDeduct);
+  } catch (error) {
+    setDeductionError(error instanceof Error ? error.message : 'Não foi possível salvar a baixa.');
+  } finally {
+    deductionInFlight.current = false;
+    setDeducting(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 z-50 bg-[#2c2c2c]/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
@@ -325,7 +397,7 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-[#2c2c2c]">
             <span>Insumos & Instrumentais da Bandeja</span>
-            <span className="text-[11px] font-normal text-gray-500">Clique na caixa para marcar item preparado</span>
+            <span className="text-[11px] font-normal text-gray-500">Marcar como preparado não seleciona a baixa</span>
           </div>
 
           <div className="border border-[#e5e5d1] rounded-2xl overflow-hidden max-h-60 overflow-y-auto divide-y divide-[#e5e5d1]/60 bg-white">
@@ -358,9 +430,19 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
                       <div className="text-[10px] text-gray-500 flex items-center gap-2 mt-0.5">
                         <span className="font-semibold text-emerald-800">{item.itemOwnerLabel}</span>
                         {item.matchedItem && (
-                          <span>&bull; Disp. no estoque: <strong>{item.availableQty}</strong></span>
+                          <span>&bull; Disp. no estoque: <strong>{item.availableQty} {item.matchedItem.unit}</strong></span>
                         )}
                       </div>
+                      {item.matchedItems.length > 0 && (
+                        <p className="text-[10px] text-gray-600 mt-1 break-words">
+                          Cadastro no estoque: {item.matchedItems.map(material => `${material.name} [${material.itemCode || material.id}]`).join('; ')}
+                        </p>
+                      )}
+                      {item.matchedItem && !item.isReusable && (
+                        <p className={`text-[10px] mt-1 ${item.conversionError ? 'text-rose-700' : 'text-emerald-800'}`}>
+                          {item.conversionError || `Baixa prevista: ${item.stockQuantityNeeded} ${item.matchedItem.unit} para ${item.requirement.quantityNeeded} ${item.requirement.unit}.`}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -379,7 +461,7 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
                     ) : (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">
                         <AlertTriangle className="w-3 h-3 text-rose-600" />
-                        Sem Estoque
+                        {item.status === 'unit_mismatch' ? 'Conversão pendente' : item.status === 'not_ready' ? 'Indisponível para uso' : 'Não cadastrado'}
                       </span>
                     )}
                   </div>
@@ -390,15 +472,27 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
         </div>
 
         {/* Stock Deduction Action Box */}
+        {unitMismatchMaterials.length > 0 && !stockDeducted && <p role="alert" className="text-sm text-rose-700">Baixa bloqueada: há materiais com unidades diferentes sem conversão cadastrada. Configure o conteúdo da embalagem no estoque e reabra este checklist.</p>}
+        {deductionError && <p role="alert" className="text-sm text-red-700">{deductionError}</p>}
+        {stockDeducted && (
+          <div className="text-xs text-emerald-800 space-y-1">
+            <p>Baixa registrada para este atendimento.</p>
+            {appointment.stockDeduction?.items.map(receipt => (
+              <p key={receipt.itemId}>{inventory.find(entry => entry.id === receipt.itemId)?.name || receipt.itemId}: {receipt.qty} {receipt.stockUnit || '(unidade não registrada no comprovante antigo)'}
+                {receipt.consumptions?.length ? ` — consumo: ${receipt.consumptions.map(entry => `${entry.quantity} ${entry.unit}`).join(' + ')}` : ''}
+              </p>
+            ))}
+          </div>
+        )}
         {onDeductStock && (
           <div className="bg-[#f0f0e8]/50 border border-[#e5e5d1] rounded-2xl p-3.5 flex items-center justify-between gap-3">
             <div>
               <div className="text-xs font-bold text-[#2c2c2c]">Dar Baixa Automática no Estoque</div>
-              <div className="text-[11px] text-gray-500">Desconta a quantidade dos materiais utilizados na bandeja do estoque da clínica/profissional.</div>
+              <div className="text-[11px] text-gray-500">Desconta os consumíveis disponíveis uma única vez por atendimento. Itens indisponíveis e reutilizáveis não são descontados.</div>
             </div>
             <button
               type="button"
-              disabled={stockDeducted}
+              disabled={stockDeducted || deducting || unitMismatchMaterials.length > 0}
               onClick={handleConfirmDeduct}
               className={`px-3.5 py-2 text-xs font-bold rounded-xl border transition shrink-0 flex items-center gap-1.5 ${
                 stockDeducted 
@@ -406,7 +500,7 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
                   : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-300 shadow-2xs'
               }`}
             >
-              {stockDeducted ? (
+              {deducting ? 'Salvando baixa...' : stockDeducted ? (
                 <>
                   <Check className="w-4 h-4 text-emerald-600" />
                   Baixa Efetuada!
@@ -456,3 +550,4 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
     </div>
   );
 };
+// DentisPro: correcao-associacao-v1

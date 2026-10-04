@@ -443,7 +443,7 @@ export const PatientList: React.FC = () => {
                             gender: 'masculino',
                             healthInsurance: 'Particular',
                             address: { street: 'Rua', number: '100', neighborhood: 'Centro', city: 'São Paulo', state: 'SP', cep: '01000-000' },
-                            anamnesis: { hasAllergies: false, hasHeartDisease: false, hasDiabetes: false, hasHypertension: false, bleedingDisorder: false },
+                            anamnesis: { hasAllergies: false, hasHeartDisease: false, hasDiabetes: false, hasHypertension: false, bleedingDisorder: false, isPregnant: false },
                             status: 'ativo'
                           });
                           count++;
@@ -523,7 +523,7 @@ export const PatientList: React.FC = () => {
                     <div className="overflow-hidden">
                       <div className="flex items-center gap-1.5">
                         <h4 className={`font-bold text-xs truncate ${isSelected ? 'text-white' : t.headingText}`}>{p.name}</h4>
-                        {hasAlert && <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" title="Alerta em Anamnese!" />}
+                        {hasAlert && <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" aria-label="Alerta em Anamnese!"><title>Alerta em Anamnese!</title></AlertTriangle>}
                       </div>
                       <p className={`text-[11px] font-mono truncate ${isSelected ? 'opacity-90' : 'text-gray-500'}`}>
                         {p.phone} • {p.preferredClinicName || p.healthInsurance || 'Particular'}
@@ -1827,3 +1827,4 @@ export const PatientList: React.FC = () => {
     </div>
   );
 };
+// DentisPro: correcao-lint50-v1
