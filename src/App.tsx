@@ -1,6 +1,9 @@
+import { PasswordResetPage } from './components/common/PasswordResetPage';
 import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthGate } from './components/common/AuthGate';
+import { DomainProviders } from './context/DomainContexts';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { PatientList } from './components/patients/PatientList';
 import { AppointmentCalendar } from './components/appointments/AppointmentCalendar';
@@ -114,11 +117,16 @@ const AppShell: React.FC = () => {
 };
 
 export default function App() {
+  if (window.location.pathname === '/auth/action') return <PasswordResetPage />;
   return (
     <AuthProvider>
+      <AuthGate>
       <AppProvider>
-        <AppShell />
+        <DomainProviders>
+          <AppShell />
+        </DomainProviders>
       </AppProvider>
+      </AuthGate>
     </AuthProvider>
   );
 }

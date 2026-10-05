@@ -1,3 +1,4 @@
+import { sanitizeProfileWrite } from '../utils/authSession';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getAuth, 
@@ -23,6 +24,7 @@ import firebaseConfigData from '../../firebase-applet-config.json';
 const app = !getApps().length ? initializeApp(firebaseConfigData) : getApp();
 
 export const auth = getAuth(app);
+auth.languageCode = 'pt-BR';
 export const db = getFirestore(app, firebaseConfigData.firestoreDatabaseId || undefined);
 
 export enum OperationType {
@@ -189,26 +191,12 @@ export async function saveUserProfileToFirestore(profile: UserProfile): Promise<
   try {
     const userRef = doc(db, 'users', profile.uid);
     await setDoc(userRef, {
-      ...profile,
+      ...sanitizeProfileWrite({ ...profile }),
       updatedAt: new Date().toISOString()
     }, { merge: true });
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
-  }
-}
-
-// Update user password specifically
-export async function updateUserPasswordInFirestore(uid: string, newPassword: string): Promise<void> {
-  if (!uid) return;
-  const path = `users/${uid}`;
-  try {
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
-      password: newPassword,
-      updatedAt: new Date().toISOString()
-    });
-  } catch (err) {
-    handleFirestoreError(err, OperationType.UPDATE, path);
+    throw err;
   }
 }
 
@@ -236,12 +224,13 @@ export async function fetchAllUsersFromFirestore(): Promise<UserProfile[]> {
     const snap = await getDocs(colRef);
     const users: UserProfile[] = [];
     snap.forEach((docSnap) => {
-      users.push(docSnap.data() as UserProfile);
+      const { password: _password, ...profile } = docSnap.data();
+      users.push(profile as UserProfile);
     });
-    return users.length > 0 ? users : DEMO_USERS;
+    return users;
   } catch (err) {
     handleFirestoreError(err, OperationType.LIST, path);
-    return DEMO_USERS;
+    return [];
   }
 }
 

@@ -22,6 +22,10 @@ export const SwitchProfessionalModal: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const requestRef = useRef(switchRequest);
+  requestRef.current = switchRequest;
+  useEffect(() => () => { requestRef.current = null; }, []);
+
   // Reset state on open
   useEffect(() => {
     if (switchRequest) {
@@ -56,9 +60,10 @@ export const SwitchProfessionalModal: React.FC = () => {
     u.email.toLowerCase() === targetProf.email?.toLowerCase()
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!passwordInput.trim()) {
+    if (isSubmitting) return;
+    if (!passwordInput) {
       setErrorMessage('Por favor, informe a senha de acesso.');
       inputRef.current?.focus();
       return;
@@ -68,12 +73,14 @@ export const SwitchProfessionalModal: React.FC = () => {
     setErrorMessage(null);
 
     // Verify password against professional / target user or admin password
-    const isValid = verifyPasswordForProfessionalOrUser(targetProf.id, passwordInput.trim());
+    const request = switchRequest;
+    const isValid = await verifyPasswordForProfessionalOrUser(targetProf.id, passwordInput);
+    if (requestRef.current !== request) return;
 
     if (isValid) {
       applySwitchProfessional(targetProf.id, targetClinic?.id);
     } else {
-      setErrorMessage(`Senha incorreta para ${targetProf.name}. Digite a senha cadastrada do profissional ou a senha mestre de Administrador.`);
+      setErrorMessage('Não foi possível autorizar a troca. Confira sua senha, a conexão e o vínculo com o profissional.');
       setIsSubmitting(false);
       inputRef.current?.select();
     }
@@ -167,7 +174,7 @@ export const SwitchProfessionalModal: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-stone-700">
-              Senha de Acesso de {targetProf.name} *
+              Senha da sua conta conectada *
             </label>
             <div className="relative">
               <input
@@ -179,7 +186,7 @@ export const SwitchProfessionalModal: React.FC = () => {
                   setPasswordInput(e.target.value);
                   if (errorMessage) setErrorMessage(null);
                 }}
-                placeholder="Digite a senha do profissional ou a senha de admin"
+                placeholder="Digite a senha da sua conta"
                 className="w-full bg-white border border-[#e5e5d1] rounded-xl px-3.5 py-2.5 pr-10 text-xs text-[#2c2c2c] font-medium focus:outline-none focus:border-[#5a5a40] focus:ring-2 focus:ring-[#5a5a40]/20 transition"
               />
               <button
@@ -210,7 +217,7 @@ export const SwitchProfessionalModal: React.FC = () => {
               Ao alternar de profissional, o prontuário, as assinaturas e a emissão de documentos serão atualizados para o nome e registro de <strong>{targetProf.name}</strong>.
             </p>
             <p className="text-[10.5px] text-stone-500 pt-0.5">
-              💡 <em>Dica do sistema: Caso não possua a senha individual do dentista, insira a senha mestre de Administrador (<code className="font-mono font-bold text-stone-700">admin123</code>) ou a senha padrão (<code className="font-mono font-bold text-stone-700">123456</code>).</em>
+              Administradores podem selecionar profissionais. Dentistas precisam estar vinculados ao profissional escolhido. A senha é confirmada pelo Firebase.
             </p>
           </div>
 
