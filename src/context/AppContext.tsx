@@ -1,3 +1,4 @@
+import { useAppointmentStockStore } from './useAppointmentStockStore';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   Patient, 
@@ -46,8 +47,10 @@ import { INITIAL_DOCUMENT_TEMPLATES } from '../data/documentTemplatesCatalog';
 import { DEFAULT_DR_HUGO_SIGNATURE, DEFAULT_DR_HUGO_STAMP, cleanSignatureText } from '../utils/formatters';
 
 export type ActiveTab = 'dashboard' | 'pacientes' | 'agendamento' | 'relatorios' | 'configuracoes' | 'exame_clinico' | 'odontograma' | 'estoque' | 'financeiro' | 'triagem' | 'documentos' | 'laudos';
+export type AIProvider = 'gemini' | 'deepseek' | 'copilot';
 
 export interface ClinicInfo {
+  aiProvider?: AIProvider;
   name: string;
   dentistName: string;
   cro: string;
@@ -87,7 +90,7 @@ export interface ClinicInfo {
   signatureAlignment?: 'right' | 'center' | 'left';
 }
 
-interface AppContextType {
+export interface AppContextType {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   
@@ -128,11 +131,14 @@ interface AppContextType {
   // Appointments
   appointments: Appointment[];
   addAppointment: (apt: Omit<Appointment, 'id'>) => Appointment;
+  materialTemplates: ReturnType<typeof useAppointmentStockStore>["materialTemplates"];
+  saveAppointmentMaterials: ReturnType<typeof useAppointmentStockStore>["saveAppointmentMaterials"];
   updateAppointmentStatus: (id: string, status: AppointmentStatus) => void;
   deleteAppointment: (id: string) => void;
   
   // Inventory
   inventory: InventoryItem[];
+  deductAppointmentStock: ReturnType<typeof useAppointmentStockStore>["deductAppointmentStock"];
   addInventoryItem: (item: Omit<InventoryItem, 'id' | 'lastUpdated'>) => void;
   importInventoryBatch: (items: Omit<InventoryItem, 'id' | 'lastUpdated'>[]) => void;
   updateInventoryItem: (id: string, item: Partial<InventoryItem>) => void;
@@ -322,85 +328,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const merged = missing.length > 0 ? [...list, ...missing] : list;
     return merged.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
   });
-  const [appointments, setAppointments] = useState<Appointment[]>(() => {
-    const list = loadInitial<Appointment[]>(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS);
-    const existingIds = new Set(list.map(a => a.id));
-    const missing = INITIAL_APPOINTMENTS.filter(a => !existingIds.has(a.id));
-    const merged = missing.length > 0 ? [...list, ...missing] : list;
-    return merged.sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`));
-  });
-  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
-    const loaded = loadInitial<InventoryItem[]>(STORAGE_KEYS.INVENTORY, INITIAL_INVENTORY);
-    const seenNames = new Set<string>();
-    const seenCodes = new Set<string>();
-    const idsToRemove = new Set(['inv-76172', 'inv-puc-34']);
-    const clean: InventoryItem[] = [];
-
-    const cleanItem = (item: InventoryItem): InventoryItem => {
-      let id = item.id;
-      if (id && id.startsWith('inv-puc-')) {
-        id = id.replace('inv-puc-', 'inv-acd-');
-      }
-      let itemCode = item.itemCode || '';
-      if (itemCode.toUpperCase().startsWith('PUC-')) {
-        itemCode = itemCode.replace(/PUC-/i, 'ACD-');
-      }
-      let supplier = item.supplier || '';
-      if (supplier.toUpperCase().includes('PUC')) {
-        supplier = supplier.replace(/PUC\s*(Campinas|Academic)?/gi, 'Dental Cremer').trim();
-      }
-      let notes = item.notes || '';
-      if (notes.toUpperCase().includes('PUC')) {
-        notes = notes.replace(/PUC\s*(Campinas|Academic)?/gi, '').trim();
-      }
-      let name = item.name || '';
-      if (name.toUpperCase().includes('PUC')) {
-        name = name.replace(/PUC\s*(Campinas|Academic)?/gi, '').trim();
-      }
-      return {
-        ...item,
-        id,
-        itemCode,
-        supplier,
-        notes,
-        name
-      };
-    };
-
-    const initialMap = new Map<string, InventoryItem>();
-    INITIAL_INVENTORY.forEach(item => {
-      if (item.id) initialMap.set(item.id, item);
-      if (item.itemCode) initialMap.set(item.itemCode, item);
-    });
-
-    const processItem = (rawItem: InventoryItem) => {
-      if (!rawItem) return;
-      const item = cleanItem(rawItem);
-      if (idsToRemove.has(item.id) || idsToRemove.has(item.itemCode || '')) return;
-      if (item.id && item.id.startsWith('inv-off-')) return;
-
-      if (item.id && initialMap.has(item.id)) {
-        const initItem = initialMap.get(item.id)!;
-        if (initItem.quantity > 0) {
-          item.quantity = Math.max(item.quantity, initItem.quantity);
-        }
-      }
-
-      const normName = (item.name || '').trim().toLowerCase();
-      const normCode = (item.itemCode || '').trim().toLowerCase();
-
-      if (normName && seenNames.has(normName)) return;
-      if (normCode && seenCodes.has(normCode)) return;
-
-      if (normName) seenNames.add(normName);
-      if (normCode) seenCodes.add(normCode);
-      clean.push(item);
-    };
-
-    loaded.forEach(processItem);
-    INITIAL_INVENTORY.forEach(processItem);
-    return clean.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
-  });
+  const {
+    appointments, inventory, setAppointments, setInventory,
+    deductAppointmentStock, replaceStockData, materialTemplates, saveAppointmentMaterials
+  } = useAppointmentStockStore(INITIAL_APPOINTMENTS, INITIAL_INVENTORY);
   const [financials, setFinancials] = useState<FinancialTransaction[]>(() => {
     const list = loadInitial<FinancialTransaction[]>(STORAGE_KEYS.FINANCIAL, INITIAL_FINANCIAL);
     const existingIds = new Set(list.map(f => f.id));
@@ -500,6 +431,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [clinicInfo, setClinicInfo] = useState<ClinicInfo>(() => {
     const defaultObj: ClinicInfo = {
       name: 'DentisPro Odontologia Especializada',
+      aiProvider: 'gemini',
       dentistName: 'Hugo Andres Iglesias Ricoy',
       cro: 'CRO/CE 5925',
       cpf: '879.750.253-72',
@@ -527,6 +459,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const loaded = loadInitial<ClinicInfo>(STORAGE_KEYS.CLINIC_INFO, defaultObj);
     const withDefaults: ClinicInfo = {
       ...loaded,
+      aiProvider: loaded.aiProvider === 'deepseek' || loaded.aiProvider === 'copilot' ? loaded.aiProvider : 'gemini',
       headerSubtitle: cleanSignatureText(loaded.headerSubtitle) || defaultObj.headerSubtitle,
       signatureLabel: cleanSignatureText(loaded.signatureLabel) || defaultObj.signatureLabel,
       signatureImageUrl: loaded.signatureImageUrl !== undefined ? loaded.signatureImageUrl : '',
@@ -561,8 +494,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Sync to localStorage
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients)); }, [patients]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments)); }, [appointments]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory)); }, [inventory]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.FINANCIAL, JSON.stringify(financials)); }, [financials]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.PRESCRIPTIONS, JSON.stringify(prescriptions)); }, [prescriptions]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.ODONTOGRAMS, JSON.stringify(odontograms)); }, [odontograms]);
@@ -1230,8 +1161,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setActiveClinicId('todas');
     setLayoutTheme('natural');
     setPatients([...INITIAL_PATIENTS].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })));
-    setAppointments([...INITIAL_APPOINTMENTS].sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`)));
-    setInventory([...INITIAL_INVENTORY].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
+    replaceStockData({ appointments: [...INITIAL_APPOINTMENTS], inventory: [...INITIAL_INVENTORY] });
     setFinancials([...INITIAL_FINANCIAL].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setPrescriptions([...INITIAL_PRESCRIPTIONS].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setOdontograms(INITIAL_ODONTOGRAM_DATA);
@@ -1280,6 +1210,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       patients,
       appointments,
       inventory,
+      materialTemplates,
       financials,
       prescriptions,
       odontograms,
@@ -1329,11 +1260,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (data.patients && Array.isArray(data.patients)) {
         setPatients([...data.patients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })));
       }
-      if (data.appointments && Array.isArray(data.appointments)) {
-        setAppointments([...data.appointments].sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`)));
-      }
-      if (data.inventory && Array.isArray(data.inventory)) {
-        setInventory([...data.inventory].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
+      if (Array.isArray(data.appointments) || Array.isArray(data.inventory)) {
+        replaceStockData({
+          ...(Array.isArray(data.appointments) ? { appointments: data.appointments } : {}),
+          ...(Array.isArray(data.inventory) ? { inventory: data.inventory } : {}),
+          ...(data.materialTemplates && typeof data.materialTemplates === 'object' && !Array.isArray(data.materialTemplates)
+            && Object.values(data.materialTemplates).every(Array.isArray) ? { materialTemplates: data.materialTemplates } : {})
+        });
       }
       if (data.financials && Array.isArray(data.financials)) {
         setFinancials([...data.financials].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
@@ -1416,12 +1349,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         appointments,
         addAppointment,
         updateAppointmentStatus,
+        materialTemplates,
+        saveAppointmentMaterials,
         deleteAppointment,
         inventory,
         addInventoryItem,
         importInventoryBatch,
         updateInventoryItem,
         adjustStockQuantity,
+        deductAppointmentStock,
         deleteInventoryItem,
         clearInventory,
         financials,

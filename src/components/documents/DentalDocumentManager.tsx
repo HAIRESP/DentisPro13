@@ -941,7 +941,7 @@ export const DentalDocumentManager: React.FC = () => {
           <div>
             <div class="dentist-name">${clinicInfo.headerSubtitle || dentistName}</div>
             <div class="dentist-cro">Cirurgião-Dentista ${dentistCro} ${clinicInfo.specialty ? `• ${clinicInfo.specialty}` : ''}</div>
-            <div class="dentist-sub">EPAO: ${clinicInfo.epao || '825 CE'} • CNPJ: ${formatCNPJ(clinicInfo.cnpj || '22.144.932/0001-40')}</div>
+            <div class="dentist-sub">EPAO: ${clinicInfo.epaoNumber || 'Não informado'} • CNPJ: ${formatCNPJ(clinicInfo.cnpj || '22.144.932/0001-40')}</div>
           </div>
         </div>
         <div class="clinic-right">
@@ -3456,7 +3456,7 @@ export const DentalDocumentManager: React.FC = () => {
       addSavedClinicDocument({
         title: activeTemplate.title,
         subtitle: activeTemplate.subtitle,
-        category: activeTemplate.category,
+        category: activeTemplate.category === 'receituario' ? 'receita' : activeTemplate.category,
         patientId: selectedPatientId,
         patientName: patientDisplayName,
         professionalName: effectiveDentistName,
@@ -7638,8 +7638,8 @@ export const DentalDocumentManager: React.FC = () => {
                         <p className="text-[10px] text-stone-600 font-mono">
                           {clinicInfo.headerSubtitle || `Cirurgião-Dentista ${effectiveDentistCro} ${effectiveDentistSpecialty ? `• ${effectiveDentistSpecialty}` : ''}`}
                         </p>
-                        {clinicInfo.epao && (
-                          <p className="text-[9.5px] text-stone-500 font-mono">EPAO: {clinicInfo.epao}</p>
+                        {clinicInfo.epaoNumber && (
+                          <p className="text-[9.5px] text-stone-500 font-mono">EPAO: {clinicInfo.epaoNumber}</p>
                         )}
                         {clinicInfo.cnpj && (
                           <p className="text-[9.5px] text-stone-500">CNPJ: {formatCNPJ(clinicInfo.cnpj)}</p>
@@ -8437,7 +8437,7 @@ export const DentalDocumentManager: React.FC = () => {
                         <div className="border border-stone-800 p-2.5 rounded-lg bg-white space-y-1">
                           <span className="font-bold uppercase text-[10.5px] border-b border-stone-200 pb-0.5 block">Identificação do Emitente</span>
                           <p className="font-bold">{effectiveDentistName} • {effectiveDentistCro}</p>
-                          <p className="text-[10.5px] text-stone-600">{effectiveClinicAddress} - {formatCityOnly(effectiveClinicCity)}/{clinicInfo.uf || 'CE'}</p>
+                          <p className="text-[10.5px] text-stone-600">{effectiveClinicAddress} - {formatCityOnly(effectiveClinicCity)}/{clinicInfo.state || 'CE'}</p>
                           <p className="text-[10.5px] text-stone-600">Tel: {effectiveClinicPhone}</p>
                         </div>
 
@@ -8445,7 +8445,7 @@ export const DentalDocumentManager: React.FC = () => {
                           <span className="font-bold uppercase text-[10.5px] border-b border-stone-200 pb-0.5 block">Identificação do Paciente</span>
                           <p className="font-bold text-stone-900 underline">{patientDisplayName}{selectedPatient?.cpf ? ` • CPF: ${selectedPatient.cpf}` : ''}</p>
                           <p className="text-[10.5px] text-stone-600">Endereço: {selectedPatient?.address?.street ? `${selectedPatient.address.street}${selectedPatient.address.number ? `, ${selectedPatient.address.number}` : ''}${selectedPatient.address.neighborhood ? ` - ${selectedPatient.address.neighborhood}` : ''}` : '____________________________________'}</p>
-                          <p className="text-[10.5px] text-stone-600">Cidade: {selectedPatient?.address?.city ? `${selectedPatient.address.city} - ${selectedPatient.address.state || clinicInfo.uf || 'CE'}` : `${formatCityOnly(clinicInfo.city || 'Fortaleza')} - ${clinicInfo.uf || 'CE'}`}</p>
+                          <p className="text-[10.5px] text-stone-600">Cidade: {selectedPatient?.address?.city ? `${selectedPatient.address.city} - ${selectedPatient.address.state || clinicInfo.state || 'CE'}` : `${formatCityOnly(clinicInfo.city || 'Fortaleza')} - ${clinicInfo.state || 'CE'}`}</p>
                         </div>
                       </div>
 
@@ -9243,3 +9243,4 @@ export const DentalDocumentManager: React.FC = () => {
     </>
   );
 };
+// DentisPro: correcao-lint50-v1

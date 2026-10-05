@@ -1,3 +1,4 @@
+import { NewUserForm } from '../common/NewUserForm';
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
@@ -21,61 +22,21 @@ import {
 } from 'lucide-react';
 
 export const UserManagementSection: React.FC = () => {
-  const { allUsers, userRole, updateUserRoleAndProfile, updateUserPassword, signupNewUser, refreshUsersList } = useAuth();
+  const { allUsers, userRole, updateUserRoleAndProfile, refreshUsersList } = useAuth();
   const { layoutTheme } = useApp();
   const t = getThemeStyles(layoutTheme);
   
   const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [editingPasswordUid, setEditingPasswordUid] = useState<string | null>(null);
-  const [newPasswordVal, setNewPasswordVal] = useState('');
-  const [showNewPasswordText, setShowNewPasswordText] = useState(false);
   
   // New User Form State
-  const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [newPass, setNewPass] = useState('123456');
-  const [newRole, setNewRole] = useState<UserRole>('dentist');
-  const [newCro, setNewCro] = useState('');
-  const [newSpecialty, setNewSpecialty] = useState('');
   
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
 
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newName || !newEmail) return;
-
-    await signupNewUser(newEmail, newPass, newName, newRole, newCro, newSpecialty);
-    setShowAddUserModal(false);
-    setStatusFeedback('Novo usuário cadastrado e senha vinculada com sucesso!');
-    setTimeout(() => setStatusFeedback(null), 3500);
-
-    // Reset Form
-    setNewName('');
-    setNewEmail('');
-    setNewCro('');
-    setNewSpecialty('');
-  };
-
   const handleRoleChange = async (uid: string, targetRole: UserRole) => {
-    await updateUserRoleAndProfile(uid, { role: targetRole });
+    try { await updateUserRoleAndProfile(uid, { role: targetRole }); }
+    catch (error) { setStatusFeedback(error instanceof Error ? error.message : 'Não foi possível salvar a permissão.'); return; }
     setStatusFeedback('Permissão do usuário atualizada e salva no banco de dados!');
     setTimeout(() => setStatusFeedback(null), 3000);
-  };
-
-  const handleSavePassword = async (uid: string) => {
-    if (!newPasswordVal.trim()) {
-      alert('Por favor, informe a nova senha.');
-      return;
-    }
-    const success = await updateUserPassword(uid, newPasswordVal.trim());
-    if (success) {
-      setStatusFeedback('Senha do usuário atualizada com sucesso!');
-      setEditingPasswordUid(null);
-      setNewPasswordVal('');
-      setTimeout(() => setStatusFeedback(null), 3500);
-    } else {
-      alert('Erro ao atualizar a senha do usuário.');
-    }
   };
 
   return (
@@ -160,32 +121,7 @@ export const UserManagementSection: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2 flex-wrap">
-                    {/* Password status badge */}
-                    <span className="text-[10px] font-bold text-stone-600 bg-stone-100 border border-stone-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-                      <Lock className="w-2.5 h-2.5 text-[#d4a373]" />
-                      <span>{usr.password ? 'Senha Ativa' : 'Senha Padrão'}</span>
-                    </span>
-
-                    {/* Password Edit Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (editingPasswordUid === usr.uid) {
-                          setEditingPasswordUid(null);
-                          setNewPasswordVal('');
-                        } else {
-                          setEditingPasswordUid(usr.uid);
-                          setNewPasswordVal(usr.password || '123456');
-                          setShowNewPasswordText(false);
-                        }
-                      }}
-                      className="px-2.5 py-1 text-xs font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-lg border border-stone-200 flex items-center gap-1 transition cursor-pointer"
-                      title="Definir ou alterar a senha deste usuário"
-                    >
-                      <KeyRound className="w-3 h-3 text-[#d4a373]" />
-                      <span>{editingPasswordUid === usr.uid ? 'Cancelar' : 'Alterar Senha'}</span>
-                    </button>
-
+                    <span className="text-xs">Redefinição de senha: Sessão → Gestão de Senhas</span>
                     <select
                       disabled={userRole !== 'admin'}
                       value={usr.role}
@@ -199,43 +135,7 @@ export const UserManagementSection: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Expandable Password Editor */}
-                {editingPasswordUid === usr.uid && (
-                  <div className="px-4 py-3 bg-[#fbfbf9] border-t border-[#e5e5d1] flex flex-wrap items-center justify-between gap-3 animate-in fade-in duration-150">
-                    <div className="flex items-center gap-2 text-xs text-stone-600">
-                      <Lock className="w-4 h-4 text-[#d4a373]" />
-                      <span className="font-semibold">Nova Senha para {usr.name}:</span>
-                    </div>
 
-                    <div className="flex items-center gap-2 flex-1 max-w-sm">
-                      <div className="relative flex-1">
-                        <input
-                          type={showNewPasswordText ? 'text' : 'password'}
-                          value={newPasswordVal}
-                          onChange={(e) => setNewPasswordVal(e.target.value)}
-                          placeholder="Digite a nova senha"
-                          className="w-full bg-white border border-[#e5e5d1] rounded-lg px-3 py-1.5 text-xs text-[#2c2c2c] font-medium pr-8 focus:outline-none focus:border-[#5a5a40]"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowNewPasswordText(!showNewPasswordText)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-0.5 cursor-pointer"
-                        >
-                          {showNewPasswordText ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleSavePassword(usr.uid)}
-                        className="px-3.5 py-1.5 bg-[#5a5a40] hover:bg-[#4a4a35] text-white text-xs font-bold rounded-lg shadow-2xs transition cursor-pointer flex items-center gap-1 shrink-0"
-                      >
-                        <Save className="w-3.5 h-3.5 text-[#d4a373]" />
-                        <span>Salvar Senha</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
@@ -260,85 +160,7 @@ export const UserManagementSection: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCreateUser} className="space-y-3 text-xs">
-              <div>
-                <label className={`block text-[11px] font-bold ${t.modalMutedText} mb-1`}>Nome Completo:</label>
-                <input
-                  type="text"
-                  required
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Ex: Dr. Lucas Mendes"
-                  className={`w-full ${t.inputBg} rounded-xl px-3 py-2 text-xs focus:outline-none`}
-                />
-              </div>
-
-              <div>
-                <label className={`block text-[11px] font-bold ${t.modalMutedText} mb-1`}>E-mail de Acesso:</label>
-                <input
-                  type="email"
-                  required
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="lucas@clinica.com.br"
-                  className={`w-full ${t.inputBg} rounded-xl px-3 py-2 text-xs focus:outline-none`}
-                />
-              </div>
-
-              <div>
-                <label className={`block text-[11px] font-bold ${t.modalMutedText} mb-1`}>Senha Inicial:</label>
-                <input
-                  type="password"
-                  required
-                  value={newPass}
-                  onChange={(e) => setNewPass(e.target.value)}
-                  placeholder="••••••••"
-                  className={`w-full ${t.inputBg} rounded-xl px-3 py-2 text-xs focus:outline-none`}
-                />
-              </div>
-
-              <div>
-                <label className={`block text-[11px] font-bold ${t.modalMutedText} mb-1`}>Perfil de Permissão:</label>
-                <select
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value as UserRole)}
-                  className={`w-full ${t.inputBg} rounded-xl px-3 py-2 text-xs font-bold focus:outline-none`}
-                >
-                  <option value="dentist">🩺 Dentista / Profissional Clínico</option>
-                  <option value="receptionist">📋 Recepcionista / Atendente</option>
-                  <option value="admin">👑 Administrador(a) Geral</option>
-                </select>
-              </div>
-
-              <div>
-                <label className={`block text-[11px] font-bold ${t.modalMutedText} mb-1`}>CRO (opcional):</label>
-                <input
-                  type="text"
-                  value={newCro}
-                  onChange={(e) => setNewCro(e.target.value)}
-                  placeholder="Ex: CRO-CE 33221"
-                  className={`w-full ${t.inputBg} rounded-xl px-3 py-2 text-xs focus:outline-none`}
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddUserModal(false)}
-                  className={`px-4 py-2 ${t.btnSecondaryBg} ${t.btnSecondaryText} font-bold rounded-xl text-xs transition cursor-pointer`}
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  type="submit"
-                  className={`px-4 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5`}
-                >
-                  <Save className="w-4 h-4" />
-                  <span>Salvar Usuário</span>
-                </button>
-              </div>
-            </form>
+            <NewUserForm />
           </div>
         </div>
       )}

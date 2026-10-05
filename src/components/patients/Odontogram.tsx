@@ -120,7 +120,8 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     updateClinicalExam,
     patients,
     updatePatient,
-    layoutTheme
+    layoutTheme,
+    clinicInfo
   } = useApp();
 
   const t = getThemeStyles(layoutTheme);
@@ -803,7 +804,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     setVoiceProcessing(true);
 
     try {
-      const result = await parseDentalVoiceCommandWithGemini(commandText, selectedTeeth);
+      const result = await parseDentalVoiceCommandWithGemini(commandText, selectedTeeth, clinicInfo.aiProvider || 'gemini');
       setLastVoiceResult(result);
 
       if (voiceAutoApply && result) {

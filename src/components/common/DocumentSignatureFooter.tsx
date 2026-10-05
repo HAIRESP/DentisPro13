@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApp } from '../../context/AppContext';
+import { useClinicDomain } from '../../context/DomainContexts';
 import { cleanSignatureText, verifyProfessionalSignatureAndStamp } from '../../utils/formatters';
 
 interface DocumentSignatureFooterProps {
@@ -37,7 +37,7 @@ export const DocumentSignatureFooter: React.FC<DocumentSignatureFooterProps> = (
   customSignatureImageUrl,
   customStampImageUrl
 }) => {
-  const { clinicInfo, activeProfessional, professionals } = useApp();
+  const { clinicInfo, activeProfessional, professionals } = useClinicDomain();
 
   // 1. Resolve and verify professional credentials and files in database
   const explicitEmpty = professionalId === '' || (customDentistName !== undefined && customDentistName.trim() === '');

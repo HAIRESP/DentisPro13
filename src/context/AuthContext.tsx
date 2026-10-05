@@ -1,20 +1,24 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  auth, 
-  UserProfile, 
-  UserRole, 
-  ROLE_PERMISSIONS, 
-  DEMO_USERS, 
-  getUserProfileFromFirestore, 
+import { initializeApp, deleteApp } from 'firebase/app';
+import config from '../../firebase-applet-config.json';
+import { provisionUser } from '../utils/provisionUser';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import {
+  auth,
+  db,
+  UserProfile,
+  UserRole,
+  ROLE_PERMISSIONS,
   saveUserProfileToFirestore,
   fetchAllUsersFromFirestore
 } from '../lib/firebase';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut as firebaseSignOut, 
-  onAuthStateChanged 
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword, initializeAuth, inMemoryPersistence, deleteUser,
+  signOut as firebaseSignOut,
+  onAuthStateChanged, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail
 } from 'firebase/auth';
+import { doc, getDocFromServer } from 'firebase/firestore';
+import { withDeadline, validateSessionProfile, canSelectProfessional } from '../utils/authSession';
 
 interface AuthContextType {
   currentUser: UserProfile | null;
@@ -23,13 +27,14 @@ interface AuthContextType {
   userPermissions: typeof ROLE_PERMISSIONS['admin'];
   allUsers: UserProfile[];
   loadingAuth: boolean;
+  authError: string | null;
   loginWithDemoUser: (role: UserRole) => void;
   loginWithEmail: (email: string, pass: string) => Promise<boolean>;
   signupNewUser: (email: string, pass: string, name: string, role: UserRole, cro?: string, specialty?: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUserRoleAndProfile: (uid: string, updates: Partial<UserProfile>) => Promise<void>;
-  updateUserPassword: (uid: string, newPassword: string) => Promise<boolean>;
-  verifyPasswordForProfessionalOrUser: (targetProfIdOrEmail: string, inputPassword: string) => boolean;
+  requestPasswordReset: () => Promise<boolean>;
+  verifyPasswordForProfessionalOrUser: (targetProfIdOrEmail: string, inputPassword: string) => Promise<boolean>;
   refreshUsersList: () => Promise<void>;
   checkTabPermission: (tab: string) => boolean;
 }
@@ -41,172 +46,162 @@ const LEGACY_AUTH_STORAGE_KEY = 'planetodonto_current_session_v1';
 const ALL_USERS_STORAGE_KEY = 'dentispro_all_users_v2';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Initialize current user from localStorage or default to Admin demo user
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    try {
-      const saved = localStorage.getItem(AUTH_STORAGE_KEY) || localStorage.getItem(LEGACY_AUTH_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : DEMO_USERS[0];
-    } catch {
-      return DEMO_USERS[0];
-    }
-  });
+  // Firebase, not a cached profile, determines whether a session exists.
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const profileRequests = useRef(new Map<string, Promise<UserProfile>>());
+  const sessionVersion = useRef(0);
+  const provisioning = useRef(false);
 
-  const [allUsers, setAllUsers] = useState<UserProfile[]>(() => {
-    try {
-      const saved = localStorage.getItem(ALL_USERS_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Merge with DEMO_USERS to ensure any new demo properties are kept
-          const map = new Map<string, UserProfile>();
-          DEMO_USERS.forEach(u => map.set(u.uid, u));
-          parsed.forEach((u: UserProfile) => {
-            const existing = map.get(u.uid);
-            map.set(u.uid, { ...existing, ...u });
-          });
-          return Array.from(map.values());
-        }
-      }
-    } catch (e) {
-      console.warn('Error loading cached users', e);
-    }
-    return DEMO_USERS;
-  });
-
-  const [loadingAuth, setLoadingAuth] = useState<boolean>(true);
-
-  // Sync users to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(ALL_USERS_STORAGE_KEY, JSON.stringify(allUsers));
-    } catch (e) {
-      console.warn('Error saving all users to local storage', e);
-    }
-  }, [allUsers]);
-
-  // Sync to localStorage
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(currentUser));
-      localStorage.setItem(LEGACY_AUTH_STORAGE_KEY, JSON.stringify(currentUser));
-      // Only sync to Firestore if user is an authenticated Firebase user
-      if (auth.currentUser && auth.currentUser.uid === currentUser.uid) {
-        saveUserProfileToFirestore(currentUser);
-      }
-    } else {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-      localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
-    }
-  }, [currentUser]);
-
-  // Firebase Auth listener
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      if (fbUser) {
-        const profile = await getUserProfileFromFirestore(fbUser.uid);
-        if (profile) {
-          setCurrentUser(profile);
-        } else {
-          // Create basic profile if not exists
-          const newProfile: UserProfile = {
-            uid: fbUser.uid,
-            email: fbUser.email || '',
-            name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Usuário',
-            role: 'dentist',
-            createdAt: new Date().toISOString()
-          };
-          setCurrentUser(newProfile);
-          await saveUserProfileToFirestore(newProfile);
-        }
-      }
-      setLoadingAuth(false);
-    });
-
-    refreshUsersList();
-
-    return () => unsubscribe();
-  }, []);
-
-  const refreshUsersList = async () => {
-    const users = await fetchAllUsersFromFirestore();
-    if (users && users.length > 0) {
-      // Merge with demo users to ensure demo profiles exist
-      const mergedMap = new Map<string, UserProfile>();
-      DEMO_USERS.forEach(u => mergedMap.set(u.uid, u));
-      users.forEach(u => mergedMap.set(u.uid, u));
-      setAllUsers(Array.from(mergedMap.values()));
-    } else {
-      setAllUsers(DEMO_USERS);
-    }
+  const resolveProfile = (user: { uid: string; email: string | null }) => {
+    const existing = profileRequests.current.get(user.uid);
+    if (existing) return existing;
+    const request = withDeadline(
+      getDocFromServer(doc(db, 'users', user.uid)),
+      15000
+    ).then(snapshot => validateSessionProfile(user, snapshot.exists() ? snapshot.data() : null) as UserProfile);
+    profileRequests.current.set(user.uid, request);
+    const clear = () => {
+      if (profileRequests.current.get(user.uid) === request) profileRequests.current.delete(user.uid);
+    };
+    request.then(clear, clear);
+    return request;
   };
 
-  const loginWithDemoUser = (role: UserRole) => {
-    const found = DEMO_USERS.find(u => u.role === role) || DEMO_USERS[0];
-    setCurrentUser(found);
+  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+  const [loadingAuth, setLoadingAuth] = useState<boolean>(true);
+
+  // Remove only obsolete session caches; never modify clinical data here.
+  useEffect(() => {
+    try {
+      localStorage.removeItem(ALL_USERS_STORAGE_KEY);
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+    } catch { /* Browser storage may be unavailable. */ }
+  }, []);
+
+  useEffect(() => {
+    let disposed = false;
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      const version = ++sessionVersion.current;
+      setCurrentUser(null);
+      setAuthError(null);
+      setLoadingAuth(Boolean(fbUser));
+      if (!fbUser) return;
+      try {
+        const profile = await resolveProfile(fbUser);
+        if (!disposed && version === sessionVersion.current && auth.currentUser?.uid === fbUser.uid) {
+          setCurrentUser(profile);
+        }
+      } catch {
+        if (!disposed && version === sessionVersion.current) {
+          setAuthError('Não foi possível confirmar seu perfil. Confira a conexão e tente entrar novamente.');
+        }
+      } finally {
+        if (!disposed && version === sessionVersion.current) setLoadingAuth(false);
+      }
+    }, () => {
+      if (!disposed) {
+        setCurrentUser(null);
+        setLoadingAuth(false);
+        setAuthError('Não foi possível verificar a sessão. Tente novamente.');
+      }
+    });
+    return () => { disposed = true; ++sessionVersion.current; unsubscribe(); };
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) void refreshUsersList();
+  }, [currentUser?.uid, currentUser?.role]);
+
+  const refreshUsersList = async () => {
+    const user = auth.currentUser;
+    const version = sessionVersion.current;
+    if (!user || !currentUser) { setAllUsers([]); return; }
+    if (currentUser.role !== 'admin') { setAllUsers([currentUser]); return; }
+    const users = await fetchAllUsersFromFirestore();
+    if (version === sessionVersion.current && auth.currentUser?.uid === user.uid) setAllUsers(users);
+  };
+
+  const loginWithDemoUser = (_role: UserRole) => {
+    // Kept for API compatibility; demo identities must never open a session.
+    setAuthError('Entre com uma conta cadastrada usando e-mail e senha.');
   };
 
   const loginWithEmail = async (email: string, pass: string): Promise<boolean> => {
+    setAuthError(null);
+    let signedInUser;
     try {
-      const res = await signInWithEmailAndPassword(auth, email, pass);
-      const profile = await getUserProfileFromFirestore(res.user.uid);
-      if (profile) {
-        setCurrentUser(profile);
-      }
+      signedInUser = (await signInWithEmailAndPassword(auth, email.trim(), pass)).user;
+    } catch {
+      setAuthError('Não foi possível entrar. Confira o e-mail, a senha e a conexão. Se o navegador preencheu outra conta, substitua os dois campos.');
+      return false;
+    }
+    const version = sessionVersion.current;
+    try {
+      const profile = await resolveProfile(signedInUser);
+      if (version !== sessionVersion.current || auth.currentUser?.uid !== signedInUser.uid) return false;
+      setCurrentUser(profile);
       return true;
-    } catch (err) {
-      console.error('Login error:', err);
-      // Fallback check against DEMO_USERS
-      const demo = DEMO_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (demo) {
-        setCurrentUser(demo);
-        return true;
+    } catch {
+      if (auth.currentUser?.uid === signedInUser.uid) {
+        setCurrentUser(null);
+        setAuthError(`E-mail e senha aceitos, mas o perfil de acesso não pôde ser confirmado. Confira a conexão e o documento users/${signedInUser.uid} no Firestore (uid e role).`);
       }
       return false;
     }
   };
 
   const signupNewUser = async (
-    email: string, 
-    pass: string, 
-    name: string, 
-    role: UserRole, 
-    cro?: string, 
+    email: string,
+    pass: string,
+    name: string,
+    role: UserRole,
+    cro?: string,
     specialty?: string
   ): Promise<boolean> => {
+    if (provisioning.current || !name.trim() || !email.trim() || !pass) return false;
+    setAuthError(null);
+    const admin = auth.currentUser;
+    if (!admin || currentUser?.role !== 'admin' || !['admin', 'dentist', 'receptionist'].includes(role)) return false;
+    provisioning.current = true;
+    const secondary = initializeApp(config, `provision-${crypto.randomUUID()}`);
+    const secondaryAuth = initializeAuth(secondary, { persistence: inMemoryPersistence });
     try {
-      const res = await createUserWithEmailAndPassword(auth, email, pass);
-      const newProfile: UserProfile = {
-        uid: res.user.uid,
-        email,
-        name,
-        role,
-        cro,
-        specialty,
-        createdAt: new Date().toISOString()
-      };
-      await saveUserProfileToFirestore(newProfile);
-      setCurrentUser(newProfile);
+      const profile = await resolveProfile(admin);
+      if (profile.role !== 'admin' || auth.currentUser?.uid !== admin.uid) return false;
+      await provisionUser({
+        create: async () => (await createUserWithEmailAndPassword(secondaryAuth, email.trim(), pass)).user,
+        save: async user => {
+          if (auth.currentUser?.uid !== admin.uid) throw new Error('session-changed');
+          await saveUserProfileToFirestore({
+            uid: user.uid, email: user.email || email.trim(), name: name.trim(), role,
+            cro, specialty, createdAt: new Date().toISOString()
+          });
+        },
+        rollback: user => deleteUser(user),
+      });
       await refreshUsersList();
       return true;
-    } catch (err) {
-      console.error('Signup error:', err);
-      // Local fallback profile creation
-      const localProfile: UserProfile = {
-        uid: `user_local_${Date.now()}`,
-        email,
-        name,
-        role,
-        cro,
-        specialty,
-        createdAt: new Date().toISOString()
-      };
-      setCurrentUser(localProfile);
-      setAllUsers(prev => [...prev, localProfile]);
-      return true;
+    } catch (error) {
+      setAuthError(error instanceof Error && error.message === 'provision-cleanup-required'
+        ? 'Cadastro incompleto. Confira a conta em Authentication antes de tentar novamente.'
+        : 'Não foi possível cadastrar a conta. Confira os dados, a conexão e as permissões.');
+      return false;
+    } finally {
+      try { await firebaseSignOut(secondaryAuth); }
+      catch { /* deleteApp below disposes this isolated in-memory session. */ }
+      finally {
+        try { await deleteApp(secondary); } finally { provisioning.current = false; }
+      }
     }
   };
 
   const logout = async () => {
+    ++sessionVersion.current;
+    setCurrentUser(null);
+    setAllUsers([]);
+    setLoadingAuth(false);
     try {
       await firebaseSignOut(auth);
     } catch (e) {
@@ -216,82 +211,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUserRoleAndProfile = async (uid: string, updates: Partial<UserProfile>) => {
-    const updatedUsers = allUsers.map(u => {
-      if (u.uid === uid) {
-        const newProf = { ...u, ...updates, updatedAt: new Date().toISOString() };
-        saveUserProfileToFirestore(newProf);
-        if (currentUser?.uid === uid) {
-          setCurrentUser(newProf);
-        }
-        return newProf;
-      }
-      return u;
-    });
-    setAllUsers(updatedUsers);
+    const user = auth.currentUser;
+    if (!user || currentUser?.role !== 'admin') throw new Error('Acesso restrito ao administrador.');
+    const actor = await resolveProfile(user);
+    if (actor.role !== 'admin' || auth.currentUser?.uid !== user.uid) throw new Error('Sessão inválida.');
+    const target = allUsers.find(u => u.uid === uid);
+    if (!target) throw new Error('Usuário não encontrado.');
+    if (updates.role && !['admin', 'dentist', 'receptionist'].includes(updates.role)) throw new Error('Perfil inválido.');
+    if (uid === user.uid && updates.role && updates.role !== 'admin') throw new Error('Use outro administrador para alterar seu perfil.');
+    const { password: _password, uid: _uid, email: _email, ...allowed } = updates;
+    const newProfile = { ...target, ...allowed, uid: target.uid, email: target.email };
+    await saveUserProfileToFirestore(newProfile);
+    if (auth.currentUser?.uid !== user.uid) return;
+    setAllUsers(users => users.map(u => u.uid === uid ? newProfile : u));
+    if (uid === user.uid) setCurrentUser(newProfile);
   };
 
-  const updateUserPassword = async (uid: string, newPassword: string): Promise<boolean> => {
+  const requestPasswordReset = async (): Promise<boolean> => {
+    const user = auth.currentUser;
+    if (!user?.email || user.uid !== currentUser?.uid) return false;
     try {
-      const updatedUsers = allUsers.map(u => {
-        if (u.uid === uid) {
-          const updated = { ...u, password: newPassword, updatedAt: new Date().toISOString() };
-          saveUserProfileToFirestore(updated);
-          if (currentUser?.uid === uid) {
-            setCurrentUser(updated);
-          }
-          return updated;
-        }
-        return u;
-      });
-      setAllUsers(updatedUsers);
+      await sendPasswordResetEmail(auth, user.email);
       return true;
-    } catch (err) {
-      console.error('Error updating user password:', err);
+    } catch { return false; }
+  };
+
+  const verifyPasswordForProfessionalOrUser = async (target: string, password: string): Promise<boolean> => {
+    const user = auth.currentUser;
+    const version = sessionVersion.current;
+    if (!user?.email || !password || currentUser?.uid !== user.uid) return false;
+    try {
+      await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
+      const profile = await resolveProfile(user);
+      return version === sessionVersion.current && auth.currentUser?.uid === user.uid &&
+        canSelectProfessional(profile, target);
+    } catch {
       return false;
     }
   };
 
-  const verifyPasswordForProfessionalOrUser = (targetProfIdOrEmail: string, inputPassword: string): boolean => {
-    if (!inputPassword) return false;
-    const trimmedInput = inputPassword.trim();
-
-    // 1. Check against master admin passwords (admin123 or current active admin's password)
-    const adminUser = allUsers.find(u => u.role === 'admin' || u.uid === 'demo_admin_01');
-    if (adminUser?.password && adminUser.password === trimmedInput) {
-      return true;
-    }
-    if (trimmedInput === 'admin123') {
-      return true;
-    }
-
-    // 2. Find matching user profile by professionalId, uid, or email
-    const targetUser = allUsers.find(u => 
-      u.professionalId === targetProfIdOrEmail ||
-      u.uid === targetProfIdOrEmail ||
-      u.email.toLowerCase() === targetProfIdOrEmail.toLowerCase()
-    );
-
-    if (targetUser) {
-      // If user has a set password, verify
-      if (targetUser.password && targetUser.password === trimmedInput) {
-        return true;
-      }
-      // Default fallback passwords for demo accounts
-      if (targetUser.role === 'admin' && trimmedInput === 'admin123') return true;
-      if (targetUser.role === 'dentist' && (trimmedInput === '123456' || trimmedInput === 'dentista123')) return true;
-      if (targetUser.role === 'receptionist' && trimmedInput === 'recepcao123') return true;
-    }
-
-    // 3. Fallback generic dentist password for quick development / demo
-    if (trimmedInput === '123456') {
-      return true;
-    }
-
-    return false;
+  const userRole: UserRole = currentUser?.role || 'receptionist';
+  const userPermissions = currentUser ? ROLE_PERMISSIONS[userRole] : {
+    label: 'Não autenticado', description: '', allowedTabs: [],
+    canManageSettings: false, canViewFinancial: false, canManageUsers: false
   };
-
-  const userRole: UserRole = currentUser?.role || 'admin';
-  const userPermissions = ROLE_PERMISSIONS[userRole] || ROLE_PERMISSIONS.admin;
 
   const checkTabPermission = (tab: string): boolean => {
     return userPermissions.allowedTabs.includes(tab);
@@ -305,12 +268,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       userPermissions,
       allUsers,
       loadingAuth,
+      authError,
       loginWithDemoUser,
       loginWithEmail,
       signupNewUser,
       logout,
       updateUserRoleAndProfile,
-      updateUserPassword,
+      requestPasswordReset,
       verifyPasswordForProfessionalOrUser,
       refreshUsersList,
       checkTabPermission
