@@ -55,3 +55,25 @@ ou para prometer prazo exato. Outros problemas podem aparecer na validação.
   impacto demonstrado que justifique tratá-lo como bloqueador desta revisão.
 
 Nenhum layout protegido de receituário, assinatura ou impressão foi alterado.
+
+## Atualização após o relatório do Windows (mesmo dia)
+
+O usuário encontrou 11 alertas na instalação ainda com Firebase/Gemini. Uma nova
+consulta desta branch, já sem Google, passou a identificar também `proxy-addr`
+(crítico) e `source-map-js` (alto), totalizando seis. O resultado anterior de
+quatro alertas era o observado naquela consulta; não deve ser usado como garantia
+permanente, pois a base de avisos muda.
+
+Foram atualizadas somente duas dependências transitivas, dentro das faixas já
+aceitas pelo projeto: `proxy-addr` 2.0.7 → 2.0.8 e `source-map-js` 1.2.1 → 1.2.2.
+Nenhuma dependência Google foi reintroduzida. As versões corrigidas constam dos
+avisos oficiais:
+
+- https://github.com/jshttp/proxy-addr/security/advisories/GHSA-jqcg-44mw-7w3h
+- https://github.com/advisories/GHSA-68fv-2mgg-jv7q
+
+Após a correção: **quatro alertas moderados, zero altos e zero críticos** na nova
+consulta. Os 98 testes e o build passaram novamente. O pacote de migração foi
+atualizado, inclusive para aceitar como origem a primeira edição sem Google.
+Instalar dependências com `npm ci` não atualiza os arquivos do projeto nem muda
+a branch Git; primeiro é preciso aplicar o pacote ou carregar a branch correta.
