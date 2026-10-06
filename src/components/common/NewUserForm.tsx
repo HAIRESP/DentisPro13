@@ -1,6 +1,6 @@
 import React, { useId, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import type { UserRole } from '../../lib/firebase';
+import type { UserRole } from '../../lib/authProfile';
 import { readSignupFields } from '../../utils/signupFields';
 
 export function NewUserForm({ onSuccess }: { onSuccess?: () => void }) {
@@ -35,8 +35,8 @@ export function NewUserForm({ onSuccess }: { onSuccess?: () => void }) {
     <fieldset disabled={busy} className="space-y-3">
       <div><label htmlFor={`${id}-name`}>Nome da nova conta</label><input id={`${id}-name`} name="new-user-name" required autoComplete="off" className={inputStyle} /></div>
       <div><label htmlFor={`${id}-email`}>E-mail da nova conta</label><input id={`${id}-email`} name="new-user-email" type="email" required autoComplete="off" autoCapitalize="none" spellCheck={false} className={inputStyle} /></div>
-      <div><label htmlFor={`${id}-password`}>Senha da nova conta</label><input id={`${id}-password`} name="new-user-password" type={showPassword ? 'text' : 'password'} required autoComplete="section-new-user new-password" className={inputStyle} /></div>
-      <div><label htmlFor={`${id}-confirmation`}>Confirme a senha da nova conta</label><input id={`${id}-confirmation`} name="new-user-confirmation" type={showPassword ? 'text' : 'password'} required autoComplete="section-new-user new-password" className={inputStyle} /></div>
+      <div><label htmlFor={`${id}-password`}>Senha da nova conta (mínimo 12 caracteres)</label><input id={`${id}-password`} name="new-user-password" type={showPassword ? 'text' : 'password'} required minLength={12} maxLength={256} autoComplete="section-new-user new-password" className={inputStyle} /></div>
+      <div><label htmlFor={`${id}-confirmation`}>Confirme a senha da nova conta</label><input id={`${id}-confirmation`} name="new-user-confirmation" type={showPassword ? 'text' : 'password'} required minLength={12} maxLength={256} autoComplete="section-new-user new-password" className={inputStyle} /></div>
       <label className="flex gap-2 text-sm"><input type="checkbox" checked={showPassword} onChange={e => setShowPassword(e.target.checked)} />Mostrar senhas</label>
       <div><label htmlFor={`${id}-role`}>Perfil de acesso</label><select id={`${id}-role`} name="new-user-role" defaultValue="dentist" className={inputStyle}><option value="dentist">Dentista</option><option value="receptionist">Recepcionista</option><option value="admin">Administrador</option></select></div>
       <div><label htmlFor={`${id}-cro`}>CRO (opcional)</label><input id={`${id}-cro`} name="new-user-cro" inputMode="numeric" maxLength={8} onInput={e => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, '').slice(0, 8); }} className={inputStyle} /></div>

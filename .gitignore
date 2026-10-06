@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+.dentispro-data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

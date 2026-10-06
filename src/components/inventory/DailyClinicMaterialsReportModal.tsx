@@ -1,3 +1,5 @@
+import { useApp } from '../../context/AppContext';
+import { buildDailyMaterialsReport, needsMaterialPlanning } from '../../utils/dailyMaterialsReport';
 import React, { useState } from 'react';
 import { 
   Appointment, 
@@ -38,7 +40,9 @@ export const DailyClinicMaterialsReportModal: React.FC<DailyClinicMaterialsRepor
   professionals,
   onClose
 }) => {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const { materialTemplates } = useApp();
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [selectedClinicId, setSelectedClinicId] = useState<string>('todas');
   const [selectedProfId, setSelectedProfId] = useState<string>('todos');
@@ -48,83 +52,11 @@ export const DailyClinicMaterialsReportModal: React.FC<DailyClinicMaterialsRepor
   const filteredAppointments = appointments.filter(apt => {
     const matchesDate = apt.date === selectedDate;
     const matchesClinic = selectedClinicId === 'todas' || apt.clinicId === selectedClinicId;
-    const matchesProf = selectedProfId === 'todos' || apt.professionalId === selectedProfId || apt.dentistName.includes(selectedProfId);
-    return matchesDate && matchesClinic && matchesProf;
+    const matchesProf = selectedProfId === 'todos' || apt.professionalId === selectedProfId;
+    return matchesDate && matchesClinic && matchesProf && needsMaterialPlanning(apt);
   });
 
-  // Calculate aggregated requirements for all filtered appointments
-  interface AggregatedRequirement {
-    materialName: string;
-    totalQuantityNeeded: number;
-    unit: string;
-    ownerScopeTag: string;
-    scopedStockQty: number;
-    isSufficient: boolean;
-    appointmentsCount: number;
-  }
-
-  const aggregatedMap: Record<string, AggregatedRequirement> = {};
-
-  filteredAppointments.forEach(apt => {
-    // Determine procedure requirement list
-    const procLower = apt.procedure.toLowerCase();
-    const matchingTuss = tussProcedures.find(t => 
-      t.code === apt.tussCode || 
-      t.description.toLowerCase().includes(procLower) ||
-      procLower.includes(t.description.toLowerCase())
-    );
-
-    const baseList = apt.customRequiredMaterials || (matchingTuss?.requiredMaterials && matchingTuss.requiredMaterials.length > 0 ? matchingTuss.requiredMaterials : []);
-
-    // Fallback if no specific list found
-    const listToUse = baseList.length > 0 ? baseList : [
-      { id: 'def-1', materialName: 'Anestésico Local', quantityNeeded: 1, unit: 'tubete' },
-      { id: 'def-2', materialName: 'Agulha Gengival', quantityNeeded: 1, unit: 'unidade' },
-      { id: 'def-3', materialName: 'Sugador Odontológico Descartável', quantityNeeded: 2, unit: 'unidade' },
-      { id: 'def-4', materialName: 'Luvas de Procedimento', quantityNeeded: 1, unit: 'par' },
-    ];
-
-    listToUse.forEach(req => {
-      const key = req.materialName.toLowerCase().trim();
-
-      // Scoped stock check for this specific material
-      const matchingInventory = inventory.filter(i => {
-        // Strict scope check
-        if (i.ownerScope === 'clinica' && apt.clinicId && i.clinicId && i.clinicId !== apt.clinicId) return false;
-        if (i.ownerScope === 'profissional' && apt.professionalId && i.professionalId && i.professionalId !== apt.professionalId) return false;
-        return i.name.toLowerCase().includes(key) || key.includes(i.name.toLowerCase());
-      });
-
-      const scopedStockQty = matchingInventory.reduce((acc, curr) => acc + curr.quantity, 0);
-
-      if (!aggregatedMap[key]) {
-        let ownerTag = 'Geral';
-        if (selectedClinicId !== 'todas') {
-          const cName = clinics.find(c => c.id === selectedClinicId)?.name || 'Clínica Selecionada';
-          ownerTag = `Clínica (${cName})`;
-        } else if (selectedProfId !== 'todos') {
-          const pName = professionals.find(p => p.id === selectedProfId)?.name || 'Profissional Selecionado';
-          ownerTag = `Profissional (${pName})`;
-        }
-
-        aggregatedMap[key] = {
-          materialName: req.materialName,
-          totalQuantityNeeded: 0,
-          unit: req.unit,
-          ownerScopeTag: ownerTag,
-          scopedStockQty,
-          isSufficient: true,
-          appointmentsCount: 0
-        };
-      }
-
-      aggregatedMap[key].totalQuantityNeeded += req.quantityNeeded;
-      aggregatedMap[key].appointmentsCount += 1;
-      aggregatedMap[key].isSufficient = aggregatedMap[key].scopedStockQty >= aggregatedMap[key].totalQuantityNeeded;
-    });
-  });
-
-  const aggregatedList = Object.values(aggregatedMap).sort((a, b) => a.materialName.localeCompare(b.materialName, 'pt-BR'));
+  const aggregatedList = buildDailyMaterialsReport(filteredAppointments, inventory, tussProcedures, materialTemplates);
 
   const handleCopyReport = () => {
     const clinicLabel = selectedClinicId === 'todas' ? 'Todas as Clínicas' : (clinics.find(c => c.id === selectedClinicId)?.name || 'Clínica');
@@ -139,8 +71,8 @@ export const DailyClinicMaterialsReportModal: React.FC<DailyClinicMaterialsRepor
       `--------------------------------------------------`,
       `📦 *CONSOLIDAÇÃO DE MATERIAIS NECESSÁRIOS:*`,
       ...aggregatedList.map((m, idx) => {
-        const statusText = m.isSufficient ? '✅ Estoque OK' : `⚠️ Estoque Insuficiente (Disponível: ${m.scopedStockQty})`;
-        return `${idx + 1}. ${m.materialName}: ${m.totalQuantityNeeded} ${m.unit} (Atende ${m.appointmentsCount} consultas) -> ${statusText}`;
+        const statusText = m.isSufficient ? '✅ Estoque OK' : `⚠️ ${m.note} (Disponível: ${m.scopedStockQty} ${m.unit})`;
+        return `${idx + 1}. ${m.materialName}: ${m.requestedUsage} (Atende ${m.appointmentsCount} consultas) -> ${statusText}`;
       }),
       `--------------------------------------------------`,
       `✨ *DentisPro Odontologia - Gestão Inteligente de Estoque e Bandejas*`
@@ -169,7 +101,7 @@ export const DailyClinicMaterialsReportModal: React.FC<DailyClinicMaterialsRepor
                 </span>
               </div>
               <p className="text-xs text-gray-500">
-                Necessidade agregada de materiais com isolamento estrito de clínicas e dentistas
+                Preparo dos atendimentos pendentes. Cancelados, faltas, concluídos e baixas registradas não entram nesta previsão.
               </p>
             </div>
           </div>
@@ -283,13 +215,14 @@ export const DailyClinicMaterialsReportModal: React.FC<DailyClinicMaterialsRepor
                   <div className="flex items-center gap-3 text-right">
                     <div>
                       <div className="font-extrabold text-[#2c2c2c]">
-                        {item.totalQuantityNeeded} {item.unit}
+                        {item.requestedUsage}
                       </div>
                       <div className="text-[10px] text-gray-500">
-                        Disponível: {item.scopedStockQty}
+                        Saldo: {item.scopedStockQty} {item.unit}
                       </div>
                     </div>
 
+                    {item.note && <p className="max-w-xs text-[10px] text-amber-800">{item.note}</p>}
                     {item.isSufficient ? (
                       <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 shrink-0">
                         ✅ Estoque OK
@@ -297,7 +230,7 @@ export const DailyClinicMaterialsReportModal: React.FC<DailyClinicMaterialsRepor
                     ) : (
                       <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200 shrink-0 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3 text-rose-600" />
-                        Repor
+                        Conferir
                       </span>
                     )}
                   </div>

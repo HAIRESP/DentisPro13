@@ -185,13 +185,13 @@ export const WhatsAppBotView: React.FC = () => {
     ]);
 
     try {
-      const response = await authenticatedFetch('/api/gemini/parse-document', {
+      const response = await authenticatedFetch('/api/ai/parse-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageBase64: base64Image,
           mimeType: 'image/jpeg',
-          provider: clinicInfo.aiProvider || 'gemini'
+          provider: clinicInfo.aiProvider || 'disabled'
         })
       });
 
@@ -1015,7 +1015,7 @@ export const WhatsAppBotView: React.FC = () => {
               <ul className="text-xs text-gray-600 space-y-2 list-disc list-inside leading-relaxed">
                 <li>Escolha o <strong>motivo da consulta</strong> nos cards interativos.</li>
                 <li>Tire ou anexe a foto do <strong>RG, CPF ou Carteirinha</strong> do paciente.</li>
-                <li>O sistema <strong>OCR Gemini</strong> lê e preenche automaticamente os dados.</li>
+                <li>O sistema <strong>OCR configurado</strong> lê e preenche automaticamente os dados.</li>
                 <li>A recepção pode <strong>conferir e editar</strong> qualquer campo antes de salvar.</li>
                 <li>Ao clicar em cadastrar, o paciente entra direto na <strong>Base Central</strong> do consultório.</li>
               </ul>

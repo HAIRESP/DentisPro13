@@ -233,15 +233,15 @@ export function parseLocalDentalVoiceCommand(
 }
 
 /**
- * Sends speech text to server Gemini AI route with fallback to local heuristic
+ * Sends speech text to configured AI route with fallback to local heuristic
  */
-export async function parseDentalVoiceCommandWithGemini(
+export async function parseDentalVoiceCommandWithAI(
   textCommand: string,
   currentSelectedTeeth: number[] = [],
-  provider: AIProvider = 'gemini'
+  provider: AIProvider = 'disabled'
 ): Promise<VoiceOdontogramResult> {
   try {
-    const response = await authenticatedFetch('/api/gemini/parse-voice-odontogram', {
+    const response = await authenticatedFetch('/api/ai/parse-voice-odontogram', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ textCommand, currentSelectedTeeth, provider })
@@ -263,7 +263,7 @@ export async function parseDentalVoiceCommandWithGemini(
       }
     }
   } catch (err) {
-    console.warn('[VOICE GEMINI] Fallback para parser local inteligente:', err);
+    console.warn('[VOICE AI] Fallback para parser local inteligente:', err);
   }
 
   return parseLocalDentalVoiceCommand(textCommand, currentSelectedTeeth);
@@ -283,7 +283,8 @@ export function speakDentalFeedback(text: string) {
 
     // Pick a Portuguese voice if available
     const voices = window.speechSynthesis.getVoices();
-    const ptVoice = voices.find(v => v.lang.startsWith('pt') || v.lang.includes('BR'));
+    const ptVoice = voices.find(v => v.localService && (v.lang.startsWith('pt') || v.lang.includes('BR')));
+    if (!ptVoice) return;
     if (ptVoice) {
       utterance.voice = ptVoice;
     }

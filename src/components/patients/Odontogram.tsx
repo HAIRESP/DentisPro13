@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import { ImageGalleryWithEditor } from '../common/ImageGalleryWithEditor';
 import { 
-  parseDentalVoiceCommandWithGemini, 
+  parseDentalVoiceCommandWithAI,
   parseLocalDentalVoiceCommand, 
   speakDentalFeedback, 
   VoiceOdontogramResult 
@@ -241,6 +241,9 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
+        // Never use browser speech services that may send audio to a remote provider.
+        if (!('processLocally' in recognition)) return;
+        recognition.processLocally = true;
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = 'pt-BR';
@@ -804,7 +807,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     setVoiceProcessing(true);
 
     try {
-      const result = await parseDentalVoiceCommandWithGemini(commandText, selectedTeeth, clinicInfo.aiProvider || 'gemini');
+      const result = await parseDentalVoiceCommandWithAI(commandText, selectedTeeth, clinicInfo.aiProvider || 'disabled');
       setLastVoiceResult(result);
 
       if (voiceAutoApply && result) {
@@ -1918,7 +1921,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
                     <Sparkles className="w-4 h-4 text-amber-600" />
                   </h3>
                   <p className="text-[11px] text-gray-500">
-                    Preenchimento do odontograma por comando de voz com IA (Gemini 3.7 Flash)
+                    Preenchimento do odontograma por comando de voz com IA configurada
                   </p>
                 </div>
               </div>

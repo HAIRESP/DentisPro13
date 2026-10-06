@@ -11,10 +11,10 @@ import {
   jsonb
 } from 'drizzle-orm/pg-core';
 
-// 1. Users Table (Linked to Firebase Auth UID)
+// 1. Users Table (Linked to DentisPro account UID)
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
-  uid: varchar('uid', { length: 255 }).notNull().unique(), // Firebase Auth UID
+  uid: varchar('uid', { length: 255 }).notNull().unique(), // DentisPro account UID
   email: varchar('email', { length: 255 }).notNull(),
   name: varchar('name', { length: 255 }),
   role: varchar('role', { length: 50 }).default('dentist'),
