@@ -58,6 +58,7 @@ import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
 import { SpecialtyInputSelector } from '../common/SpecialtyInputSelector';
 import { PhoneInputWithDDI } from '../common/PhoneInputWithDDI';
 import { UserManagementSection } from './UserManagementSection';
+import { ClinicalAccessReviewSection } from './ClinicalAccessReviewSection';
 import { DocumentTemplatesManager } from './DocumentTemplatesManager';
 import { ProcedureProtocolManager } from './ProcedureProtocolManager';
 
@@ -2574,7 +2575,10 @@ export const SettingsView: React.FC = () => {
 
       {/* SECTION 6: GESTÃO DE USUÁRIOS E PERMISSÕES */}
       {activeSettingsTab === 'usuarios' && (
-        <UserManagementSection />
+        <div className="space-y-6">
+          <UserManagementSection />
+          <ClinicalAccessReviewSection />
+        </div>
       )}
 
       {/* QUICK ADD CLINIC MODAL */}

@@ -5,6 +5,9 @@ Esta etapa cria um banco SQLite novo a partir do JSON exportado pelo DentisPro.
 O navegador continua sendo a origem ativa. Nenhuma restauração, baixa de estoque,
 alteração de senha ou mudança no banco de contas é executada.
 
+A continuação com APIs de consulta, autorizações e painel está documentada em
+`ACESSO-CLINICO-CONFERENCIA.md`. Ela é optativa e mantém a cópia em conferência.
+
 ## Organização implementada
 
 | Estrutura | Conteúdo |
@@ -15,7 +18,7 @@ alteração de senha ou mudança no banco de contas é executada.
 | `clinic_data` | Estoque, configurações, campos adicionais e registros sem vínculo com paciente. |
 | `migration` | JSON original byte a byte, SHA-256, data, contagens e estado `staged_not_active`. |
 | `migration_events` | Registro técnico da importação; não substitui auditoria clínica. |
-| `patient_access` | Estrutura inicialmente vazia, reservada para a próxima etapa. Não há API clínica nem concessão automática de acesso. |
+| `patient_access` | Estrutura inicialmente vazia. A continuação optativa permite registrar autorizações; não existe concessão automática de acesso. |
 
 As contas continuam no banco de contas existente. Não há importação de senhas ou
 sessões para o mecanismo de autenticação. Campos legados presentes no JSON original
@@ -23,7 +26,11 @@ são preservados no arquivo de conferência; trate-o como material confidencial.
 
 Os anexos incorporados como `data:` permanecem junto ao prontuário nesta etapa.
 Referências `https:`, `file:` e `blob:` são preservadas, mas seus arquivos não são
-buscados. A contagem de referências é indicativa: não inspeciona HTML, não verifica
+buscados. Conforme decisão do responsável em 07/10/2026, links externos podem
+continuar como links: **não exigem cópia offline e não impedem a migração**. Sua
+abertura depende da disponibilidade da origem e, quando necessário, de internet.
+URLs `blob:` são temporárias do navegador, não links externos duráveis; esses casos
+continuam sinalizados separadamente. A contagem de referências é indicativa: não inspeciona HTML, não verifica
 arquivos e não comprova disponibilidade offline. Nenhum conteúdo HTML é executado.
 Documentos, guias e comissões sem identificador do paciente são preservados para
 vinculação manual; o programa não tenta adivinhar o paciente pelo nome.
@@ -72,15 +79,16 @@ estruturais; ainda é necessária a conferência clínica dos registros e anexos
   disco/backup. Não colocar em pasta pública ou compartilhamento de arquivos.
 - Não apontar o servidor ativo para esta cópia. Não trocar `DENTISPRO_DATA_DIR`
   nesta etapa: isso também mudaria onde o sistema procura o banco de contas.
-- A próxima etapa deve implementar autenticação e autorização clínica no servidor,
-  vínculo profissional-conta, concessão/revogação por paciente e auditoria de acesso.
-  Administrador não deve receber acesso clínico automaticamente. A tabela vazia de
-  permissões, isoladamente, não implementa esses controles.
+- A continuação optativa implementa esses controles nas APIs de conferência;
+  consulte `ACESSO-CLINICO-CONFERENCIA.md`. A aplicação principal ainda precisa ser
+  conectada a essas regras. A tabela vazia de permissões, isoladamente, não protege
+  as telas legadas nem os dados existentes no navegador.
 - Em seguida, conectar as telas às APIs, tratar edições simultâneas e realizar a
   transição com uma exportação final após suspender edições. Esta cópia não recebe
   mudanças realizadas posteriormente no navegador.
-- Integrar os anexos ao armazenamento protegido e ao backup completo, verificar os
-  vínculos e testar restauração em outro diretório antes de ativar o banco.
+- Integrar os anexos locais ao armazenamento protegido e ao backup completo,
+  preservar os links externos sem exigir download e testar restauração em outro
+  diretório antes de ativar o banco.
 - Só depois configurar serviço Windows, HTTPS na rede local e backups externos.
   Computadores clientes devem acessar o servidor HTTP(S), nunca abrir diretamente
   o arquivo SQLite por SMB/pasta compartilhada.

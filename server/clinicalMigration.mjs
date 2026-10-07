@@ -129,12 +129,13 @@ export function inspectClinicalBackup(bytes) {
     snapshots: snapshots.length,
     missingCatalogReferences,
     mediaReferences: media,
+    externalLinkPolicy: 'preserve_links_no_offline_copy_required',
     state: 'staged_not_active',
     warnings: [
       'Cópia de conferência: a aplicação continua usando os dados atuais do navegador.',
       'Nenhuma permissão clínica ou consentimento foi inferido durante a importação.',
       'O catálogo copiado reflete a data da migração; não comprova sua versão na data do atendimento.',
-      ...(media.external ? ['Existem referências externas. Seus arquivos não foram baixados nem validados para uso offline.'] : []),
+      ...(media.external ? ['Links externos preservados conforme configuração: não exigem cópia offline; dependem da disponibilidade da origem.'] : []),
       ...(media.temporary ? ['Existem referências blob temporárias. Exporte novamente os respectivos anexos antes da ativação.'] : []),
       ...((clinic.savedClinicDocuments ?? []).length ? ['Documentos sem patientId aguardam vinculação manual.'] : []),
       ...((clinic.insuranceGuides ?? []).length || (clinic.commissions ?? []).length

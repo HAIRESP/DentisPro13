@@ -102,6 +102,7 @@ test('flags external and temporary links without downloading them or assigning d
   const data = fixture(); data.patients[0].images.push('https://example.invalid/private.png', 'blob:unavailable');
   const plan = inspectClinicalBackup(bytesOf(data));
   assert.deepEqual(plan.summary.mediaReferences, { embedded: 4, external: 1, temporary: 1 });
+  assert.equal(plan.summary.externalLinkPolicy, 'preserve_links_no_offline_copy_required');
   assert.equal(plan.clinic.savedClinicDocuments.length, 1);
   assert.equal(plan.patients.get('p1').collections.savedClinicDocuments.length, 1);
 });
