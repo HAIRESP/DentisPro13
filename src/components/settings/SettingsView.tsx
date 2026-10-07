@@ -58,7 +58,6 @@ import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
 import { SpecialtyInputSelector } from '../common/SpecialtyInputSelector';
 import { PhoneInputWithDDI } from '../common/PhoneInputWithDDI';
 import { UserManagementSection } from './UserManagementSection';
-import { CloudRunDeploySection } from './CloudRunDeploySection';
 import { DocumentTemplatesManager } from './DocumentTemplatesManager';
 import { ProcedureProtocolManager } from './ProcedureProtocolManager';
 
@@ -212,7 +211,6 @@ export const SettingsView: React.FC = () => {
   const [signatureAlignment, setSignatureAlignment] = useState<'right' | 'center' | 'left'>(clinicInfo.signatureAlignment || 'right');
 
   // Backup & Folder Explorer state
-  const [backupRestored, setBackupRestored] = useState(false);
   const [isFolderExplorerOpen, setIsFolderExplorerOpen] = useState(false);
   const [activeFolderTab, setActiveFolderTab] = useState<'banco' | 'prontuarios' | 'imagens' | 'backups'>('banco');
   const [copiedPath, setCopiedPath] = useState(false);
@@ -686,14 +684,14 @@ export const SettingsView: React.FC = () => {
   const handleExportProjectZip = async () => {
     try {
       const zip = new JSZip();
-      zip.file("README.md", `# Sistema Odontológico - Pen Drive USB\n\n1. Node.js instalado.\n2. Executar: npm install\n3. Executar: npm run dev\n4. Acesse http://localhost:3000`);
+      zip.file("README.md", `# Configuração da clínica\n\nEste ZIP contém somente clinicInfo. Não contém o software, prontuários ou contas. Use o backup JSON do DentisPro para os dados clínicos.`);
       zip.file("backup-clinica-dados.json", JSON.stringify({ clinicInfo, exportDate: new Date().toISOString() }, null, 2));
 
       const content = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `sistema-odontologico-usb-${new Date().toISOString().slice(0, 10)}.zip`;
+      a.download = `configuracao-clinica-${new Date().toISOString().slice(0, 10)}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -708,7 +706,7 @@ export const SettingsView: React.FC = () => {
     try {
       exportDatabaseBackupJSON();
     } catch (err) {
-      console.error("Erro backup:", err);
+      alert(err instanceof Error ? err.message : "Não foi possível exportar o backup.");
     }
   };
 
@@ -716,21 +714,16 @@ export const SettingsView: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
-        const backupData = JSON.parse(ev.target?.result as string);
-        if (window.confirm('Substituir os dados atuais pelo backup selecionado?')) {
-          Object.keys(backupData).forEach((key) => {
-            const val = backupData[key];
-            localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val));
-          });
-          setBackupRestored(true);
-          setTimeout(() => window.location.reload(), 1500);
+        if (window.confirm('Feche as outras abas do DentisPro antes de continuar. Substituir os dados atuais pelo backup selecionado?')) {
+          await importDatabaseBackupJSON(String(ev.target?.result ?? ''));
         }
       } catch (err) {
-        alert('Arquivo de backup inválido.');
+        alert(err instanceof Error ? err.message : 'Não foi possível restaurar o backup.');
       }
     };
+    reader.onerror = () => alert('Não foi possível ler o arquivo de backup.');
     reader.readAsText(file);
   };
 
@@ -1068,11 +1061,11 @@ export const SettingsView: React.FC = () => {
             <label htmlFor="ai-provider" className="block text-xs font-bold text-gray-700">Provedor ativo</label>
             <select
               id="ai-provider"
-              value={clinicInfo.aiProvider || 'gemini'}
+              value={clinicInfo.aiProvider || 'disabled'}
               onChange={(event) => updateClinicInfo({ aiProvider: event.target.value as AIProvider })}
               className="w-full sm:max-w-sm bg-white border border-[#5a5a40]/30 rounded-xl px-3.5 py-2.5 text-sm font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
             >
-              <option value="gemini">Google Gemini</option>
+              <option value="disabled">Desativada — sem envio a serviços externos</option>
               <option value="deepseek">DeepSeek</option>
               <option value="copilot">GitHub Copilot (CLI local)</option>
             </select>
@@ -1080,7 +1073,7 @@ export const SettingsView: React.FC = () => {
           </div>
 
           <div className="max-w-2xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
-            Gemini e DeepSeek precisam de suas respectivas chaves no arquivo <strong>.env</strong>. Copilot usa autenticação local do CLI e não precisa de chave nesta tela. O runtime Copilot recebe zero ferramentas do sistema.
+            DeepSeek precisa de sua chave no arquivo <strong>.env</strong>. Copilot usa autenticação local do CLI e não precisa de chave nesta tela. O runtime Copilot recebe zero ferramentas do sistema.
           </div>
         </section>
       )}
@@ -2376,10 +2369,10 @@ export const SettingsView: React.FC = () => {
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2 text-xs">
           <div className="flex items-center gap-2 font-bold text-emerald-900">
             <HardDrive className="w-4 h-4 text-emerald-700" />
-            Como Baixar o Software para Pendrive USB (.zip)
+            Exportar configuração da clínica (.zip)
           </div>
           <p className="text-emerald-800 leading-relaxed">
-            Você pode baixar o projeto completo para ser executado diretamente em um pendrive USB ou servidor local.
+            Este arquivo contém apenas a configuração da clínica. Para pacientes, atendimentos e estoque, use o backup JSON abaixo.
           </p>
           <div className="pt-1">
             <button
@@ -2388,16 +2381,10 @@ export const SettingsView: React.FC = () => {
               className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-xs flex items-center gap-2 transition cursor-pointer"
             >
               <Download className="w-4 h-4" />
-              Baixar Projeto Completo (.zip)
+              Baixar configuração (.zip)
             </button>
           </div>
         </div>
-
-        {backupRestored && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center gap-2">
-            <Check className="w-4 h-4 text-emerald-600" /> Backup restaurado com sucesso! Recarregando...
-          </div>
-        )}
 
         {/* Functional Backup Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2581,8 +2568,7 @@ export const SettingsView: React.FC = () => {
         </div>
       )}
 
-      {/* SECTION 7: IMPLANTAÇÃO NO GOOGLE CLOUD RUN */}
-      <CloudRunDeploySection />
+
       </>
       )}
 

@@ -217,7 +217,7 @@ export const SwitchProfessionalModal: React.FC = () => {
               Ao alternar de profissional, o prontuário, as assinaturas e a emissão de documentos serão atualizados para o nome e registro de <strong>{targetProf.name}</strong>.
             </p>
             <p className="text-[10.5px] text-stone-500 pt-0.5">
-              Administradores podem selecionar profissionais. Dentistas precisam estar vinculados ao profissional escolhido. A senha é confirmada pelo Firebase.
+              Administradores podem selecionar profissionais. Dentistas precisam estar vinculados ao profissional escolhido. A senha é confirmada pelo servidor do DentisPro.
             </p>
           </div>
 

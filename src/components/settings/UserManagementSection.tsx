@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
-import { UserRole, ROLE_PERMISSIONS, UserProfile } from '../../lib/firebase';
+import { UserRole, ROLE_PERMISSIONS, UserProfile } from '../../lib/authProfile';
 import { 
   ShieldCheck, 
   Users, 

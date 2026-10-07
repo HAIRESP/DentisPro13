@@ -613,7 +613,7 @@ export const InventoryManager: React.FC = () => {
   const [isScanningLens, setIsScanningLens] = useState(false);
   const [lensScanSuccess, setLensScanSuccess] = useState<string | null>(null);
 
-  // Google Lens AI Photo Staging & Prompts State
+  // Identificação visual Photo Staging & Prompts State
   const [isLensModalOpen, setIsLensModalOpen] = useState(false);
   const [currentCapturedPhoto, setCurrentCapturedPhoto] = useState<string | null>(null);
   const [stagedPhotos, setStagedPhotos] = useState<string[]>([]);
@@ -745,185 +745,6 @@ export const InventoryManager: React.FC = () => {
   };
 
   // Helper to parse URLs or dental product codes/barcodes
-  const parseProductUrlOrCode = (codeOrSearch?: string) => {
-    if (!codeOrSearch) return null;
-    const input = codeOrSearch.trim();
-
-    const isUrl = input.startsWith('http://') || input.startsWith('https://') || input.includes('www.') || input.includes('.com.br') || input.includes('.com');
-
-    if (isUrl) {
-      try {
-        let urlObj: URL | null = null;
-        try {
-          urlObj = new URL(input.startsWith('http') ? input : `https://${input}`);
-        } catch (e) {
-          urlObj = null;
-        }
-
-        let pathname = urlObj ? urlObj.pathname : input;
-        pathname = pathname.split('?')[0].split('#')[0].replace(/\/+$/, '');
-
-        const segments = pathname.split('/').filter(Boolean);
-        let rawSlug = segments.length > 0 ? segments[segments.length - 1] : '';
-        
-        // Strip file extensions like .html, .php, .aspx
-        rawSlug = rawSlug.replace(/\.(html|htm|php|aspx|jsp)$/i, '');
-
-        // Extract SKU/REF number if attached to the end (e.g. -126332)
-        let sku = '';
-        const skuMatch = rawSlug.match(/[-_](\d{4,8})$/);
-        if (skuMatch) {
-          sku = skuMatch[1];
-          rawSlug = rawSlug.replace(/[-_]\d{4,8}$/, '');
-        }
-
-        // Clean slug into words
-        let cleanSlug = rawSlug.replace(/[-_]+/g, ' ').trim();
-
-        // Dictionary for dental vocabulary capitalization and accents
-        const wordMap: Record<string, string> = {
-          'broca': 'Broca',
-          'tungstenio': 'Tungstênio',
-          'pera': 'Pêra',
-          'corte': 'Corte',
-          'cruzado': 'Cruzado',
-          'extra': 'Extra',
-          'grosso': 'Grosso',
-          'fino': 'Fino',
-          'superfino': 'Superfino',
-          'medio': 'Médio',
-          'n': 'Nº',
-          'no': 'Nº',
-          'american': 'American',
-          'burrs': 'Burrs',
-          'resina': 'Resina',
-          'filtek': 'Filtek',
-          'z350': 'Z350',
-          'xt': 'XT',
-          '3m': '3M',
-          'anestesico': 'Anestésico',
-          'alphacaine': 'Alphacaine',
-          'lidocaina': 'Lidocaína',
-          'mepivacaina': 'Mepivacaína',
-          'articaina': 'Articaína',
-          'epinefrina': 'Epinefrina',
-          'dfl': 'DFL',
-          'cristofoli': 'Cristófoli',
-          'autoclave': 'Autoclave',
-          'vitale': 'Vitale',
-          'class': 'Class',
-          'alicate': 'Alicate',
-          'fresa': 'Fresa',
-          'ponta': 'Ponta',
-          'diamantada': 'Diamantada',
-          'kg': 'KG',
-          'sorensen': 'Sorensen',
-          'fgm': 'FGM',
-          'dentsply': 'Dentsply',
-          'sirona': 'Sirona',
-          'kavo': 'KaVo',
-          'golgran': 'Golgran',
-          'duflex': 'Duflex',
-          'ultradent': 'Ultradent',
-          'maquira': 'Maquira',
-          'biodinamica': 'Biodinâmica',
-          'septodont': 'Septodont',
-          'coltene': 'Coltène',
-          'kulzer': 'Kulzer',
-          'voco': 'VOCO',
-          'angelus': 'Angelus',
-          'orthometric': 'Orthometric',
-          'morelli': 'Morelli',
-          'ionomero': 'Ionomero',
-          'cimento': 'Cimento',
-          'adesivo': 'Adesivo',
-          'single': 'Single',
-          'bond': 'Bond',
-          'luva': 'Luva',
-          'mascara': 'Máscara',
-          'algodao': 'Algodão',
-          'gaze': 'Gaze',
-          'sugador': 'Sugador',
-          'seladora': 'Seladora',
-          'fotopolimerizador': 'Fotopolimerizador',
-          'bio-art': 'Bio-Art',
-          'bioart': 'Bio-Art'
-        };
-
-        const words = cleanSlug.split(/\s+/);
-        const formattedWords = words.map(w => {
-          const lower = w.toLowerCase();
-          if (wordMap[lower]) return wordMap[lower];
-          if (/^\d+$/.test(w)) return w;
-          return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-        });
-
-        let name = formattedWords.join(' ');
-
-        if (!name || name.length < 3) {
-          name = 'Material Odontológico Extraído do Link';
-        }
-
-        // Category determination
-        const lowerName = name.toLowerCase();
-        let category = 'Outros';
-        if (lowerName.includes('broca') || lowerName.includes('fresa') || lowerName.includes('ponta') || lowerName.includes('burrs') || lowerName.includes('alicate') || lowerName.includes('sonda') || lowerName.includes('forceps') || lowerName.includes('alavanca')) {
-          category = 'Instrumentais';
-        } else if (lowerName.includes('resina') || lowerName.includes('adesivo') || lowerName.includes('filtek') || lowerName.includes('ionomero') || lowerName.includes('acido')) {
-          category = 'Resinas & Adesivos';
-        } else if (lowerName.includes('anestesico') || lowerName.includes('alphacaine') || lowerName.includes('lidocaina') || lowerName.includes('mepivacaina') || lowerName.includes('articaina')) {
-          category = 'Anestésicos';
-        } else if (lowerName.includes('autoclave') || lowerName.includes('seladora') || lowerName.includes('fotopolimerizador') || lowerName.includes('motor') || lowerName.includes('ultrassom')) {
-          category = 'Equipamentos';
-        } else if (lowerName.includes('luva') || lowerName.includes('mascara') || lowerName.includes('algodao') || lowerName.includes('gaze') || lowerName.includes('sugador') || lowerName.includes('touca')) {
-          category = 'Descartáveis';
-        } else if (lowerName.includes('lima') || lowerName.includes('cone') || lowerName.includes('gutta') || lowerName.includes('endo')) {
-          category = 'Endodontia';
-        }
-
-        // Supplier determination
-        let supplier = 'Dental Cremer';
-        if (lowerName.includes('american burrs')) supplier = 'American Burrs';
-        else if (lowerName.includes('3m')) supplier = '3M Oral Care';
-        else if (lowerName.includes('dfl')) supplier = 'DFL Odontologia';
-        else if (lowerName.includes('cristofoli')) supplier = 'Cristófoli Biossegurança';
-        else if (lowerName.includes('fgm')) supplier = 'FGM Dental Group';
-        else if (lowerName.includes('kg sorensen')) supplier = 'KG Sorensen';
-        else if (lowerName.includes('golgran')) supplier = 'Golgran';
-        else if (urlObj && urlObj.hostname) {
-          if (urlObj.hostname.includes('dentalspeed')) supplier = 'Dental Speed';
-          else if (urlObj.hostname.includes('dentalmachado')) supplier = 'Dental Machado';
-        }
-
-        // Unit determination
-        let unit: InventoryItem['unit'] = 'unidade';
-        if (category === 'Equipamentos') unit = 'peça';
-        else if (lowerName.includes('anestesico') || lowerName.includes('luva')) unit = 'caixa';
-
-        // Price estimation
-        let unitCost = '45.00';
-        if (lowerName.includes('broca') || lowerName.includes('burrs')) unitCost = '68.90';
-        else if (category === 'Equipamentos') unitCost = '3800.00';
-        else if (category === 'Anestésicos') unitCost = '88.00';
-        else if (category === 'Resinas & Adesivos') unitCost = '145.00';
-
-        return {
-          code: sku || '126332',
-          name,
-          category,
-          unit,
-          unitCost,
-          supplier,
-          minQty: '2'
-        };
-      } catch (err) {
-        console.error('Error parsing URL', err);
-      }
-    }
-
-    return null;
-  };
-
   // Handle Photo Add via Direct URL Link
   const handleAddPhotoFromUrl = () => {
     const trimmed = imageUrlInput.trim();
@@ -943,116 +764,27 @@ export const InventoryManager: React.FC = () => {
 
     // Automatic extraction of material registration data upon inserting photo link
     runBarcodeScannerLookup(trimmed);
-    setPhotoSuccessNotice('Dados e especificações do material extraídos com sucesso a partir do link!');
-    setTimeout(() => setPhotoSuccessNotice(null), 4000);
+
   };
 
   // Barcode Scanner & Catalog Lookup Engine
   const runBarcodeScannerLookup = (codeOrSearch?: string) => {
-    setIsScanningLens(true);
+    const input = (codeOrSearch || itemCode || '').trim();
+    const existing = inventory.find(item => item.itemCode && item.itemCode.trim().toLowerCase() === input.toLowerCase());
+    if (existing) {
+      alert(`Este código já está cadastrado em "${existing.name}". Abra o item existente para editar; não crie uma duplicata.`);
+      return;
+    }
+    setIsScanningLens(false);
     setLensScanSuccess(null);
-
-    setTimeout(() => {
-      setIsScanningLens(false);
-
-      // First try intelligent URL or code parser
-      const parsed = parseProductUrlOrCode(codeOrSearch);
-
-      type MatchedProduct = {
-        code: string;
-        name: string;
-        category: string;
-        unit: 'unidade' | 'caixa' | 'frasco' | 'pacote' | 'par' | 'kit' | 'peça' | 'tubete' | 'bisnaga' | 'seringa' | 'rolo';
-        unitCost: number;
-        supplier: string;
-        minQty: number;
-        requiresMaintenance: boolean;
-        freqDays?: number;
-        notes?: string;
-      };
-
-      let matched: MatchedProduct;
-
-      if (parsed) {
-        matched = {
-          code: parsed.code,
-          name: parsed.name,
-          category: parsed.category,
-          unit: parsed.unit as MatchedProduct['unit'],
-          unitCost: parseFloat(parsed.unitCost),
-          supplier: parsed.supplier,
-          minQty: parseInt(parsed.minQty, 10),
-          requiresMaintenance: false,
-          freqDays: undefined,
-          notes: undefined
-        };
-      } else {
-        const pool: MatchedProduct[] = [
-          {
-            code: codeOrSearch || '7891234567890',
-            name: 'Autoclave Cristófoli Vitale Class 12 Litros',
-            category: 'Equipamentos',
-            unit: 'peça',
-            unitCost: 4800,
-            supplier: 'Cristófoli Biossegurança',
-            minQty: 1,
-            requiresMaintenance: true,
-            freqDays: 180,
-            notes: 'Substituição do anel de vedação, teste biológico e aferição de temperatura e pressão.'
-          },
-          {
-            code: codeOrSearch || '7899876543210',
-            name: 'Anestésico Alphacaine Lidocaína 2% c/ Epinefrina',
-            category: 'Anestésicos',
-            unit: 'caixa',
-            unitCost: 88,
-            supplier: 'DFL Odontologia',
-            minQty: 5,
-            requiresMaintenance: false
-          },
-          {
-            code: codeOrSearch || '7894561239870',
-            name: 'Resina Composta Filtek Z350 XT A2 3M',
-            category: 'Resinas & Adesivos',
-            unit: 'unidade',
-            unitCost: 145,
-            supplier: '3M Oral Care',
-            minQty: 3,
-            requiresMaintenance: false
-          }
-        ];
-        matched = pool[Math.floor(Math.random() * pool.length)];
-      }
-
-      const existingItem = inventory.find(i => i.itemCode && i.itemCode.trim().toLowerCase() === matched.code.trim().toLowerCase());
-      if (existingItem) {
-        alert(`⚠️ ATENÇÃO: Já existe um item cadastrado com este código ("${matched.code}")!\n\nItem Existente: "${existingItem.name}" (${existingItem.category}).\n\nPor favor, verifique o que está acontecendo (possível duplicata ou divergência no inventário).`);
-      }
-
-      setItemCode(matched.code);
-      setName(matched.name);
-      setCategory(matched.category);
-      setUnit(matched.unit);
-      setUnitCost(matched.unitCost.toFixed(2));
-      setSupplier(matched.supplier);
-      setMinQuantity(matched.minQty.toString());
-
-      if (matched.requiresMaintenance) {
-        setRequiresMaintenance(true);
-        setMaintenanceFrequencyDays(matched.freqDays ? matched.freqDays.toString() : '180');
-        setMaintenanceNotes(matched.notes || '');
-      } else {
-        setRequiresMaintenance(false);
-      }
-
-      setLensScanSuccess(`Material extraído com sucesso: "${matched.name}" (${matched.category})`);
-      setIsLensModalOpen(false);
-      setIsAddItemModalOpen(true);
-    }, 600);
+    setIsLensModalOpen(false);
+    setIsAddItemModalOpen(true);
+    if (/^\d+$/.test(input)) setItemCode(input);
+    setPhotoSuccessNotice('Produto não identificado por catálogo verificado. Preencha e confira nome, apresentação, unidade, fabricante e custo na embalagem ou nota fiscal.');
   };
 
   // =========================================================================
-  // 3 MODOS DE CAPTURA PELA CÂMERA (GOOGLE LENS AI)
+  // 3 MODOS DE CAPTURA PELA CÂMERA (IDENTIFICAÇÃO VISUAL)
   // =========================================================================
 
   // MODO 1: Descartar foto (Descarta captura e reinicia câmera imediatamente)
@@ -1685,7 +1417,7 @@ export const InventoryManager: React.FC = () => {
             Controle de Estoque & Manutenção de Equipamentos
           </h1>
           <p className="text-xs opacity-75">
-            Gestão abrangente de materiais, equipamentos odontológicos, alertas de compra, manutenção preventiva e scanner com Google Lens.
+            Gestão abrangente de materiais, equipamentos odontológicos, alertas de compra, manutenção preventiva e scanner com identificação visual.
           </p>
         </div>
 
@@ -1788,7 +1520,7 @@ export const InventoryManager: React.FC = () => {
               }, 150);
             }}
             className="px-4 py-2.5 bg-[#1b281d] hover:bg-[#2c3e2e] text-white font-medium text-xs rounded-2xl flex items-center justify-center gap-2 border border-[#d4a373]/50 shadow-sm transition-all"
-            title="Escanear caixa, frasco, rótulo ou QR Code com Google Lens AI e câmera"
+            title="Escanear caixa, frasco, rótulo ou QR Code com Identificação visual e câmera"
           >
             <Scan className="w-4 h-4 text-amber-300 animate-pulse" />
             <span>Escanear Lens AI</span>
@@ -3773,7 +3505,7 @@ export const InventoryManager: React.FC = () => {
                     {editingItemId ? 'Editar Material / Equipamento' : 'Novo Cadastro de Material / Equipamento'}
                   </h3>
                   <p className="text-[11px] text-gray-500">
-                    {editingItemId ? 'Altere dados do item, gerencie estoque ou adicione/remova fotos de identificação' : 'Adicione ao inventário com identificação visual via câmera/Google Lens'}
+                    {editingItemId ? 'Altere dados do item, gerencie estoque ou adicione/remova fotos de identificação' : 'Adicione ao inventário com identificação visual via câmera/identificação visual'}
                   </p>
                 </div>
               </div>
@@ -3797,7 +3529,7 @@ export const InventoryManager: React.FC = () => {
                 </div>
               )}
 
-              {/* Google Lens AI Notification Banner */}
+              {/* Identificação visual Notification Banner */}
               {lensScanSuccess && (
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-2.5 text-xs text-amber-900 font-medium animate-fadeIn">
                   <Sparkles className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
@@ -4088,12 +3820,12 @@ export const InventoryManager: React.FC = () => {
                   </div>
                 )}
 
-                {/* Google Lens AI Scanning Overlay Indicator */}
+                {/* Identificação visual Scanning Overlay Indicator */}
                 {isScanningLens && (
                   <div className="p-3 bg-amber-500/10 border border-amber-400/40 rounded-2xl flex items-center gap-3 text-amber-900 animate-pulse">
                     <Scan className="w-5 h-5 text-amber-600 animate-spin shrink-0" />
                     <div>
-                      <p className="text-xs font-bold">Google Lens AI Analisando Foto do Material...</p>
+                      <p className="text-xs font-bold">Identificação visual Analisando Foto do Material...</p>
                       <p className="text-[10px] text-amber-800">Identificando fabricante, categoria, modelo e preenchendo os campos do cadastro.</p>
                     </div>
                   </div>
@@ -5210,7 +4942,7 @@ export const InventoryManager: React.FC = () => {
         </div>
       )}
       {/* ========================================================================= */}
-      {/* MODAL: GOOGLE LENS AI PHOTO SCANNER */}
+      {/* MODAL: IDENTIFICAÇÃO VISUAL PHOTO SCANNER */}
       {/* ========================================================================= */}
       {isLensModalOpen && (
         <div className="fixed inset-0 z-50 bg-[#2c2c2c]/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
@@ -5221,7 +4953,7 @@ export const InventoryManager: React.FC = () => {
                   <Scan className="w-5 h-5 animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-[#2c2c2c]">Adicionar por Foto (Google Lens AI)</h3>
+                  <h3 className="text-base font-bold text-[#2c2c2c]">Adicionar por Foto (Identificação visual)</h3>
                   <p className="text-[11px] text-gray-500">Capture a embalagem, frasco ou rótulo para identificação automática</p>
                 </div>
               </div>
@@ -5254,7 +4986,7 @@ export const InventoryManager: React.FC = () => {
             {isScanningLens ? (
               <div className="p-8 text-center bg-amber-500/10 border border-amber-400/40 rounded-2xl space-y-3 animate-pulse">
                 <Scan className="w-10 h-10 text-amber-600 animate-spin mx-auto" />
-                <h4 className="text-sm font-bold text-amber-900">Google Lens AI Analisando Imagem...</h4>
+                <h4 className="text-sm font-bold text-amber-900">Identificação visual Analisando Imagem...</h4>
                 <p className="text-xs text-amber-800 max-w-xs mx-auto">
                   Processando padrão visual, OCR de rótulo e comparando com catálogo de insumos odontológicos.
                 </p>
@@ -5351,7 +5083,7 @@ export const InventoryManager: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* PROMPT DE AÇÃO: 3 MODOS DE CAPTURA PELA CÂMERA (GOOGLE LENS AI) */}
+      {/* PROMPT DE AÇÃO: 3 MODOS DE CAPTURA PELA CÂMERA (IDENTIFICAÇÃO VISUAL) */}
       {/* ========================================================================= */}
       {showSavePhotoPrompt && (
         <div className="fixed inset-0 z-50 bg-[#2c2c2c]/80 backdrop-blur-xs flex items-center justify-center p-4">
@@ -5361,7 +5093,7 @@ export const InventoryManager: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-[#2c2c2c]">Foto Analisada pelo Google Lens AI</h3>
+              <h3 className="text-base font-bold text-[#2c2c2c]">Foto Analisada pelo Identificação visual</h3>
               <p className="text-xs text-gray-600 leading-relaxed">
                 Escolha uma das 3 opções para prosseguir com o cadastro deste material:
               </p>
@@ -5387,7 +5119,7 @@ export const InventoryManager: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-700 text-white shadow-2xs">
                     <Sparkles className="w-3 h-3 text-amber-300 animate-spin" />
-                    Identificado via Google Lens AI (98.6%)
+                    Identificado via sugestão local não verificada
                   </span>
                   <span className="text-xs font-bold text-emerald-900 font-mono">
                     R$ {lastRecognizedProduct.unitCost.toFixed(2)}
@@ -5405,7 +5137,7 @@ export const InventoryManager: React.FC = () => {
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-left space-y-1">
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-700 text-white">
                   <AlertCircle className="w-3 h-3" />
-                  Não identificado no Google Lens
+                  Não identificado no identificação visual
                 </span>
                 <p className="text-[11px] text-amber-900">
                   Não foi possível ler o rótulo da imagem. Você pode manter esta foto e preencher as informações manualmente.

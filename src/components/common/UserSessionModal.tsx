@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
-import { UserRole, ROLE_PERMISSIONS, DEMO_USERS } from '../../lib/firebase';
+import { UserRole, ROLE_PERMISSIONS } from '../../lib/authProfile';
 import { printDocumentWithTitle } from '../../utils/printUtils';
 import {
   UserCheck,
@@ -66,7 +66,7 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
     try {
       const ok = await requestPasswordReset();
       setFeedbackMsg(ok
-        ? { type: 'success', text: 'Solicitação enviada. Confira sua caixa de entrada e spam. A senha só muda após concluir o link recebido.' }
+        ? { type: 'success', text: 'Abrindo a alteração de senha no servidor do DentisPro.' }
         : { type: 'error', text: 'Não foi possível solicitar a redefinição. Confira a conexão e tente novamente.' });
     } finally { setIsSubmitting(false); }
   };
@@ -223,7 +223,7 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
           {activeTab === 'login' && !currentUser && (
             <form id="dentispro-login" autoComplete="on" onSubmit={handleCustomLogin} className="space-y-3.5 text-xs">
               <p className="text-xs text-stone-600 font-medium">
-                Inicie uma sessão com suas credenciais do Firebase Authentication para salvar seus parâmetros de clínica na nuvem:
+                Entre com sua conta deste servidor do DentisPro:
               </p>
 
               <div>
@@ -367,11 +367,11 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
 
           {activeTab === 'passwords' && (
             <div className="space-y-4 text-sm">
-              <p>Redefina a senha da sua conta pelo link enviado ao e-mail <strong>{currentUser?.email}</strong>.</p>
+              <p>Altere a senha da sua conta <strong>{currentUser?.email}</strong>.</p>
               <p>O sistema não exibe nem armazena sua senha no cadastro profissional.</p>
               <button type="button" disabled={isSubmitting} onClick={handlePasswordReset}
                 className="px-4 py-2 rounded-xl bg-[#5a5a40] text-white disabled:opacity-50">
-                {isSubmitting ? 'Enviando...' : 'Enviar e-mail de redefinição'}
+                {isSubmitting ? 'Abrindo...' : 'Alterar senha'}
               </button>
             </div>
           )}

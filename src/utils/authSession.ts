@@ -17,7 +17,7 @@ export function validateSessionProfile(
       typeof profile.name !== 'string') {
     throw new Error('invalid-session-profile');
   }
-  // Identity comes from Firebase Auth. Legacy plaintext passwords are not session data.
+  // Identity comes from the authenticated server session. Legacy plaintext passwords are not session data.
   const { password: _password, ...safeProfile } = profile;
   return { ...safeProfile, uid: user.uid, email: user.email || '' };
 }

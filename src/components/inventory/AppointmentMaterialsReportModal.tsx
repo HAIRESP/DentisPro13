@@ -1,3 +1,4 @@
+import { getAppointmentRequirements } from '../../utils/appointmentRequirements';
 import { useApp } from '../../context/AppContext';
 import { isMaterialInScope, materialTemplateKey, selectConsumptionRows } from '../../utils/appointmentMaterials';
 import type { StockDeductionRequest } from '../../utils/stockUnits';
@@ -82,63 +83,7 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
     clinicIds: []
   };
 
-  // 1. Resolve required materials for the appointment's procedure
-  const matchingTuss = tussProcedures.find(t => 
-    t.code === appointment.tussCode || 
-    t.description.toLowerCase().includes(appointment.procedure.toLowerCase()) ||
-    appointment.procedure.toLowerCase().includes(t.description.toLowerCase())
-  );
-
-  // Default procedural kit fallback if no requiredMaterials explicitly configured
-  const defaultProcedureMaterials: ProcedureMaterialRequirement[] = [
-    { id: 'req-1', materialName: 'Anestésico Local (Lidocaína / Mepivacaína)', category: 'Anestésicos', quantityNeeded: 1, unit: 'tubete' },
-    { id: 'req-2', materialName: 'Agulha Gengival Descartável', category: 'Descartáveis', quantityNeeded: 1, unit: 'unidade' },
-    { id: 'req-3', materialName: 'Sugador Odontológico Descartável', category: 'Descartáveis', quantityNeeded: 2, unit: 'unidade' },
-    { id: 'req-4', materialName: 'Gaze Estéril Dobrada', category: 'Descartáveis', quantityNeeded: 1, unit: 'pacote' },
-    { id: 'req-5', materialName: 'Luvas de Procedimento Nitrílicas/Látex', category: 'Descartáveis', quantityNeeded: 1, unit: 'par' },
-    { id: 'req-6', materialName: 'Kit Clínico reutilizável (bandeja, espelho, pinça e explorador)', category: 'Instrumentais', quantityNeeded: 1, unit: 'conjunto' },
-  ];
-
-  // Specific additions based on procedure category
-  let specificRequirements: ProcedureMaterialRequirement[] = [];
-  const procLower = appointment.procedure.toLowerCase();
-
-  if (procLower.includes('resina') || procLower.includes('restauração')) {
-    specificRequirements = [
-      { id: 'req-res-1', materialName: 'Resina Composta Nanoparticulada (A2/A3)', category: 'Resinas & Adesivos', quantityNeeded: 1, unit: 'unidade' },
-      { id: 'req-res-2', materialName: 'Sistema Adesivo Fotopolimerizável', category: 'Resinas & Adesivos', quantityNeeded: 1, unit: 'frasco' },
-      { id: 'req-res-3', materialName: 'Ácido Fosfórico 37%', category: 'Resinas & Adesivos', quantityNeeded: 1, unit: 'unidade' },
-      { id: 'req-res-4', materialName: 'Matriz / Tira de Poliéster & Cunha de Madeira', category: 'Descartáveis', quantityNeeded: 1, unit: 'unidade' },
-      { id: 'req-res-5', materialName: 'Discos e Pasta de Polimento', category: 'Descartáveis', quantityNeeded: 1, unit: 'kit' },
-    ];
-  } else if (procLower.includes('canal') || procLower.includes('endodont')) {
-    specificRequirements = [
-      { id: 'req-endo-1', materialName: 'Isolamento Absoluto (Lençol de Borracha + Grampo)', category: 'Endodontia', quantityNeeded: 1, unit: 'conjunto' },
-      { id: 'req-endo-2', materialName: 'Jogo de Limas Endodônticas NiTi', category: 'Endodontia', quantityNeeded: 1, unit: 'kit' },
-      { id: 'req-endo-3', materialName: 'Solução Irrigante Hipoclorito de Sódio 2.5%', category: 'Endodontia', quantityNeeded: 1, unit: 'frasco' },
-      { id: 'req-endo-4', materialName: 'Cones de Guta-Percha & Cimento Endodôntico Biocerâmico', category: 'Endodontia', quantityNeeded: 1, unit: 'caixa' },
-    ];
-  } else if (procLower.includes('limpeza') || procLower.includes('profilaxia') || procLower.includes('raspagem')) {
-    specificRequirements = [
-      { id: 'req-prof-1', materialName: 'Pasta Profilática Fluoretada', category: 'Higiene', quantityNeeded: 1, unit: 'unidade' },
-      { id: 'req-prof-2', materialName: 'Taça de Borracha / Escova Robinson', category: 'Descartáveis', quantityNeeded: 1, unit: 'unidade' },
-      { id: 'req-prof-3', materialName: 'Ponta de Ultrassom Perio / Curetas Gracey', category: 'Instrumentais', quantityNeeded: 1, unit: 'conjunto' },
-      { id: 'req-prof-4', materialName: 'Flúor Gel / Verniz Fluoretado', category: 'Higiene', quantityNeeded: 1, unit: 'unidade' },
-    ];
-  } else if (procLower.includes('extração') || procLower.includes('exodontia') || procLower.includes('cirurgia') || procLower.includes('implante')) {
-    specificRequirements = [
-      { id: 'req-cir-1', materialName: 'Campo Cirúrgico Estéril & Babador Impermeável', category: 'Cirurgia', quantityNeeded: 1, unit: 'pacote' },
-      { id: 'req-cir-2', materialName: 'Fio de Sutura Nylon/Seda 4-0 com Agulha', category: 'Cirurgia', quantityNeeded: 1, unit: 'unidade' },
-      { id: 'req-cir-3', materialName: 'Lâmina de Bisturi nº 15 / Kit Fórceps & Alavancas', category: 'Cirurgia', quantityNeeded: 1, unit: 'conjunto' },
-      { id: 'req-cir-4', materialName: 'Soro Fisiológico Estéril 0.9% para Irrigação', category: 'Cirurgia', quantityNeeded: 1, unit: 'frasco' },
-    ];
-  }
-
-  const baseRequirementsList = appointment.customRequiredMaterials || 
-    (templateKey && materialTemplates?.[templateKey]) ||
-    (matchingTuss?.requiredMaterials && matchingTuss.requiredMaterials.length > 0
-      ? matchingTuss.requiredMaterials
-      : [...defaultProcedureMaterials, ...specificRequirements]);
+  const baseRequirementsList = getAppointmentRequirements(appointment, tussProcedures, materialTemplates);
 
   // 2. Strict Scoping Logic
   // Filter inventory items allowed for this clinic & professional
@@ -379,14 +324,14 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
             </div>
           </div>
 
-          <div className="pt-2 border-t border-[#e5e5d1]/60 flex items-center justify-between text-xs">
-            <div>
-              <span className="text-gray-500">Procedimento Requisitado:</span>
-              <span className="ml-1.5 font-bold text-[#2c2c2c] bg-amber-50 px-2.5 py-1 rounded-xl border border-amber-200">
+          <div className="pt-3 border-t border-[#e5e5d1]/60 flex flex-col gap-3 sm:flex-row sm:items-start text-xs">
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <span className="block text-gray-500">Procedimento requisitado:</span>
+              <div className="block whitespace-normal break-words font-bold leading-relaxed text-[#2c2c2c] bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
                 {appointment.procedure}
-              </span>
+              </div>
             </div>
-            <div className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
+            <div className="self-start shrink-0 max-w-full sm:w-36 text-[11px] leading-relaxed font-medium text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">
               {availableCount} de {resolvedMaterialsReport.length} prontos em estoque
             </div>
           </div>

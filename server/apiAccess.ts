@@ -2,8 +2,8 @@ import type { RequestHandler } from 'express';
 
 export type ApiIdentity = { uid: string; role: string };
 export const API_ROLES: Record<string, string[]> = {
-  'POST /gemini/parse-document': ['admin', 'dentist', 'receptionist'],
-  'POST /gemini/parse-voice-odontogram': ['admin', 'dentist'],
+  'POST /ai/parse-document': ['admin', 'dentist', 'receptionist'],
+  'POST /ai/parse-voice-odontogram': ['admin', 'dentist'],
   'POST /whatsapp/send': ['admin', 'receptionist'],
   'POST /whatsapp/auto-reply': ['admin', 'receptionist'],
   'GET /whatsapp/status': ['admin', 'dentist', 'receptionist'],

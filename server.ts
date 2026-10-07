@@ -1,24 +1,25 @@
 import { apiAccess } from './server/apiAccess';
-import { resolveFirebaseIdentity } from './server/firebaseIdentity';
+import { createLocalAuthStore } from './server/localAuthStore';
+import { localAuthRoutes } from './server/localAuthRoutes';
+import { randomBytes } from 'node:crypto';
 import express from "express";
 import path from "path";
 import fs from "fs";
 import os from "node:os";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI, Type } from "@google/genai";
 import { CopilotClient } from "@github/copilot-sdk";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-type AIProvider = 'gemini' | 'deepseek' | 'copilot';
+type AIProvider = 'disabled' | 'deepseek' | 'copilot';
 type DeepSeekContent = string | Array<
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string } }
 >;
 
 function getAIProvider(value: unknown): AIProvider {
-  return value === 'deepseek' || value === 'copilot' ? value : 'gemini';
+  return value === 'deepseek' || value === 'copilot' ? value : 'disabled';
 }
 
 const copilotClient = new CopilotClient({
@@ -32,14 +33,12 @@ async function generateWithCopilot(prompt: string, image?: { base64: string; mim
   copilotStart ??= copilotClient.start();
   await copilotStart;
 
-  const models = image ? await copilotClient.listModels() : [];
-  const visionModel = models.find(model => model.capabilities.supports.vision && model.policy?.state !== 'disabled');
-  if (image && !visionModel) {
-    throw new Error('Sua conta GitHub Copilot não tem um modelo habilitado com suporte a imagens.');
-  }
+  const models = await copilotClient.listModels();
+  const selectedModel = models.find(model => /^(gpt-|claude)/i.test(model.id) && (!image || model.capabilities.supports.vision) && model.policy?.state !== 'disabled');
+  if (!selectedModel) throw new Error('Nenhum modelo não Google compatível está disponível no Copilot. Confira sua conta e o suporte a imagens.');
 
   const session = await copilotClient.createSession({
-    model: visionModel?.id || 'auto',
+    model: selectedModel.id,
     availableTools: [],
     systemMessage: {
       content: 'Você é um assistente do DentisPro. Responda apenas à tarefa recebida. Não tente usar ferramentas, acessar arquivos ou executar comandos.'
@@ -62,14 +61,16 @@ async function generateWithCopilot(prompt: string, image?: { base64: string; mim
 }
 
 async function generateWithDeepSeek(apiKey: string, content: DeepSeekContent, jsonMode = false): Promise<string> {
+  if (Array.isArray(content)) throw new Error('Para ler imagens, selecione Copilot com um modelo de visão não Google.');
   const response = await fetch('https://api.deepseek.com/chat/completions', {
     method: 'POST',
+    signal: AbortSignal.timeout(60000),
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'deepseek-flash',
+      model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
       messages: [{ role: 'user', content }],
       ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
       stream: false
@@ -92,7 +93,22 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use('/api', apiAccess(resolveFirebaseIdentity));
+  const dataDir = path.resolve(process.env.DENTISPRO_DATA_DIR || '.dentispro-data');
+  fs.mkdirSync(dataDir, {recursive:true,mode:0o700});
+  const authStore = createLocalAuthStore(path.join(dataDir,'accounts.sqlite'));
+  const setupCode = randomBytes(24).toString('hex');
+  if (!authStore.hasUsers()) console.log(`Código de instalação do administrador (uso único): ${setupCode}`);
+  const publicOrigin = process.env.DENTISPRO_PUBLIC_ORIGIN;
+  const host = process.env.DENTISPRO_HOST || '127.0.0.1';
+  if (host !== '127.0.0.1' && (!publicOrigin || !publicOrigin.startsWith('https://'))) throw Error('Acesso por rede exige DENTISPRO_PUBLIC_ORIGIN com HTTPS e proxy TLS.');
+  app.use('/api', (req,res,next) => {
+    const origin=req.headers.origin;
+    const allowed=publicOrigin || 'http://localhost:3000';
+    if(origin && origin!==allowed && !(host==='127.0.0.1' && origin==='http://127.0.0.1:3000')) {res.status(403).json({error:'Origem não autorizada.'});return;}
+    next();
+  });
+  app.use('/api/auth', localAuthRoutes(authStore,setupCode));
+  app.use('/api', apiAccess(async token => authStore.session(token)));
   app.use('/auth/action', (_req, res, next) => {
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('Cache-Control', 'no-store');
@@ -101,13 +117,14 @@ async function startServer() {
 
   app.use(express.json({ limit: "25mb" }));
 
-  // API route for document parsing via Gemini OCR
-  app.post("/api/gemini/parse-document", async (req, res) => {
+  // API route for document parsing via IA configurada
+  app.post("/api/ai/parse-document", async (req, res) => {
     try {
       const provider = getAIProvider(req.body.provider);
-      const apiKey = provider === 'deepseek' ? process.env.DEEPSEEK_API_KEY : provider === 'gemini' ? process.env.GEMINI_API_KEY : undefined;
-      if (!apiKey) {
-        const keyName = provider === 'deepseek' ? 'DEEPSEEK_API_KEY' : 'GEMINI_API_KEY';
+      if (provider === 'disabled') return res.status(503).json({error:'Configure um provedor de IA sem Google para usar este recurso.'});
+      const apiKey = process.env.DEEPSEEK_API_KEY;
+      if (provider !== 'copilot' && !apiKey) {
+        const keyName = 'DEEPSEEK_API_KEY';
         return res.status(503).json({ error: `Chave ${keyName} não configurada no servidor.` });
       }
 
@@ -148,43 +165,7 @@ Retorne somente um objeto JSON válido com as chaves name, cpf, rg, birthDate, p
           { type: 'text', text: documentPrompt },
           { type: 'image_url', image_url: { url: `data:${mimeType};base64,${cleanBase64}` } }
         ], true);
-      } else {
-        const ai = new GoogleGenAI({
-          apiKey,
-          httpOptions: { headers: { "User-Agent": "aistudio-build" } }
-        });
-        const response = await ai.models.generateContent({
-          model: "gemini-3.6-flash",
-          contents: {
-            parts: [
-              { inlineData: { mimeType, data: cleanBase64 } },
-              { text: documentPrompt }
-            ]
-          },
-          config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              name: { type: Type.STRING },
-              cpf: { type: Type.STRING },
-              rg: { type: Type.STRING },
-              birthDate: { type: Type.STRING },
-              phone: { type: Type.STRING },
-              email: { type: Type.STRING },
-              addressStreet: { type: Type.STRING },
-              addressNumber: { type: Type.STRING },
-              addressNeighborhood: { type: Type.STRING },
-              addressCity: { type: Type.STRING },
-              addressState: { type: Type.STRING },
-              addressCep: { type: Type.STRING },
-              healthPlan: { type: Type.STRING },
-              carteirinhaNumber: { type: Type.STRING },
-            },
-          }
-          }
-        });
-        jsonText = response.text || "{}";
+
       }
       const parsedData = JSON.parse(jsonText);
       return res.json({ success: true, provider, data: parsedData });
@@ -195,7 +176,7 @@ Retorne somente um objeto JSON válido com as chaves name, cpf, rg, birthDate, p
   });
 
   // --- ENDPOINT DE IA DE VOZ INTELIGENTE PARA ODONTOGRAMA ---
-  app.post("/api/gemini/parse-voice-odontogram", async (req, res) => {
+  app.post("/api/ai/parse-voice-odontogram", async (req, res) => {
     try {
       const { textCommand, currentSelectedTeeth = [] } = req.body;
       const provider = getAIProvider(req.body.provider);
@@ -203,26 +184,9 @@ Retorne somente um objeto JSON válido com as chaves name, cpf, rg, birthDate, p
         return res.status(400).json({ error: "Comando de voz em texto é obrigatório." });
       }
 
-      const apiKey = provider === 'deepseek' ? process.env.DEEPSEEK_API_KEY : provider === 'gemini' ? process.env.GEMINI_API_KEY : undefined;
-      if (provider !== 'copilot' && !apiKey) {
-        if (provider === 'deepseek') {
-          return res.status(503).json({ error: "Chave DEEPSEEK_API_KEY não configurada no servidor." });
-        }
-        return res.status(200).json({
-          success: true,
-          source: "fallback_no_key",
-          data: {
-            action: "apply_condition",
-            teeth: [],
-            conditionType: "carie",
-            surfaces: ["oclusal"],
-            wholeToothCondition: null,
-            notes: "",
-            summary: "Comando recebido: " + textCommand,
-            spokenFeedback: "Comando interpretado localmente."
-          }
-        });
-      }
+      if (provider === 'disabled') return res.status(503).json({error:'Configure um provedor de IA sem Google para usar este recurso.'});
+      const apiKey = process.env.DEEPSEEK_API_KEY;
+      if (provider !== 'copilot' && !apiKey) return res.status(503).json({error:'Chave DEEPSEEK_API_KEY não configurada.'});
 
       const prompt = `Você é o assistente odontológico de inteligência artificial do sistema DentisPro, especialista em odontologia clínica, numeração FDI de dentes e preenchimento de prontuários por voz.
 Analise a transcrição de voz do cirurgião-dentista e extraia a ação e os dados odontológicos com extrema precisão.
@@ -293,36 +257,7 @@ Retorne somente um objeto JSON válido.`;
         jsonText = await generateWithCopilot(prompt);
       } else if (provider === 'deepseek') {
         jsonText = await generateWithDeepSeek(apiKey, prompt, true);
-      } else {
-        const ai = new GoogleGenAI({ apiKey, httpOptions: { headers: { "User-Agent": "aistudio-build" } } });
-        const response = await ai.models.generateContent({
-          model: "gemini-3.7-flash",
-          contents: prompt,
-          config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              action: { type: Type.STRING },
-              teeth: {
-                type: Type.ARRAY,
-                items: { type: Type.INTEGER }
-              },
-              conditionType: { type: Type.STRING },
-              surfaces: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING }
-              },
-              isWholeTooth: { type: Type.BOOLEAN },
-              notes: { type: Type.STRING },
-              summary: { type: Type.STRING },
-              spokenFeedback: { type: Type.STRING }
-            },
-            required: ["action", "teeth", "conditionType", "surfaces", "isWholeTooth", "summary", "spokenFeedback"]
-          }
-          }
-        });
-        jsonText = response.text || "{}";
+
       }
       const parsedData = JSON.parse(jsonText);
       return res.json({ success: true, source: provider, data: parsedData });
@@ -353,13 +288,14 @@ Retorne somente um objeto JSON válido.`;
     try {
       const { message, patientName = "Paciente", patientPhone = "" } = req.body;
       const provider = getAIProvider(req.body.provider);
-      const apiKey = provider === 'deepseek' ? process.env.DEEPSEEK_API_KEY : provider === 'gemini' ? process.env.GEMINI_API_KEY : undefined;
+      if (provider === 'disabled') return res.status(503).json({error:'Configure um provedor de IA sem Google para usar este recurso.'});
+      const apiKey = process.env.DEEPSEEK_API_KEY;
 
       if (!message) {
         return res.status(400).json({ error: "Mensagem é obrigatória para triagem de IA." });
       }
       if (provider !== 'copilot' && !apiKey) {
-        const keyName = provider === 'deepseek' ? 'DEEPSEEK_API_KEY' : 'GEMINI_API_KEY';
+        const keyName = 'DEEPSEEK_API_KEY';
         return res.status(503).json({ error: `Chave ${keyName} não configurada no servidor.` });
       }
 
@@ -371,32 +307,7 @@ Retorne somente um objeto JSON válido.`;
       } else if (apiKey && provider === 'deepseek') {
         const prompt = `Você é a assistente virtual inteligente de atendimento da clínica odontológica PlanetOdonto.\nO paciente ${patientName} (${patientPhone ? 'Telefone/WhatsApp: ' + patientPhone : ''}) enviou a seguinte mensagem no WhatsApp:\n"${message}"\n\nResponda de forma cortês, profissional, empática e direta. Priorize agendamento urgente em caso de dor ou emergência, use formatação limpa para WhatsApp e assine como *Equipe PlanetOdonto 🦷*.`;
         aiReply = await generateWithDeepSeek(apiKey, prompt);
-      } else if (apiKey) {
-        const ai = new GoogleGenAI({
-          apiKey,
-          httpOptions: {
-            headers: { "User-Agent": "aistudio-build" }
-          }
-        });
 
-        const prompt = `Você é a assistente virtual inteligente de atendimento da clínica odontológica PlanetOdonto.
-O paciente ${patientName} (${patientPhone ? 'Telefone/WhatsApp: ' + patientPhone : ''}) enviou a seguinte mensagem no WhatsApp:
-"${message}"
-
-Diretrizes para resposta:
-1. Responda de forma extremamente cortês, profissional, empática e acolhedora.
-2. Se o paciente relatar dor, desconforto ou emergência odontológica, priorize o agendamento urgente.
-3. Se o paciente quiser agendar consulta, peça o melhor dia e horário e o procedimento de interesse (Avaliação, Limpeza, Canal, Aparelho, Implante, Clareamento, Prótese, Restauração).
-4. Use formatação limpa para WhatsApp: use *negrito* nas palavras chave e emojis adequados (🦷, 🩺, 📅, ✨, 👋).
-5. Mantenha a resposta direta (máximo 3-4 parágrafos curtos).
-6. Assine como "*Equipe PlanetOdonto 🦷*" no final.`;
-
-        const response = await ai.models.generateContent({
-          model: "gemini-3.6-flash",
-          contents: prompt
-        });
-
-        aiReply = response.text || "";
       }
 
       if (!aiReply) {
@@ -427,7 +338,7 @@ Diretrizes para resposta:
     return res.json({
       success: true,
       status: "CONNECTED",
-      service: "Robô de IA Odontológico (Gemini 3.6 Flash)",
+      service: "Assistente odontológico configurável",
       instance: "dentispro_oficial",
       phone: "+5585986846424",
       webhookUrl: "/api/whatsapp/webhook"
@@ -506,7 +417,7 @@ Diretrizes para resposta:
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  app.listen(PORT, host, () => {
     console.log(`Servidor DentisPro iniciado na porta ${PORT}`);
   });
 }
