@@ -324,14 +324,14 @@ export const AppointmentMaterialsReportModal: React.FC<AppointmentMaterialsRepor
             </div>
           </div>
 
-          <div className="pt-2 border-t border-[#e5e5d1]/60 flex items-center justify-between text-xs">
-            <div>
-              <span className="text-gray-500">Procedimento Requisitado:</span>
-              <span className="ml-1.5 font-bold text-[#2c2c2c] bg-amber-50 px-2.5 py-1 rounded-xl border border-amber-200">
+          <div className="pt-3 border-t border-[#e5e5d1]/60 flex flex-col gap-3 sm:flex-row sm:items-start text-xs">
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <span className="block text-gray-500">Procedimento requisitado:</span>
+              <div className="block whitespace-normal break-words font-bold leading-relaxed text-[#2c2c2c] bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
                 {appointment.procedure}
-              </span>
+              </div>
             </div>
-            <div className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
+            <div className="self-start shrink-0 max-w-full sm:w-36 text-[11px] leading-relaxed font-medium text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">
               {availableCount} de {resolvedMaterialsReport.length} prontos em estoque
             </div>
           </div>
