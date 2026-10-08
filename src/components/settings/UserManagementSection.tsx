@@ -23,7 +23,7 @@ import {
 
 export const UserManagementSection: React.FC = () => {
   const { allUsers, userRole, updateUserRoleAndProfile, refreshUsersList } = useAuth();
-  const { layoutTheme } = useApp();
+  const { layoutTheme, professionals } = useApp();
   const t = getThemeStyles(layoutTheme);
   
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -31,6 +31,15 @@ export const UserManagementSection: React.FC = () => {
   // New User Form State
   
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
+  const [savingLink, setSavingLink] = useState<string | null>(null);
+  const handleProfessionalLink = async (uid: string, professionalId: string) => {
+    setSavingLink(uid);
+    try {
+      await updateUserRoleAndProfile(uid, { professionalId });
+      setStatusFeedback('Vínculo profissional salvo. As sessões anteriores dessa conta foram encerradas; o dentista precisa entrar novamente.');
+    } catch (error) { setStatusFeedback(error instanceof Error ? error.message : 'Não foi possível salvar o vínculo.'); }
+    finally { setSavingLink(null); }
+  };
 
   const handleRoleChange = async (uid: string, targetRole: UserRole) => {
     try { await updateUserRoleAndProfile(uid, { role: targetRole }); }
@@ -123,7 +132,7 @@ export const UserManagementSection: React.FC = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs">Redefinição de senha: Sessão → Gestão de Senhas</span>
                     <select
-                      disabled={userRole !== 'admin'}
+                      disabled={userRole !== 'admin' || savingLink !== null}
                       value={usr.role}
                       onChange={(e) => handleRoleChange(usr.uid, e.target.value as UserRole)}
                       className="bg-[#f0f0e8] border border-[#e5e5d1] rounded-lg px-2.5 py-1 text-xs font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40] disabled:opacity-75 cursor-pointer"
@@ -132,6 +141,19 @@ export const UserManagementSection: React.FC = () => {
                       <option value="dentist">🩺 Dentista / Profissional</option>
                       <option value="receptionist">📋 Recepcionista</option>
                     </select>
+                    {usr.role === 'dentist' && <label className="text-xs">
+                      Profissional vinculado
+                      <select aria-label={`Profissional vinculado a ${usr.name}`}
+                        disabled={userRole !== 'admin' || savingLink !== null}
+                        value={usr.professionalId || ''}
+                        onChange={event => handleProfessionalLink(usr.uid, event.target.value)}
+                        className="block mt-1 border border-[#e5e5d1] rounded-lg px-2.5 py-1 text-xs max-w-full">
+                        <option value="">Sem vínculo profissional</option>
+                        {usr.professionalId && !professionals.some(p => p.id === usr.professionalId) &&
+                          <option value={usr.professionalId}>Vínculo não encontrado: {usr.professionalId}</option>}
+                        {professionals.map(professional => <option key={professional.id} value={professional.id}>{professional.name} — {professional.cro}</option>)}
+                      </select>
+                    </label>}
                   </div>
                 </div>
 

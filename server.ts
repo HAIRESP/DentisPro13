@@ -1,6 +1,8 @@
 import { apiAccess } from './server/apiAccess';
 import { createLocalAuthStore } from './server/localAuthStore';
 import { localAuthRoutes } from './server/localAuthRoutes';
+import { openClinicalReviewStore } from './server/clinicalReviewStore.mjs';
+import { clinicalReviewRoutes } from './server/clinicalReviewRoutes';
 import { randomBytes } from 'node:crypto';
 import express from "express";
 import path from "path";
@@ -108,6 +110,14 @@ async function startServer() {
     next();
   });
   app.use('/api/auth', localAuthRoutes(authStore,setupCode));
+  // Opt-in review database only. Existing application screens remain on their current data source.
+  if (process.env.DENTISPRO_CLINICAL_REVIEW_DB) {
+    const clinicalReview = openClinicalReviewStore(path.resolve(process.env.DENTISPRO_CLINICAL_REVIEW_DB), {
+      resolveSession: token => authStore.session(token),
+      resolveAccount: (token, uid) => authStore.listUsers(token).find(profile => profile.uid === uid),
+    });
+    app.use('/api/clinical-review', clinicalReviewRoutes(clinicalReview, authStore));
+  }
   app.use('/api', apiAccess(async token => authStore.session(token)));
   app.use('/auth/action', (_req, res, next) => {
     res.setHeader('Referrer-Policy', 'no-referrer');
