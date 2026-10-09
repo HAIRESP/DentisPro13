@@ -128,6 +128,11 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
     msg += `• Lábios / Perfil: ${extraoral.lipsAndProfile || 'Selamento preservado'}\n`;
     if (extraoral.andropauseOrHormonalObs) msg += `• Fatores Hormonais: ${extraoral.andropauseOrHormonalObs}\n`;
     if (extraoral.substanceUsageObs) msg += `• Obs de Substâncias: ${extraoral.substanceUsageObs}\n`;
+    if (extraoral.heartRateBpm !== undefined) msg += `• Frequência cardíaca: ${extraoral.heartRateBpm} BPM\n`;
+    if (extraoral.bloodPressureSystolic !== undefined || extraoral.bloodPressureDiastolic !== undefined) msg += `• Pressão arterial: ${extraoral.bloodPressureSystolic ?? 'Não informado'} x ${extraoral.bloodPressureDiastolic ?? 'Não informado'} mmHg\n`;
+    if (extraoral.bodyTemperatureCelsius !== undefined) msg += `• Temperatura corpórea: ${extraoral.bodyTemperatureCelsius} °C\n`;
+    if (extraoral.oxygenSaturationPercent !== undefined) msg += `• Oximetria (SpO₂): ${extraoral.oxygenSaturationPercent} %\n`;
+    if (extraoral.capillaryGlucoseMgDl !== undefined) msg += `• Glicemia capilar: ${extraoral.capillaryGlucoseMgDl} mg/dL\n`;
     if (extraoral.notes) msg += `• Obs Extraorais: ${extraoral.notes}\n`;
     msg += `\n`;
 
@@ -465,18 +470,32 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
               />
             </div>
 
-            {/* Alerta de Substâncias / Medicamentos Críticos */}
+            {/* Frequência cardíaca e pressão arterial */}
             <div className="bg-rose-50/60 p-4 rounded-2xl border border-rose-200 space-y-1.5">
-              <label className="block font-bold text-rose-900 flex items-center gap-1.5">
-                ⚠️ Observações de Uso de Substâncias / Tabagismo Severo:
-              </label>
-              <input
-                type="text"
-                value={extraoral.substanceUsageObs || ''}
-                onChange={(e) => setExtraoral({ ...extraoral, substanceUsageObs: e.target.value })}
-                placeholder="Ex: Histórico de fumo/vape; atenção a vasoconstritores e sangramento..."
-                className="w-full bg-white border border-rose-300 rounded-xl px-3.5 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-rose-600"
-              />
+              <div>
+                <label htmlFor="clinical-heart-rate" className="block font-bold text-rose-900 flex items-center gap-1.5">Frequência cardíaca (BPM):</label>
+                <input id="clinical-heart-rate" type="number" min="0" step="1" value={extraoral.heartRateBpm ?? ''} onChange={e => setExtraoral({...extraoral,heartRateBpm:e.target.value === '' ? undefined : Number(e.target.value)})} className="w-full bg-white border border-rose-300 rounded-xl px-3.5 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-rose-600" />
+              </div>
+              <div>
+                <label className="block font-bold text-rose-900 flex items-center gap-1.5">Pressão arterial (mmHg):</label>
+                <div className="flex items-center gap-2">
+                  <input aria-label="Pressão arterial sistólica" type="number" min="0" step="1" value={extraoral.bloodPressureSystolic ?? ''} onChange={e => setExtraoral({...extraoral,bloodPressureSystolic:e.target.value === '' ? undefined : Number(e.target.value)})} className="w-full bg-white border border-rose-300 rounded-xl px-3.5 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-rose-600" />
+                  <span className="font-bold text-rose-900">x</span>
+                  <input aria-label="Pressão arterial diastólica" type="number" min="0" step="1" value={extraoral.bloodPressureDiastolic ?? ''} onChange={e => setExtraoral({...extraoral,bloodPressureDiastolic:e.target.value === '' ? undefined : Number(e.target.value)})} className="w-full bg-white border border-rose-300 rounded-xl px-3.5 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-rose-600" />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="clinical-temperature" className="block font-bold text-rose-900 flex items-center gap-1.5">Temperatura corpórea (°C):</label>
+                <input id="clinical-temperature" type="number" min="0" step="0.1" value={extraoral.bodyTemperatureCelsius ?? ''} onChange={e => setExtraoral({...extraoral,bodyTemperatureCelsius:e.target.value === '' ? undefined : Number(e.target.value)})} className="w-full bg-white border border-rose-300 rounded-xl px-3.5 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-rose-600" />
+              </div>
+              <div>
+                <label htmlFor="clinical-oximetry" className="block font-bold text-rose-900 flex items-center gap-1.5">Oximetria — SpO₂ (%):</label>
+                <input id="clinical-oximetry" type="number" min="0" step="1" value={extraoral.oxygenSaturationPercent ?? ''} onChange={e => setExtraoral({...extraoral,oxygenSaturationPercent:e.target.value === '' ? undefined : Number(e.target.value)})} className="w-full bg-white border border-rose-300 rounded-xl px-3.5 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-rose-600" />
+              </div>
+              <div>
+                <label htmlFor="clinical-glucose" className="block font-bold text-rose-900 flex items-center gap-1.5">Glicemia capilar (mg/dL):</label>
+                <input id="clinical-glucose" type="number" min="0" step="1" value={extraoral.capillaryGlucoseMgDl ?? ''} onChange={e => setExtraoral({...extraoral,capillaryGlucoseMgDl:e.target.value === '' ? undefined : Number(e.target.value)})} className="w-full bg-white border border-rose-300 rounded-xl px-3.5 py-2 text-xs text-[#2c2c2c] focus:outline-none focus:border-rose-600" />
+              </div>
             </div>
           </div>
 
@@ -804,6 +823,11 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
             <div><strong>Lábios/Perfil:</strong> {extraoral.lipsAndProfile || 'Normal'}</div>
             {extraoral.andropauseOrHormonalObs && <div className="col-span-2"><strong>Fatores Hormonais:</strong> {extraoral.andropauseOrHormonalObs}</div>}
             {extraoral.substanceUsageObs && <div className="col-span-2"><strong>Uso de Substâncias:</strong> {extraoral.substanceUsageObs}</div>}
+            {extraoral.heartRateBpm !== undefined && <div><strong>Frequência cardíaca:</strong> {extraoral.heartRateBpm} BPM</div>}
+            {(extraoral.bloodPressureSystolic !== undefined || extraoral.bloodPressureDiastolic !== undefined) && <div><strong>Pressão arterial:</strong> {extraoral.bloodPressureSystolic ?? 'Não informado'} x {extraoral.bloodPressureDiastolic ?? 'Não informado'} mmHg</div>}
+            {extraoral.bodyTemperatureCelsius !== undefined && <div><strong>Temperatura corpórea:</strong> {extraoral.bodyTemperatureCelsius} °C</div>}
+            {extraoral.oxygenSaturationPercent !== undefined && <div><strong>Oximetria (SpO₂):</strong> {extraoral.oxygenSaturationPercent} %</div>}
+            {extraoral.capillaryGlucoseMgDl !== undefined && <div><strong>Glicemia capilar:</strong> {extraoral.capillaryGlucoseMgDl} mg/dL</div>}
             {extraoral.notes && <div className="col-span-2"><strong>Obs Extraorais:</strong> {extraoral.notes}</div>}
           </div>
         </div>

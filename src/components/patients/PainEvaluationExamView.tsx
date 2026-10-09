@@ -1,3 +1,4 @@
+import { medicationSummary, medicationAnswer } from '../../utils/anamnesisData';
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
@@ -1445,7 +1446,7 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
                 <div className="p-2 rounded-xl bg-white border border-slate-200">
                   <span className="text-[10px] text-slate-500 block">Medicamentos em Uso:</span>
                   <span className="font-bold text-slate-800 truncate">
-                    {anamnesis.continuousMedication || 'Nenhum de uso contínuo'}
+                    {medicationSummary(anamnesis)}
                   </span>
                 </div>
               </div>

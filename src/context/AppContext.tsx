@@ -1,10 +1,13 @@
+import { archivedAnamnesisInput, buildAnamnesisPdf } from '../utils/anamnesisPdf';
+import { commitAnamnesis } from '../utils/anamnesisStore';
 import { STORAGE_KEYS } from '../utils/storageKeys';
 import { restoreDatabaseBackup } from '../utils/databaseBackup';
 import { APPOINTMENT_STOCK_LOCK } from '../utils/appointmentStockStore';
 import { useAppointmentStockStore } from './useAppointmentStockStore';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
-  Patient, 
+  Patient,
+  Anamnesis, 
   Appointment, 
   InventoryItem, 
   FinancialTransaction, 
@@ -215,6 +218,7 @@ export interface AppContextType {
   
   // Saved Clinic Documents (Arquivos Recentes)
   savedClinicDocuments: SavedClinicDocument[];
+  savePatientMedicalHistory: (patientId:string, expected:Anamnesis | undefined, updates:Anamnesis, doc:Omit<SavedClinicDocument,'id'|'createdAt'|'formattedDateStr'|'status'>) => Promise<void>;
   addSavedClinicDocument: (doc: Omit<SavedClinicDocument, 'id' | 'createdAt' | 'formattedDateStr' | 'status'>) => SavedClinicDocument;
   deleteSavedClinicDocument: (id: string) => void;
 
@@ -496,6 +500,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setSavedClinicDocuments(prev => [newDoc, ...prev]);
     return newDoc;
+  };
+
+  const savePatientMedicalHistory:AppContextType['savePatientMedicalHistory'] = async (patientId,expected,updates,doc) => {
+    const save = async () => {
+      const now=new Date();
+      const saved:SavedClinicDocument={...doc,id:`doc-saved-${crypto.randomUUID()}`,createdAt:now.toISOString(),
+        formattedDateStr:now.toLocaleString('pt-BR'),status:'gerado'};
+      const {pdf,filename}=await buildAnamnesisPdf(archivedAnamnesisInput(saved,clinicInfo));
+      const file={id:`patient-file-${crypto.randomUUID()}`,name:filename,fileUrl:pdf.output('datauristring'),fileType:'pdf' as const,uploadedAt:saved.createdAt,sourceDocumentId:saved.id};
+      saved.patientFileId=file.id;
+      const result=commitAnamnesis(localStorage,patients,savedClinicDocuments,patientId,expected,updates,saved,file);
+      setPatients(result.patients);setSavedClinicDocuments(result.documents);
+    };
+    if(!navigator.locks)throw Error('Este navegador não oferece o bloqueio necessário para salvar. Use Chrome ou Edge atualizado em localhost.');
+    await navigator.locks.request('dentispro-medical-history-save',save);
   };
 
   const deleteSavedClinicDocument = (id: string) => {
@@ -1283,6 +1302,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateInsuranceGuideStatus,
         savedClinicDocuments,
         addSavedClinicDocument,
+        savePatientMedicalHistory,
         deleteSavedClinicDocument,
         documentTemplates,
         updateDocumentTemplate,
