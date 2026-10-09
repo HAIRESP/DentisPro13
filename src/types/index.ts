@@ -127,6 +127,11 @@ export interface Anamnesis {
   hasAndropause?: boolean; // Andropausa / Climatério masculino / DAEM
   andropauseStatus?: 'nenhum' | 'andropausa' | 'reposicao_hormonal_trh';
   andropauseDetails?: string; // Detalhes ou sintomas da andropausa / reposição hormonal
+  takesMedication?: boolean; // Você está tomando alguma medicação atualmente?
+  medicationDetails?: string; // Quais medicamentos? Nome, dose, frequência e motivo, se souber.
+  treatingPhysician?: string; // Médico responsável pelo acompanhamento e contato, se houver.
+  healthChangesSinceLastVisit?: string; // Mudanças de saúde ou medicação desde a última consulta.
+  lastReviewedAt?: string;
   continuousMedication?: string; // Medicamentos de uso contínuo (nome, dosagem)
   usesHerbalOrSupplements?: boolean; // Uso de chás, fitoterápicos ou suplementos
   herbalDetails?: string;
@@ -201,6 +206,15 @@ export interface PatientPayment {
   notes?: string;
 }
 
+export interface PatientFile {
+  id: string;
+  name: string;
+  fileUrl: string;
+  fileType: 'pdf';
+  uploadedAt: string;
+  sourceDocumentId: string;
+}
+
 export interface Patient {
   id: string;
   name: string;
@@ -229,6 +243,7 @@ export interface Patient {
   createdAt: string;
   avatarUrl?: string;
   photoUrl?: string;
+  files?: PatientFile[]; // PDFs armazenados na aba Arquivos do paciente.
   images?: string[]; // Galeria unificada de mídia do prontuário (radiografias, fotos clínicas, exames)
   preferredClinicId?: string;
   preferredClinicName?: string;
@@ -663,7 +678,13 @@ export interface ExtraoralExam {
   lipsAndProfile?: string;
   skinObservations?: string;
   andropauseOrHormonalObs?: string;
-  substanceUsageObs?: string;
+  substanceUsageObs?: string; // Registro anterior preservado.
+  heartRateBpm?: number;
+  bloodPressureSystolic?: number;
+  bloodPressureDiastolic?: number;
+  bodyTemperatureCelsius?: number;
+  oxygenSaturationPercent?: number;
+  capillaryGlucoseMgDl?: number;
   images?: string[];
   notes?: string;
 }
@@ -792,5 +813,7 @@ export interface SavedClinicDocument {
   professionalCro?: string;
   date?: string;
   content?: string;
+  patientSnapshot?: Partial<Patient>;
+  patientFileId?: string;
 }
 // DentisPro: correcao-lint50-v1

@@ -1,3 +1,5 @@
+import { medicationSummary } from '../../utils/anamnesisData';
+import { openStoredPatientPdf, archivedAnamnesisInput, exportAnamnesisPdf } from '../../utils/anamnesisPdf';
 import { getMedicalConditionAlerts } from '../../utils/medicalAlerts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -59,7 +61,8 @@ export const PatientList: React.FC = () => {
     selectedPatientId, 
     setSelectedPatientId, 
     addPatient, 
-    updatePatient, 
+    updatePatient,
+    savePatientMedicalHistory, 
     appointments, 
     prescriptions, 
     savedClinicDocuments,
@@ -744,7 +747,7 @@ export const PatientList: React.FC = () => {
                     className={`px-4 py-2 rounded-2xl font-bold transition flex items-center gap-1.5 cursor-pointer ${activeProfileTab === 'galeria' ? `${t.btnPrimaryBg} ${t.btnPrimaryText}` : `${t.btnSecondaryBg} ${t.btnSecondaryText} hover:opacity-80`}`}
                   >
                     <ImageIcon className="w-4 h-4" />
-                    Arquivos ({(selectedPatient.images || []).length})
+                    Arquivos ({(selectedPatient.images || []).length + (selectedPatient.files || []).length})
                   </button>
                 </div>
 
@@ -771,19 +774,20 @@ export const PatientList: React.FC = () => {
                         </button>
                       </div>
                       
+                      <p className="p-3 rounded-xl border text-sm">Medicação atual: <strong>{medicationSummary(selectedPatient.anamnesis)}</strong></p>
                       {/* Safety Alerts Summary */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                         <div className={`p-2.5 rounded-xl border ${selectedPatient.anamnesis?.hasAllergies ? 'bg-rose-50 border-rose-200 text-rose-800 font-bold' : `${t.cardBg} ${t.cardBorder} ${t.cardText}`}`}>
-                          Alergias: <strong>{selectedPatient.anamnesis?.hasAllergies ? 'SIM' : 'Não'}</strong>
+                          Alergias: <strong>{selectedPatient.anamnesis?.hasAllergies === true ? 'SIM' : selectedPatient.anamnesis?.hasAllergies === false ? 'Não' : 'Não informado'}</strong>
                         </div>
                         <div className={`p-2.5 rounded-xl border ${selectedPatient.anamnesis?.usesBisphosphonates ? 'bg-rose-50 border-rose-300 text-rose-900 font-bold' : `${t.cardBg} ${t.cardBorder} ${t.cardText}`}`}>
-                          Bisfosfonatos: <strong>{selectedPatient.anamnesis?.usesBisphosphonates ? 'SIM' : 'Não'}</strong>
+                          Bisfosfonatos: <strong>{selectedPatient.anamnesis?.usesBisphosphonates === true ? 'SIM' : selectedPatient.anamnesis?.usesBisphosphonates === false ? 'Não' : 'Não informado'}</strong>
                         </div>
                         <div className={`p-2.5 rounded-xl border ${selectedPatient.anamnesis?.hasDiabetes ? 'bg-amber-50 border-amber-200 text-amber-800 font-bold' : `${t.cardBg} ${t.cardBorder} ${t.cardText}`}`}>
-                          Diabetes: <strong>{selectedPatient.anamnesis?.hasDiabetes ? 'SIM' : 'Não'}</strong>
+                          Diabetes: <strong>{selectedPatient.anamnesis?.hasDiabetes === true ? 'SIM' : selectedPatient.anamnesis?.hasDiabetes === false ? 'Não' : 'Não informado'}</strong>
                         </div>
                         <div className={`p-2.5 rounded-xl border ${selectedPatient.anamnesis?.hasHypertension ? 'bg-amber-50 border-amber-200 text-amber-800 font-bold' : `${t.cardBg} ${t.cardBorder} ${t.cardText}`}`}>
-                          Hipertensão: <strong>{selectedPatient.anamnesis?.hasHypertension ? 'SIM' : 'Não'}</strong>
+                          Hipertensão: <strong>{selectedPatient.anamnesis?.hasHypertension === true ? 'SIM' : selectedPatient.anamnesis?.hasHypertension === false ? 'Não' : 'Não informado'}</strong>
                         </div>
                       </div>
 
@@ -1056,6 +1060,11 @@ export const PatientList: React.FC = () => {
 
                         const handlePrint = (e: React.MouseEvent) => {
                           e.stopPropagation();
+                          if(doc.templateId === 'prontuario_medico_anamnese') {
+                            try { void exportAnamnesisPdf(archivedAnamnesisInput(doc,clinicInfo),'preview').catch(error=>window.alert(error.message)); }
+                            catch(error){window.alert(error instanceof Error ? error.message : 'Prontuário arquivado inválido.');}
+                            return;
+                          }
                           if (selectedPatient) {
                             setSelectedPatientId(selectedPatient.id);
                           }
@@ -1137,6 +1146,16 @@ export const PatientList: React.FC = () => {
                 {/* Tab Content 7: Galeria Unificada de Fotos & Mídia do Prontuário */}
                 {activeProfileTab === 'galeria' && (
                   <div className="space-y-4 pt-2">
+                    {(selectedPatient.files || []).length > 0 && <div className={`${t.cardBg} border ${t.cardBorder} rounded-2xl p-4 space-y-3`}>
+                      <h3 className={`text-sm font-bold ${t.headingText}`}>Documentos PDF do paciente</h3>
+                      {selectedPatient.files.map(file => <div key={file.id} className={`flex flex-wrap items-center justify-between gap-3 border-b ${t.cardBorder} pb-3`}>
+                        <div><p className={`text-xs font-semibold ${t.modalText}`}>{file.name}</p><p className={`text-xs ${t.modalMutedText}`}>{new Date(file.uploadedAt).toLocaleString('pt-BR')}</p></div>
+                        <div className="flex gap-3 text-xs">
+                          <button type="button" className="font-semibold underline" onClick={() => {try{openStoredPatientPdf(file.fileUrl);}catch(error){window.alert(error instanceof Error ? error.message : 'Não foi possível abrir o PDF.');}}}>Abrir / imprimir</button>
+                          <a className="font-semibold underline" href={file.fileUrl} download={file.name}>Baixar</a>
+                        </div>
+                      </div>)}
+                    </div>}
                     <ImageGalleryWithEditor
                       key={selectedPatient.id}
                       title="Galeria Unificada do Prontuário"
@@ -1464,14 +1483,7 @@ export const PatientList: React.FC = () => {
           patient={selectedPatient}
           isOpen={isAnamnesisModalOpen}
           onClose={() => setIsAnamnesisModalOpen(false)}
-          onSave={(updatedAnamnesis) => {
-            updatePatient(selectedPatient.id, {
-              anamnesis: updatedAnamnesis,
-              gender: updatedAnamnesis.gender || selectedPatient.gender,
-              ethnicity: updatedAnamnesis.ethnicity || selectedPatient.ethnicity,
-              profession: updatedAnamnesis.profession || selectedPatient.profession,
-            });
-          }}
+          onSave={(updatedAnamnesis, doc) => savePatientMedicalHistory(selectedPatient.id, selectedPatient.anamnesis, updatedAnamnesis, doc)}
         />
       )}
       {/* Patient Photo Camera Modal */}
