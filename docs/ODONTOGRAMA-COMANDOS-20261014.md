@@ -51,3 +51,15 @@ componentes e AppProvider reais em navegador isolado: histórico bloqueado,
 confirmação antes de gravação, números falados, negativas, observações sem alterar
 lesões, limpeza incisal e persistência após recarga. Classes visuais conferidas
 contra a versão anterior. Não muda a origem dos dados nem conclui integração IAM.
+
+## Campo de transcrição
+
+O campo Transcrição do comando clínico recebe resultados parciais e acumulados
+da captura de voz, permite revisar o texto e conserva a transcrição ao enviar.
+A versão revisada é a utilizada na confirmação do comando. Estilo preservado.
+Verificado com eventos de reconhecimento simulados e TypeScript.
+
+Pendência para a próxima instalação conjunta: a captura real no Chrome ainda
+precisa de verificação do reconhecimento local, disponibilidade do idioma pt-BR,
+preparação do pacote e mensagens visíveis de permissão/dispositivo/idioma.
+Não confundir esta ligação do campo com a correção da inicialização do microfone.

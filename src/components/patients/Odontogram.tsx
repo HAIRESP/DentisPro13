@@ -169,7 +169,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   const voiceConditionsRef = useRef(odontograms[patientId] || []);
   voiceConditionsRef.current = odontograms[patientId] || [];
   useEffect(() => {
-    setIsVoiceModalOpen(false);setLastVoiceResult(null);setVoiceTranscript('');voiceTranscriptRef.current='';
+    setIsVoiceModalOpen(false);setLastVoiceResult(null);setVoiceTranscript('');setManualVoiceInput('');voiceTranscriptRef.current='';
     try {speechRecognitionRef.current?.abort();}catch{}
     setIsListening(false);
   },[patientId,activeSnapshotId,readOnly]);
@@ -269,6 +269,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
           }
           voiceTranscriptRef.current=currentTranscript;
           setVoiceTranscript(currentTranscript);
+          setManualVoiceInput(currentTranscript);
         };
 
         recognition.onerror = (event: any) => {
@@ -805,7 +806,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
         processVoiceCommand(voiceTranscriptRef.current);
       }
     } else {
-      setVoiceTranscript('');voiceTranscriptRef.current='';
+      setVoiceTranscript('');setManualVoiceInput('');voiceTranscriptRef.current='';
       setLastVoiceResult(null);
       if (speechRecognitionRef.current) {
         try {
@@ -2012,17 +2013,16 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
 
               {/* Manual Text Command Input Fallback */}
               <div className="pt-2 border-t border-[#e5e5d1] text-left space-y-1.5">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">Ou digite o comando clínico por texto:</span>
+                <span className="text-[10px] font-bold text-gray-500 uppercase">Transcrição do comando clínico</span>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     placeholder="Ex: Dente 16 e 17 cárie oclusal e mesial..."
                     value={manualVoiceInput}
-                    onChange={(e) => setManualVoiceInput(e.target.value)}
+                    onChange={(e) => {setManualVoiceInput(e.target.value);setVoiceTranscript(e.target.value);voiceTranscriptRef.current=e.target.value;setLastVoiceResult(null);}}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         processVoiceCommand(manualVoiceInput);
-                        setManualVoiceInput('');
                       }
                     }}
                     className="flex-1 bg-white border border-[#e5e5d1] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#5a5a40]"
@@ -2031,7 +2031,6 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
                     type="button"
                     onClick={() => {
                       processVoiceCommand(manualVoiceInput);
-                      setManualVoiceInput('');
                     }}
                     disabled={!manualVoiceInput.trim() || voiceProcessing}
                     className={`px-3 py-1.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50`}
@@ -2065,7 +2064,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
                     key={idx}
                     type="button"
                     onClick={() => {
-                      setVoiceTranscript(sample);
+                      setVoiceTranscript(sample);setManualVoiceInput(sample);voiceTranscriptRef.current=sample;
                       processVoiceCommand(sample);
                     }}
                     className="px-2 py-1 bg-white hover:bg-amber-100 border border-[#e5e5d1] rounded-lg text-stone-700 font-medium transition cursor-pointer"
