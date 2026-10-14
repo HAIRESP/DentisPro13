@@ -7,9 +7,10 @@ e determinística, sem enviar a transcrição ao provedor de IA.
 ## Uso
 
 Abra Preencher por Voz, dite ou digite um comando, confira o resultado e clique
-em Aplicar comando. Aplicação automática começa desmarcada; se ativada, somente
-comandos reconhecidos e completos podem alterar o registro atual. Frases vagas,
-negativas, incertas ou ambíguas exigem revisão e não modificam condições.
+em Aplicar. Somente esse botão grava condições no odontograma. A opção
+Interpretar automaticamente ao falar apenas prepara a interpretação ao encerrar
+a captura; nunca grava. Enviar também apenas interpreta e mantém a transcrição
+para conferência. Frases vagas, negativas, incertas ou ambíguas não modificam condições.
 
 Exemplos:
 
@@ -57,9 +58,8 @@ contra a versão anterior. Não muda a origem dos dados nem conclui integração
 O campo Transcrição do comando clínico recebe resultados parciais e acumulados
 da captura de voz, permite revisar o texto e conserva a transcrição ao enviar.
 Depois de Enviar, a transcrição permanece visível para mera conferência. Enviar
-apenas interpreta o texto; a gravação requer Aplicar comando, mesmo que a opção
-automática esteja marcada. Essa opção vale somente para a fala capturada pelo
-microfone. A versão revisada é utilizada na confirmação. Estilo preservado.
+apenas interpreta o texto; a gravação requer Aplicar, mesmo que Interpretar automaticamente ao falar esteja marcada. Essa opção
+prepara a interpretação ao encerrar a fala e nunca grava alterações clínicas. A versão revisada é utilizada na confirmação. Estilo preservado.
 Verificado com eventos de reconhecimento simulados e TypeScript.
 
 Pendência para a próxima instalação conjunta: a captura real no Chrome ainda

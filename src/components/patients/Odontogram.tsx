@@ -158,7 +158,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   const [voiceTranscript, setVoiceTranscript] = useState<string>('');
   const [voiceProcessing, setVoiceProcessing] = useState<boolean>(false);
   const [lastVoiceResult, setLastVoiceResult] = useState<VoiceOdontogramResult | null>(null);
-  const [voiceAutoApply, setVoiceAutoApply] = useState<boolean>(false);
+  const [voiceAutoInterpret, setVoiceAutoInterpret] = useState<boolean>(false);
   const [voiceFeedbackSpeech, setVoiceFeedbackSpeech] = useState<boolean>(true);
   const [manualVoiceInput, setManualVoiceInput] = useState<string>('');
   const speechRecognitionRef = useRef<any>(null);
@@ -803,7 +803,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
       }
       setIsListening(false);
       if (voiceTranscriptRef.current.trim()) {
-        processVoiceCommand(voiceTranscriptRef.current, true);
+        if(voiceAutoInterpret)processVoiceCommand(voiceTranscriptRef.current);
       }
     } else {
       setVoiceTranscript('');setManualVoiceInput('');voiceTranscriptRef.current='';
@@ -822,7 +822,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     }
   };
 
-  const processVoiceCommand = async (commandText: string, fromVoiceCapture = false) => {
+  const processVoiceCommand = async (commandText: string) => {
     if (!commandText.trim() || voiceBusyRef.current) return;
     const context={...voiceContextRef.current};
     if(context.readOnly || context.activeSnapshotId!=='current'){
@@ -834,7 +834,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
       const latest=voiceContextRef.current;
       if(latest.patientId!==context.patientId || latest.activeSnapshotId!==context.activeSnapshotId || latest.readOnly)return;
       setLastVoiceResult(result);
-      if(fromVoiceCapture && voiceAutoApply && result.action!=='needs_review')applyVoiceResult(result);
+      // Clinical writes happen only through the explicit Aplicar button.
       if(voiceFeedbackSpeech && result.spokenFeedback)speakDentalFeedback(result.spokenFeedback);
     }catch{
       setLastVoiceResult(parseLocalDentalVoiceCommand(''));
@@ -2005,7 +2005,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
                       className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold shadow-2xs cursor-pointer flex items-center gap-1"
                     >
                       <Check className="w-3.5 h-3.5" />
-                      <span>Aplicar comando</span>
+                      <span>Aplicar</span>
                     </button>
                   </div>
                 </div>
@@ -2080,11 +2080,11 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
               <label className="flex items-center gap-1.5 text-stone-700 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={voiceAutoApply}
-                  onChange={(e) => setVoiceAutoApply(e.target.checked)}
+                  checked={voiceAutoInterpret}
+                  onChange={(e) => setVoiceAutoInterpret(e.target.checked)}
                   className="rounded text-[#5a5a40]"
                 />
-                <span className="font-semibold text-[11px]">Aplicar automaticamente ao falar</span>
+                <span className="font-semibold text-[11px]">Interpretar automaticamente ao falar</span>
               </label>
 
               <label className="flex items-center gap-1.5 text-stone-700 cursor-pointer">
