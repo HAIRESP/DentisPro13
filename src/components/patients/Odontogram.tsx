@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { ImageGalleryWithEditor } from '../common/ImageGalleryWithEditor';
 import { 
+  buildVoiceToothUpdates,
   parseDentalVoiceCommandWithAI,
   parseLocalDentalVoiceCommand, 
   speakDentalFeedback, 
@@ -157,10 +158,21 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   const [voiceTranscript, setVoiceTranscript] = useState<string>('');
   const [voiceProcessing, setVoiceProcessing] = useState<boolean>(false);
   const [lastVoiceResult, setLastVoiceResult] = useState<VoiceOdontogramResult | null>(null);
-  const [voiceAutoApply, setVoiceAutoApply] = useState<boolean>(true);
+  const [voiceAutoApply, setVoiceAutoApply] = useState<boolean>(false);
   const [voiceFeedbackSpeech, setVoiceFeedbackSpeech] = useState<boolean>(true);
   const [manualVoiceInput, setManualVoiceInput] = useState<string>('');
   const speechRecognitionRef = useRef<any>(null);
+  const voiceTranscriptRef = useRef('');
+  const voiceBusyRef = useRef(false);
+  const voiceContextRef = useRef({patientId,activeSnapshotId,readOnly});
+  voiceContextRef.current = {patientId,activeSnapshotId,readOnly};
+  const voiceConditionsRef = useRef(odontograms[patientId] || []);
+  voiceConditionsRef.current = odontograms[patientId] || [];
+  useEffect(() => {
+    setIsVoiceModalOpen(false);setLastVoiceResult(null);setVoiceTranscript('');voiceTranscriptRef.current='';
+    try {speechRecognitionRef.current?.abort();}catch{}
+    setIsListening(false);
+  },[patientId,activeSnapshotId,readOnly]);
 
   // Mouse Drag Selection State
   const [isMouseDown, setIsMouseDown] = useState(false);
@@ -211,6 +223,8 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     return `${selectedTeeth.length} dentes selecionados (${selectedTeeth.sort((a,b)=>a-b).join(', ')}) • Faces válidas: ${validFaces.map(f => f.code).join(', ')}`;
   }, [selectedTeeth, validFaces]);
 
+  useEffect(() => {setSelectedTeeth([]);setSelectedSurfaces([]);setToothNote('');setActiveSnapshotId('current');},[patientId]);
+
   // Keep selected surfaces clean when tooth selection changes
   useEffect(() => {
     if (selectedTeeth.length > 0) {
@@ -250,9 +264,10 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
 
         recognition.onresult = (event: any) => {
           let currentTranscript = '';
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
+          for (let i = 0; i < event.results.length; ++i) {
             currentTranscript += event.results[i][0].transcript;
           }
+          voiceTranscriptRef.current=currentTranscript;
           setVoiceTranscript(currentTranscript);
         };
 
@@ -677,7 +692,9 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
             distal: 'sio',
             oclusal: 'sio',
             vestibular: 'sio',
-            lingual: 'sio'
+            lingual: 'sio',
+          palatina: 'sio',
+          incisal: 'sio'
           } : (existing?.surfaces || {}),
           notes: isSio ? '' : (targetNote || existing?.notes)
         });
@@ -700,7 +717,9 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
           distal: 'sio',
           oclusal: 'sio',
           vestibular: 'sio',
-          lingual: 'sio'
+          lingual: 'sio',
+          palatina: 'sio',
+          incisal: 'sio'
         },
         notes: ''
       });
@@ -782,11 +801,11 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
         try { speechRecognitionRef.current.stop(); } catch (e) {}
       }
       setIsListening(false);
-      if (voiceTranscript.trim()) {
-        processVoiceCommand(voiceTranscript);
+      if (voiceTranscriptRef.current.trim()) {
+        processVoiceCommand(voiceTranscriptRef.current);
       }
     } else {
-      setVoiceTranscript('');
+      setVoiceTranscript('');voiceTranscriptRef.current='';
       setLastVoiceResult(null);
       if (speechRecognitionRef.current) {
         try {
@@ -803,58 +822,40 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   };
 
   const processVoiceCommand = async (commandText: string) => {
-    if (!commandText.trim()) return;
-    setVoiceProcessing(true);
-
-    try {
-      const result = await parseDentalVoiceCommandWithAI(commandText, selectedTeeth, clinicInfo.aiProvider || 'disabled');
-      setLastVoiceResult(result);
-
-      if (voiceAutoApply && result) {
-        applyVoiceResult(result);
-      }
-
-      if (voiceFeedbackSpeech && result.spokenFeedback) {
-        speakDentalFeedback(result.spokenFeedback);
-      }
-    } catch (err) {
-      console.error('Erro no processamento de comando de voz:', err);
-      // Heuristic fallback
-      const fallbackResult = parseLocalDentalVoiceCommand(commandText, selectedTeeth);
-      setLastVoiceResult(fallbackResult);
-      if (voiceAutoApply) {
-        applyVoiceResult(fallbackResult);
-      }
-    } finally {
-      setVoiceProcessing(false);
+    if (!commandText.trim() || voiceBusyRef.current) return;
+    const context={...voiceContextRef.current};
+    if(context.readOnly || context.activeSnapshotId!=='current'){
+      setAddedSuccessMsg('Volte ao odontograma atual para aplicar comandos.');return;
     }
+    voiceBusyRef.current=true;setVoiceProcessing(true);
+    try {
+      const result=await parseDentalVoiceCommandWithAI(commandText,selectedTeeth,clinicInfo.aiProvider || 'disabled');
+      const latest=voiceContextRef.current;
+      if(latest.patientId!==context.patientId || latest.activeSnapshotId!==context.activeSnapshotId || latest.readOnly)return;
+      setLastVoiceResult(result);
+      if(voiceAutoApply && result.action!=='needs_review')applyVoiceResult(result);
+      if(voiceFeedbackSpeech && result.spokenFeedback)speakDentalFeedback(result.spokenFeedback);
+    }catch{
+      setLastVoiceResult(parseLocalDentalVoiceCommand(''));
+      setAddedSuccessMsg('Não foi possível interpretar o comando. Nenhuma alteração foi feita.');
+    }finally{voiceBusyRef.current=false;setVoiceProcessing(false);}
   };
 
   const applyVoiceResult = (result: VoiceOdontogramResult) => {
-    if (result.action === 'select_teeth') {
-      setSelectedTeeth(result.teeth);
-      setAddedSuccessMsg(result.summary);
-      setTimeout(() => setAddedSuccessMsg(null), 3500);
-      return;
+    if(voiceContextRef.current.readOnly || voiceContextRef.current.activeSnapshotId!=='current'){
+      setAddedSuccessMsg('Volte ao odontograma atual para aplicar comandos.');return;
     }
-
-    if (result.action === 'clear_teeth' || result.conditionType === 'sio') {
-      handleResetTooth(result.teeth);
-      setSelectedTeeth(result.teeth);
-      setAddedSuccessMsg(result.summary);
-      setTimeout(() => setAddedSuccessMsg(null), 3500);
-      return;
+    if(result.action==='needs_review'){setAddedSuccessMsg(result.summary);return;}
+    if(result.action==='select_teeth'){
+      setSelectedTeeth(result.teeth);syncSelectionFromTeeth(result.teeth);
+      setAddedSuccessMsg(result.summary);return;
     }
-
-    if (result.isWholeTooth || result.surfaces.length === 0) {
-      handleApplyWholeToothCondition(result.teeth, result.conditionType, result.notes);
-    } else {
-      handleApplyConditionToSurfaces(result.teeth, result.conditionType, result.surfaces, result.notes);
-    }
-
+    const updates=buildVoiceToothUpdates(result,voiceConditionsRef.current);
+    for(const update of updates)updateToothCondition(patientId,update);
     setSelectedTeeth(result.teeth);
-    setAddedSuccessMsg(result.summary);
-    setTimeout(() => setAddedSuccessMsg(null), 4000);
+    setAddedSuccessMsg(result.action==='add_notes' ? 'Observação adicionada sem alterar as condições dos dentes.' : `Comando aplicado nos dentes ${result.teeth.join(', ')}.`);
+    setLastVoiceResult(null);
+    setTimeout(()=>setAddedSuccessMsg(null),4000);
   };
 
   // Render individual tooth graphic
@@ -1971,7 +1972,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
               <div className="p-3 bg-[#fbfbf9] rounded-xl border border-[#e5e5d1] text-left min-h-[50px]">
                 <div className="flex items-center justify-between text-[10px] font-bold text-gray-400 mb-1">
                   <span>Transcrição em tempo real:</span>
-                  {voiceProcessing && <span className="text-amber-600 animate-pulse">Processando com IA...</span>}
+                  {voiceProcessing && <span className="text-amber-600 animate-pulse">Interpretando comando...</span>}
                 </div>
                 <p className="text-xs font-medium text-[#2c2c2c] italic">
                   {voiceTranscript ? `"${voiceTranscript}"` : 'Aguardando voz ou digitação...'}
@@ -1998,11 +1999,12 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
                   <div className="pt-1 border-t border-emerald-200/60 flex items-center justify-end gap-2">
                     <button
                       type="button"
+                      disabled={lastVoiceResult.action === 'needs_review' || readOnly || activeSnapshotId !== 'current'}
                       onClick={() => applyVoiceResult(lastVoiceResult)}
                       className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold shadow-2xs cursor-pointer flex items-center gap-1"
                     >
                       <Check className="w-3.5 h-3.5" />
-                      <span>Reaplicar Condição</span>
+                      <span>Aplicar comando</span>
                     </button>
                   </div>
                 </div>
@@ -2050,10 +2052,10 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
               <div className="flex flex-wrap gap-1 text-[10px]">
                 {[
                   'Dente 16 cárie oclusal',
-                  'Restauração nos dentes 11, 12, 21 e 22',
+                  'Restauração mesial nos dentes 11, 12, 21 e 22',
                   'Dentes 18 e 28 ausentes',
                   'Implante no dente 24',
-                  'Tratamento Endodôntico no dente 46',
+                  'Endodontia satisfatória no dente 46',
                   'Cálculo supragengival nos dentes 31, 32, 41, 42',
                   'Dente 12 girovertido',
                   'Limpar dente 36',

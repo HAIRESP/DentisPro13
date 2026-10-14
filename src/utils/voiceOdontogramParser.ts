@@ -1,9 +1,8 @@
-import { authenticatedFetch } from './authenticatedFetch';
 import type { AIProvider } from '../context/AppContext';
-import { ToothConditionType, ToothSurface } from '../types';
+import type { ToothCondition, ToothConditionType, ToothSurface } from '../types/index.ts';
 
 export interface VoiceOdontogramResult {
-  action: 'apply_condition' | 'select_teeth' | 'clear_teeth' | 'add_notes';
+  action: 'apply_condition' | 'select_teeth' | 'clear_teeth' | 'add_notes' | 'needs_review';
   teeth: number[];
   conditionType: ToothConditionType;
   surfaces: ToothSurface[];
@@ -12,7 +11,6 @@ export interface VoiceOdontogramResult {
   summary: string;
   spokenFeedback: string;
 }
-
 // Canonical permanent teeth
 const ALL_PERMANENTS = [
   18, 17, 16, 15, 14, 13, 12, 11,
@@ -46,227 +44,120 @@ const WORD_TO_NUMBER: Record<string, number> = {
   'oitenta e um': 81, 'oitenta e dois': 82, 'oitenta e três': 83, 'oitenta e quatro': 84, 'oitenta e cinco': 85
 };
 
-/**
- * Heuristic fallback parser for offline speech recognition or immediate local parsing
- */
-export function parseLocalDentalVoiceCommand(
-  rawTranscript: string,
-  currentlySelectedTeeth: number[] = []
-): VoiceOdontogramResult {
-  const text = rawTranscript.toLowerCase().trim();
 
-  // Determine Action
-  let action: 'apply_condition' | 'select_teeth' | 'clear_teeth' | 'add_notes' = 'apply_condition';
-  if (text.includes('selecionar') || text.includes('marque os dentes') || text.includes('escolha os dentes')) {
-    action = 'select_teeth';
+const normalize = (text:string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+const validTeeth = new Set([...ALL_PERMANENTS,...ALL_DECIDUOUS]);
+const allFaces:ToothSurface[]=['mesial','distal','oclusal','incisal','vestibular','lingual','palatina'];
+const surfaceConditions=new Set<ToothConditionType>(['carie','restauracao','restauracao_insatisfatoria']);
+function validFaces(tooth:number):ToothSurface[]{
+  const quadrant=Math.floor(tooth/10),position=tooth%10;
+  const upper=[1,2,5,6].includes(quadrant);
+  return ['mesial','distal','vestibular',position<=3?'incisal':'oclusal',upper?'palatina':'lingual'] as ToothSurface[];
+}
+function review(message:string):VoiceOdontogramResult {
+  return {action:'needs_review',teeth:[],conditionType:'sio',surfaces:[],isWholeTooth:false,summary:message,spokenFeedback:message};
+}
+export function parseLocalDentalVoiceCommand(rawTranscript:string,currentlySelectedTeeth:number[]=[]):VoiceOdontogramResult {
+  const raw=rawTranscript.trim();const text=normalize(raw);
+  if(!text)return review('Digite ou fale um comando. Nenhuma alteração foi feita.');
+  const noteAction=/^(?:por favor )?(anotar|anote|observacao|observacoes|nota|notas|registrar observacao|adicionar observacao)\b/.test(text);
+  const selectAction=/\b(selecionar|selecione|escolher|escolha|marque os dentes)\b/.test(text);
+  const clearAction=/\b(limpar|apagar|redefinir|restaurar higido)\b/.test(text);
+  // Notes may contain numbers and clinical words; only the explicit tooth phrase is a target.
+  let toothText=noteAction ? (text.match(/\bdentes?\s+(.+?)(?=\s+(?:nota|observacao|com|apresenta|relata|sensibilidade|dor)\b|[:;]|$)/)?.[1] || '') : text;
+  for(const [word,number] of Object.entries(WORD_TO_NUMBER).sort((a,b)=>b[0].length-a[0].length)){
+    const w=normalize(word);toothText=toothText.replace(new RegExp('\\b'+w+'\\b','g'),String(number));
   }
-  if (text.includes('limpar') || text.includes('remover') || text.includes('apagar') || text.includes('hígido') || text.includes('higido') || text.includes('sem alteração')) {
-    action = 'clear_teeth';
+  toothText=toothText.replace(/\b([1-8])\s+([1-8])\b/g,'$1$2');
+  let teeth:number[]=[];
+  const arch= /\bsuperior(?:es)?\b/.test(text)?'upper':/\binferior(?:es)?\b/.test(text)?'lower':null;
+  let group:number[]=[];
+  if(/\b(pre[- ]?molares)\b/.test(text))group=[15,14,24,25,45,44,34,35];
+  else if(/\bmolares\b/.test(text))group=[18,17,16,26,27,28,48,47,46,36,37,38];
+  else if(/\b(anteriores)\b/.test(text))group=[13,12,11,21,22,23,43,42,41,31,32,33];
+  else if(/\b(sisos|siso|terceiros? molares?)\b/.test(text))group=[18,28,38,48];
+  else if(/\b(deciduos|dentes de leite)\b/.test(text))group=ALL_DECIDUOUS;
+  else if(/\b(arcada|permanentes|toda a boca|todos os dentes|todos dentes)\b/.test(text))group=ALL_PERMANENTS;
+  if(group.length)teeth=group.filter(t=>!arch || (arch==='upper'?[1,2,5,6]:[3,4,7,8]).includes(Math.floor(t/10)));
+  const numbers=[...toothText.matchAll(/\b\d+\b/g)].map(m=>Number(m[0]));
+  if(numbers.some(n=>!validTeeth.has(n)))return review('Há um número de dente inválido ou ambíguo. Use a numeração FDI.');
+  teeth.push(...numbers);
+  const range=toothText.match(/\b(\d{2})\s*(?:a|ao|ate)\s*(\d{2})\b/);
+  if(range){
+    const a=Number(range[1]),b=Number(range[2]);
+    if(Math.floor(a/10)!==Math.floor(b/10))return review('O intervalo atravessa quadrantes. Liste os dentes separadamente.');
+    for(let t=Math.min(a,b);t<=Math.max(a,b);t++)if(validTeeth.has(t))teeth.push(t);
   }
-
-  // Extract Teeth Numbers
-  const extractedTeeth: number[] = [];
-
-  // Group keywords
-  if (text.includes('arcada superior') || text.includes('maxilar') || text.includes('dentes superiores')) {
-    extractedTeeth.push(...[18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28]);
-  } else if (text.includes('arcada inferior') || text.includes('mandíbula') || text.includes('mandibula') || text.includes('dentes inferiores')) {
-    extractedTeeth.push(...[48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38]);
-  } else if (text.includes('ambas as arcadas') || text.includes('toda a boca') || text.includes('todos os dentes') || text.includes('todos permanentes')) {
-    extractedTeeth.push(...ALL_PERMANENTS);
-  } else if (text.includes('decíduos') || text.includes('deciduos') || text.includes('dentes de leite') || text.includes('infantil')) {
-    extractedTeeth.push(...ALL_DECIDUOUS);
-  } else if (text.includes('molares')) {
-    if (text.includes('superior')) extractedTeeth.push(...[18, 17, 16, 26, 27, 28]);
-    else if (text.includes('inferior')) extractedTeeth.push(...[48, 47, 46, 36, 37, 38]);
-    else extractedTeeth.push(...[18, 17, 16, 26, 27, 28, 48, 47, 46, 36, 37, 38]);
-  } else if (text.includes('pré-molares') || text.includes('pre molares') || text.includes('pré molares') || text.includes('premolares')) {
-    extractedTeeth.push(...[15, 14, 24, 25, 45, 44, 34, 35]);
-  } else if (text.includes('anteriores')) {
-    if (text.includes('inferior')) extractedTeeth.push(...[43, 42, 41, 31, 32, 33]);
-    else if (text.includes('superior')) extractedTeeth.push(...[13, 12, 11, 21, 22, 23]);
-    else extractedTeeth.push(...[13, 12, 11, 21, 22, 23, 43, 42, 41, 31, 32, 33]);
-  } else if (text.includes('siso') || text.includes('sisos') || text.includes('terceiro molar') || text.includes('terceiros molares')) {
-    extractedTeeth.push(...[18, 28, 38, 48]);
+  if(!teeth.length){
+    if(/\bdentes?\b/.test(text))return review('Não foi possível identificar o dente mencionado. Informe a numeração FDI.');
+    teeth=currentlySelectedTeeth.filter(t=>validTeeth.has(t));
   }
-
-  // Regex matching digits (e.g., 16, 17, 21) or range (e.g. 11 ao 16)
-  const rangeMatch = text.match(/(\d{2})\s*(?:a|ao|até|ate)\s*(\d{2})/);
-  if (rangeMatch) {
-    const start = parseInt(rangeMatch[1], 10);
-    const end = parseInt(rangeMatch[2], 10);
-    const min = Math.min(start, end);
-    const max = Math.max(start, end);
-    for (let i = min; i <= max; i++) {
-      if (ALL_PERMANENTS.includes(i) || ALL_DECIDUOUS.includes(i)) {
-        extractedTeeth.push(i);
-      }
-    }
+  teeth=[...new Set(teeth)].sort((a,b)=>a-b);
+  if(!teeth.length)return review('Informe o dente ou selecione os dentes na tela. Nenhuma alteração foi feita.');
+  const finish=(action:VoiceOdontogramResult['action'],conditionType:ToothConditionType,surfaces:ToothSurface[],whole:boolean,summary:string):VoiceOdontogramResult=>({action,teeth,conditionType,surfaces,isWholeTooth:whole,notes:raw,summary,spokenFeedback:summary});
+  if(noteAction)return finish('add_notes','sio',[],false,`Observação preparada para os dentes ${teeth.join(', ')}.`);
+  if(/\b(nao|nega|negou|sem|ausencia de|livre de|descartar|suspeita|possivel|talvez)\b/.test(text) && !/\bnao tem (?:o )?dente\b/.test(text))return review('Frase negativa ou incerta: revise o comando ou registre como observação. Nenhuma condição foi alterada.');
+  if(selectAction && clearAction)return review('O comando mistura selecionar e apagar. Envie uma ação por vez.');
+  if(selectAction)return finish('select_teeth','sio',[],false,`Dentes ${teeth.join(', ')} selecionados.`);
+  if(clearAction){
+    if(/\b(face|faces|mesial|distal|oclusal|incisal|vestibular|lingual|palatina|carie|restauracao|calculo|nota|notas)\b/.test(text))return review('Para limpar uma face, use os controles manuais. Este comando não apagou o dente inteiro.');
+    return finish('clear_teeth','sio',allFaces,true,`Redefinição para hígido preparada para os dentes ${teeth.join(', ')}.`);
   }
-
-  // Match all 2-digit numbers
-  const numberMatches = text.match(/\b\d{2}\b/g);
-  if (numberMatches) {
-    numberMatches.forEach(numStr => {
-      const n = parseInt(numStr, 10);
-      if (ALL_PERMANENTS.includes(n) || ALL_DECIDUOUS.includes(n)) {
-        extractedTeeth.push(n);
-      }
-    });
-  }
-
-  // Check word numbers if none found
-  if (extractedTeeth.length === 0) {
-    Object.entries(WORD_TO_NUMBER).forEach(([word, val]) => {
-      if (text.includes(word) && (ALL_PERMANENTS.includes(val) || ALL_DECIDUOUS.includes(val))) {
-        extractedTeeth.push(val);
-      }
-    });
-  }
-
-  // Fallback to currently selected teeth if user speaks "neste dente", "nestes dentes" or no tooth mentioned
-  const finalTeeth = extractedTeeth.length > 0 
-    ? Array.from(new Set(extractedTeeth))
-    : (currentlySelectedTeeth.length > 0 ? currentlySelectedTeeth : [16]);
-
-  // Determine Condition Type
-  let conditionType: ToothConditionType = 'carie';
-  let isWholeTooth = false;
-
-  if (text.includes('cárie') || text.includes('carie') || text.includes('lesão') || text.includes('cavidade') || text.includes('mancha')) {
-    conditionType = 'carie';
-  } else if (text.includes('insatisfatória') || text.includes('insatisfatoria') || text.includes('infiltrada') || text.includes('infiltração') || text.includes('recidiva')) {
-    if (text.includes('endo') || text.includes('canal')) {
-      conditionType = 'canal'; // Endodontia insatisfatória
-      isWholeTooth = true;
-    } else {
-      conditionType = 'restauracao_insatisfatoria';
-    }
-  } else if (text.includes('necessidade endodôntica') || text.includes('necessidade endodontica') || text.includes('biopulpectomia') || text.includes('necropulpectomia') || text.includes('abrir canal')) {
-    conditionType = 'necessidade_endodontica';
-    isWholeTooth = true;
-  } else if (text.includes('endodontia satisfatória') || text.includes('endodontia satisfatoria') || text.includes('canal tratado') || text.includes('canal obturado') || text.includes('endo tratada')) {
-    conditionType = 'endodontia_satisfatoria';
-    isWholeTooth = true;
-  } else if (text.includes('restauração') || text.includes('restauracao') || text.includes('resina') || text.includes('amálgama') || text.includes('amalgama') || text.includes('obturado') || text.includes('obturação')) {
-    conditionType = 'restauracao';
-  } else if (text.includes('canal') || text.includes('endodontia') || text.includes('endo')) {
-    conditionType = 'canal'; // Endodontia insatisfatória
-    isWholeTooth = true;
-  } else if (text.includes('extração') || text.includes('extracao') || text.includes('extrair') || text.includes('exodontia') || text.includes('residual')) {
-    conditionType = 'extracao_indicada';
-    isWholeTooth = true;
-  } else if (text.includes('ausente') || text.includes('perdido') || text.includes('extraído') || text.includes('extraido') || text.includes('falta') || text.includes('não tem') || text.includes('agenesia')) {
-    conditionType = 'ausente';
-    isWholeTooth = true;
-  } else if (text.includes('implante') || text.includes('parafuso') || text.includes('osseointegrado')) {
-    conditionType = 'implante';
-    isWholeTooth = true;
-  } else if (text.includes('prótese') || text.includes('protese') || text.includes('coroa') || text.includes('metalocerâmica') || text.includes('faceta') || text.includes('bloco') || text.includes('onlay') || text.includes('inlay')) {
-    conditionType = 'protese';
-    isWholeTooth = true;
-  } else if (text.includes('subgengival') || text.includes('tártaro sub') || text.includes('tartaro sub') || text.includes('bolsa')) {
-    conditionType = 'calculo_subgengival';
-    isWholeTooth = true;
-  } else if (text.includes('supragengival') || text.includes('tártaro supra') || text.includes('tartaro supra') || text.includes('cálculo') || text.includes('calculo') || text.includes('tártaro') || text.includes('tartaro')) {
-    conditionType = 'calculo_supragengival';
-    isWholeTooth = true;
-  } else if (text.includes('girovertido') || text.includes('giroversão') || text.includes('giro') || text.includes('rodado') || text.includes('girado')) {
-    conditionType = 'girovertido';
-    isWholeTooth = true;
-  } else if (text.includes('hígido') || text.includes('higido') || text.includes('saudável') || text.includes('limpo') || text.includes('sem alteração')) {
-    conditionType = 'sio';
-    isWholeTooth = true;
-  }
-
-  // Extract Surfaces
-  const surfaces: ToothSurface[] = [];
-  if (text.includes('oclusal') || text.includes('mastigatória') || text.includes('topo')) surfaces.push('oclusal');
-  if (text.includes('incisal') || text.includes('ponta') || text.includes('borda')) surfaces.push('incisal');
-  if (text.includes('mesial') || text.includes('frente do dente')) surfaces.push('mesial');
-  if (text.includes('distal') || text.includes('trás do dente')) surfaces.push('distal');
-  if (text.includes('vestibular') || text.includes('labial') || text.includes('bochecha')) surfaces.push('vestibular');
-  if (text.includes('palatina') || text.includes('céu da boca')) surfaces.push('palatina');
-  if (text.includes('lingual') || text.includes('língua') || text.includes('lingua')) surfaces.push('lingual');
-  if (text.includes('todas as faces') || text.includes('toda a coroa')) {
-    surfaces.push('vestibular', 'mesial', 'oclusal', 'distal', 'lingual', 'palatina');
-  }
-
-  // If no surfaces specified and condition is carie or restauracao, default to oclusal (for posterior) or vestibular/incisal
-  if (surfaces.length === 0 && !isWholeTooth && conditionType !== 'sio') {
-    surfaces.push('oclusal');
-  }
-
-  // If action is clear_teeth, set conditionType to sio
-  if (action === 'clear_teeth') {
-    conditionType = 'sio';
-    isWholeTooth = true;
-  }
-
-  const teethStr = finalTeeth.sort((a, b) => a - b).join(', ');
-  let summary = '';
-  let spokenFeedback = '';
-
-  if (action === 'select_teeth') {
-    summary = `Dentes ${teethStr} selecionados.`;
-    spokenFeedback = `Dentes ${teethStr} selecionados na tela.`;
-  } else if (action === 'clear_teeth' || conditionType === 'sio') {
-    summary = `Dente(s) ${teethStr} redefinido(s) para hígido.`;
-    spokenFeedback = `Dente ${teethStr} limpo com sucesso.`;
-  } else {
-    const condLabel = conditionType.replace('_', ' ').toUpperCase();
-    const surfLabel = surfaces.length > 0 ? `nas faces ${surfaces.join(', ')}` : 'no dente inteiro';
-    summary = `Aplicado ${condLabel} ${surfLabel} no(s) dente(s) ${teethStr}.`;
-    spokenFeedback = `Pronto! Registrei ${condLabel} no dente ${teethStr}.`;
-  }
-
-  return {
-    action,
-    teeth: finalTeeth,
-    conditionType,
-    surfaces,
-    isWholeTooth,
-    notes: text,
-    summary,
-    spokenFeedback
-  };
+  if((text.match(/\bdentes?\b/g)||[]).length>1)return review('Há comandos separados por dente. Envie uma condição e um grupo de dentes por vez.');
+  const matches:ToothConditionType[]=[];
+  if(/\b(carie|caries|lesao cariosa)\b/.test(text))matches.push('carie');
+  if(/\b(restauracao|restauracoes|resina|amalgama|obturacao)\b/.test(text))matches.push(/\b(insatisfatoria|insatisfatorias|infiltrada|infiltracao|recidiva)\b/.test(text)?'restauracao_insatisfatoria':'restauracao');
+  if(/\b(necessidade endodontica|biopulpectomia|necropulpectomia|abrir canal)\b/.test(text))matches.push('necessidade_endodontica');
+  else if(/\b(endodontia satisfatoria|canal tratado|canal obturado|endo tratada)\b/.test(text))matches.push('endodontia_satisfatoria');
+  else if(/\b(endodontia insatisfatoria|canal insatisfatorio)\b/.test(text))matches.push('endodontia_insatisfatoria');
+  else if(/\b(canal|endodontia|endo|tratamento endodontico)\b/.test(text))return review('Informe se a endodontia é necessária, satisfatória ou insatisfatória.');
+  if(/\b(extracao indicada|exodontia indicada|extrair)\b/.test(text))matches.push('extracao_indicada');
+  else if(/\b(extracao realizada|exodontia realizada)\b/.test(text))matches.push('ausente');
+  else if(/\b(extracao|exodontia)\b/.test(text))return review('Informe se a extração é indicada ou já foi realizada.');
+  if(/\b(ausente|ausentes|extraido|extraidos|agenesia)\b/.test(text)||/\bnao tem (?:o )?dente\b/.test(text))matches.push('ausente');
+  if(/\b(implante|implantes|osseointegrado)\b/.test(text))matches.push('implante');
+  if(/\b(protese|coroa|faceta|onlay|inlay)\b/.test(text))matches.push('protese');
+  if(/\b(subgengival|subgengivais|tartaro sub)\b/.test(text))matches.push('calculo_subgengival');
+  else if(/\b(supragengival|supragengivais|tartaro supra)\b/.test(text))matches.push('calculo_supragengival');
+  else if(/\b(calculo|tartaro)\b/.test(text))return review('Informe se o cálculo é supragengival ou subgengival.');
+  if(/\b(girovertido|giroversao|girado|rodado)\b/.test(text))matches.push('girovertido');
+  if(/\b(higido|integro)\b/.test(text))matches.push('sio');
+  if(matches.length!==1)return review(matches.length?'Há condições diferentes no mesmo comando. Envie uma condição por vez.':'Não reconheci uma condição clínica. Nenhuma alteração foi feita.');
+  const condition=matches[0];
+  if(/\b(necessita|planejar|planejado|indicar|indicado|proposto)\b/.test(text) && condition!=='extracao_indicada')return review('O comando descreve planejamento. Registre uma observação ou informe a condição atual explicitamente.');
+  const surfaces:ToothSurface[]=[];
+  for(const face of allFaces)if(new RegExp('\\b'+face+'\\b').test(text))surfaces.push(face);
+  if(/\btodas as faces\b/.test(text))surfaces.push(...allFaces);
+  const whole=!surfaceConditions.has(condition);
+  if(!whole && !surfaces.length)return review('Informe a face: mesial, distal, vestibular, palatina, lingual, oclusal ou incisal.');
+  // Explicit anatomically impossible faces are rejected; “todas” adapts to each tooth.
+  if(!/\btodas as faces\b/.test(text) && surfaces.some(face=>teeth.some(tooth=>!validFaces(tooth).includes(face))))return review('A face informada não corresponde a todos os dentes selecionados. Separe os comandos por dente ou grupo anatômico.');
+  if(whole && surfaces.length)return review('Essa condição é registrada no dente inteiro. Revise a indicação de faces.');
+  return finish('apply_condition',condition,[...new Set(surfaces)],whole,`Comando preparado: ${condition.replaceAll('_',' ')} nos dentes ${teeth.join(', ')}${surfaces.length?' — '+surfaces.join(', '):''}.`);
 }
 
-/**
- * Sends speech text to configured AI route with fallback to local heuristic
- */
-export async function parseDentalVoiceCommandWithAI(
-  textCommand: string,
-  currentSelectedTeeth: number[] = [],
-  provider: AIProvider = 'disabled'
-): Promise<VoiceOdontogramResult> {
-  try {
-    const response = await authenticatedFetch('/api/ai/parse-voice-odontogram', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ textCommand, currentSelectedTeeth, provider })
-    });
+/** Supported commands are interpreted locally; an AI response cannot invent targets or findings. */
+export async function parseDentalVoiceCommandWithAI(text:string,selected:number[]=[],_provider:AIProvider='disabled'):Promise<VoiceOdontogramResult>{
+  return parseLocalDentalVoiceCommand(text,selected);
+}
 
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success && data.data) {
-        return {
-          action: data.data.action || 'apply_condition',
-          teeth: data.data.teeth && data.data.teeth.length > 0 ? data.data.teeth : currentSelectedTeeth,
-          conditionType: data.data.conditionType || 'carie',
-          surfaces: data.data.surfaces || ['oclusal'],
-          isWholeTooth: Boolean(data.data.isWholeTooth),
-          notes: data.data.notes || '',
-          summary: data.data.summary || `Comando processado para dente(s) ${data.data.teeth?.join(', ')}`,
-          spokenFeedback: data.data.spokenFeedback || 'Comando registrado com sucesso!'
-        };
-      }
+/** Build updates without changing unrelated findings; notes append instead of painting a lesion. */
+export function buildVoiceToothUpdates(result:VoiceOdontogramResult,existing:ToothCondition[]):ToothCondition[]{
+  if(result.action==='needs_review'||result.action==='select_teeth')return [];
+  return result.teeth.filter(t=>validTeeth.has(t)).map(toothNumber=>{
+    const prior=existing.find(c=>c.toothNumber===toothNumber)||{toothNumber};
+    if(result.action==='add_notes')return {...prior,notes:[prior.notes,result.notes].filter(Boolean).join('\n')};
+    if(result.action==='clear_teeth'||result.conditionType==='sio')return {...prior,toothNumber,wholeToothCondition:'sio',isGirovertido:false,hasCalculoSupra:false,hasCalculoSub:false,surfaces:Object.fromEntries(allFaces.map(f=>[f,'sio'])),notes:''};
+    if(surfaceConditions.has(result.conditionType)){
+      const surfaces={...prior.surfaces};
+      for(const face of result.surfaces)if(validFaces(toothNumber).includes(face))surfaces[face]=result.conditionType;
+      return {...prior,toothNumber,surfaces};
     }
-  } catch (err) {
-    console.warn('[VOICE AI] Fallback para parser local inteligente:', err);
-  }
-
-  return parseLocalDentalVoiceCommand(textCommand, currentSelectedTeeth);
+    if(result.conditionType==='girovertido')return {...prior,toothNumber,isGirovertido:true};
+    if(result.conditionType==='calculo_supragengival')return {...prior,toothNumber,hasCalculoSupra:true};
+    if(result.conditionType==='calculo_subgengival')return {...prior,toothNumber,hasCalculoSub:true};
+    return {...prior,toothNumber,wholeToothCondition:result.conditionType};
+  });
 }
 
 /**
