@@ -66,3 +66,15 @@ Pendência para a próxima instalação conjunta: a captura real no Chrome ainda
 precisa de verificação do reconhecimento local, disponibilidade do idioma pt-BR,
 preparação do pacote e mensagens visíveis de permissão/dispositivo/idioma.
 Não confundir esta ligação do campo com a correção da inicialização do microfone.
+
+## Confirmação falada
+
+A palavra isolada Aplicar, reconhecida como resultado final da captura, confirma
+o comando clínico preparado ou a transcrição válida anterior. Usa a mesma rotina
+do botão Aplicar, sem gravar a palavra de controle como condição ou observação.
+Resultados parciais não confirmam. Histórico, modo de leitura, comando inválido,
+processamento em andamento e repetição após aplicação são bloqueados.
+A transcrição clínica permanece visível para conferência. Reiniciar o microfone
+conserva o comando preparado para permitir a confirmação falada.
+Requer captura de áudio funcionando; a preparação do idioma/microfone continua
+pendente para a instalação conjunta.

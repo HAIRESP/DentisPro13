@@ -164,12 +164,15 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   const speechRecognitionRef = useRef<any>(null);
   const voiceTranscriptRef = useRef('');
   const voiceBusyRef = useRef(false);
+  const voiceApplyRef = useRef<(transcript?:string) => void>(() => {});
+  const voiceConfirmationConsumedRef = useRef(false);
+  const processedConfirmationRef = useRef(-1);
   const voiceContextRef = useRef({patientId,activeSnapshotId,readOnly});
   voiceContextRef.current = {patientId,activeSnapshotId,readOnly};
   const voiceConditionsRef = useRef(odontograms[patientId] || []);
   voiceConditionsRef.current = odontograms[patientId] || [];
   useEffect(() => {
-    setIsVoiceModalOpen(false);setLastVoiceResult(null);setVoiceTranscript('');setManualVoiceInput('');voiceTranscriptRef.current='';
+    setIsVoiceModalOpen(false);setLastVoiceResult(null);setVoiceTranscript('');setManualVoiceInput('');voiceTranscriptRef.current='';voiceConfirmationConsumedRef.current=false;
     try {speechRecognitionRef.current?.abort();}catch{}
     setIsListening(false);
   },[patientId,activeSnapshotId,readOnly]);
@@ -264,12 +267,23 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
 
         recognition.onresult = (event: any) => {
           let currentTranscript = '';
+          let confirmationIndex = -1;
           for (let i = 0; i < event.results.length; ++i) {
-            currentTranscript += event.results[i][0].transcript;
+            const text=String(event.results[i][0].transcript || '');
+            const confirmation=text.trim().toLowerCase().replace(/[.!?,;:]+$/,'')==='aplicar';
+            if(confirmation){
+              if(event.results[i].isFinal && i>=event.resultIndex && i>processedConfirmationRef.current)confirmationIndex=i;
+            }else{currentTranscript+=text;}
           }
-          voiceTranscriptRef.current=currentTranscript;
-          setVoiceTranscript(currentTranscript);
-          setManualVoiceInput(currentTranscript);
+          if(currentTranscript.trim() && currentTranscript.trim()!==voiceTranscriptRef.current.trim()){
+            voiceTranscriptRef.current=currentTranscript;
+            setVoiceTranscript(currentTranscript);setManualVoiceInput(currentTranscript);
+            setLastVoiceResult(null);voiceConfirmationConsumedRef.current=false;
+          }
+          if(confirmationIndex>=0){
+            processedConfirmationRef.current=confirmationIndex;
+            voiceApplyRef.current(currentTranscript.trim() || undefined);
+          }
         };
 
         recognition.onerror = (event: any) => {
@@ -806,8 +820,8 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
         if(voiceAutoInterpret)processVoiceCommand(voiceTranscriptRef.current);
       }
     } else {
-      setVoiceTranscript('');setManualVoiceInput('');voiceTranscriptRef.current='';
-      setLastVoiceResult(null);
+      // Keep the prepared command visible when restarting the microphone to confirm it.
+      processedConfirmationRef.current=-1;
       if (speechRecognitionRef.current) {
         try {
           speechRecognitionRef.current.start();
@@ -849,14 +863,24 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     if(result.action==='needs_review'){setAddedSuccessMsg(result.summary);return;}
     if(result.action==='select_teeth'){
       setSelectedTeeth(result.teeth);syncSelectionFromTeeth(result.teeth);
-      setAddedSuccessMsg(result.summary);return;
+      setAddedSuccessMsg(result.summary);voiceConfirmationConsumedRef.current=true;setLastVoiceResult(null);return;
     }
     const updates=buildVoiceToothUpdates(result,voiceConditionsRef.current);
     for(const update of updates)updateToothCondition(patientId,update);
     setSelectedTeeth(result.teeth);
     setAddedSuccessMsg(result.action==='add_notes' ? 'Observação adicionada sem alterar as condições dos dentes.' : `Comando aplicado nos dentes ${result.teeth.join(', ')}.`);
-    setLastVoiceResult(null);
+    setLastVoiceResult(null);voiceConfirmationConsumedRef.current=true;
     setTimeout(()=>setAddedSuccessMsg(null),4000);
+  };
+
+  voiceApplyRef.current = (transcript?:string) => {
+    if(voiceBusyRef.current || voiceContextRef.current.readOnly || voiceContextRef.current.activeSnapshotId!=='current'){
+      setAddedSuccessMsg('Não é possível aplicar agora. Confira o odontograma atual.');return;
+    }
+    if(voiceConfirmationConsumedRef.current){setAddedSuccessMsg('Este comando já foi aplicado. Dite ou prepare um novo comando.');return;}
+    const prepared=transcript ? parseLocalDentalVoiceCommand(transcript,selectedTeeth) : lastVoiceResult || parseLocalDentalVoiceCommand(voiceTranscriptRef.current,selectedTeeth);
+    if(prepared.action==='needs_review'){setLastVoiceResult(prepared);setAddedSuccessMsg(prepared.summary);return;}
+    applyVoiceResult(prepared);
   };
 
   // Render individual tooth graphic
@@ -2019,7 +2043,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
                     type="text"
                     placeholder="Ex: Dente 16 e 17 cárie oclusal e mesial..."
                     value={manualVoiceInput}
-                    onChange={(e) => {setManualVoiceInput(e.target.value);setVoiceTranscript(e.target.value);voiceTranscriptRef.current=e.target.value;setLastVoiceResult(null);}}
+                    onChange={(e) => {setManualVoiceInput(e.target.value);setVoiceTranscript(e.target.value);voiceTranscriptRef.current=e.target.value;setLastVoiceResult(null);voiceConfirmationConsumedRef.current=false;}}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         processVoiceCommand(manualVoiceInput);
@@ -2064,7 +2088,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
                     key={idx}
                     type="button"
                     onClick={() => {
-                      setVoiceTranscript(sample);setManualVoiceInput(sample);voiceTranscriptRef.current=sample;
+                      setVoiceTranscript(sample);setManualVoiceInput(sample);voiceTranscriptRef.current=sample;voiceConfirmationConsumedRef.current=false;
                       processVoiceCommand(sample);
                     }}
                     className="px-2 py-1 bg-white hover:bg-amber-100 border border-[#e5e5d1] rounded-lg text-stone-700 font-medium transition cursor-pointer"
