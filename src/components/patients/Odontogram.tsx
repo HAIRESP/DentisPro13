@@ -803,7 +803,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
       }
       setIsListening(false);
       if (voiceTranscriptRef.current.trim()) {
-        processVoiceCommand(voiceTranscriptRef.current);
+        processVoiceCommand(voiceTranscriptRef.current, true);
       }
     } else {
       setVoiceTranscript('');setManualVoiceInput('');voiceTranscriptRef.current='';
@@ -822,7 +822,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     }
   };
 
-  const processVoiceCommand = async (commandText: string) => {
+  const processVoiceCommand = async (commandText: string, fromVoiceCapture = false) => {
     if (!commandText.trim() || voiceBusyRef.current) return;
     const context={...voiceContextRef.current};
     if(context.readOnly || context.activeSnapshotId!=='current'){
@@ -834,7 +834,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
       const latest=voiceContextRef.current;
       if(latest.patientId!==context.patientId || latest.activeSnapshotId!==context.activeSnapshotId || latest.readOnly)return;
       setLastVoiceResult(result);
-      if(voiceAutoApply && result.action!=='needs_review')applyVoiceResult(result);
+      if(fromVoiceCapture && voiceAutoApply && result.action!=='needs_review')applyVoiceResult(result);
       if(voiceFeedbackSpeech && result.spokenFeedback)speakDentalFeedback(result.spokenFeedback);
     }catch{
       setLastVoiceResult(parseLocalDentalVoiceCommand(''));

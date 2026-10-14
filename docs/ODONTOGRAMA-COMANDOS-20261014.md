@@ -56,7 +56,10 @@ contra a versão anterior. Não muda a origem dos dados nem conclui integração
 
 O campo Transcrição do comando clínico recebe resultados parciais e acumulados
 da captura de voz, permite revisar o texto e conserva a transcrição ao enviar.
-A versão revisada é a utilizada na confirmação do comando. Estilo preservado.
+Depois de Enviar, a transcrição permanece visível para mera conferência. Enviar
+apenas interpreta o texto; a gravação requer Aplicar comando, mesmo que a opção
+automática esteja marcada. Essa opção vale somente para a fala capturada pelo
+microfone. A versão revisada é utilizada na confirmação. Estilo preservado.
 Verificado com eventos de reconhecimento simulados e TypeScript.
 
 Pendência para a próxima instalação conjunta: a captura real no Chrome ainda
