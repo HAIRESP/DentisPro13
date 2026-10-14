@@ -37,7 +37,9 @@ sujeitos aos seus limites existentes de concorrência.
 A captura verifica suporte local, disponibilidade de pt-BR e preparação do
 pacote de idioma quando o navegador oferece esse recurso. Mostra estados de
 preparação, solicitação de microfone, captura e erros específicos de idioma,
-permissão ou dispositivo. Não usa reconhecimento remoto como alternativa.
+permissão ou dispositivo. Fechar a janela encerra a captura e bloqueia eventos
+atrasados; preparação pendente não liga o microfone depois de fechar. Não usa
+reconhecimento remoto como alternativa.
 O texto transcrito permanece no campo Transcrição do comando clínico; Enviar
 apenas interpreta. Somente o botão Aplicar ou a palavra isolada Aplicar,
 reconhecida como resultado final, confirmam um comando clínico válido.

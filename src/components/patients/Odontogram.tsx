@@ -175,8 +175,11 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   const voiceApplyRef = useRef<(transcript?:string) => void>(() => {});
   const voiceConfirmationConsumedRef = useRef(false);
   const processedConfirmationRef = useRef(-1);
-  const voiceContextRef = useRef({patientId,activeSnapshotId,readOnly});
-  voiceContextRef.current = {patientId,activeSnapshotId,readOnly};
+  const voiceContextRef = useRef({patientId,activeSnapshotId,readOnly,modalOpen:isVoiceModalOpen});
+  voiceContextRef.current = {patientId,activeSnapshotId,readOnly,modalOpen:isVoiceModalOpen};
+  useEffect(()=>{
+    if(!isVoiceModalOpen){try{speechRecognitionRef.current?.abort();}catch{}setIsListening(false);setCapturePreparing(false);captureStartingRef.current=false;}
+  },[isVoiceModalOpen]);
   const voiceConditionsRef = useRef(odontograms[patientId] || []);
   voiceConditionsRef.current = odontograms[patientId] || [];
   useEffect(() => {
@@ -275,6 +278,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
 
         recognition.onstart=()=>{captureStartingRef.current=false;setIsListening(true);setCapturePreparing(false);setCaptureStatus('Ouvindo. A transcrição aparecerá no campo abaixo.');};
         recognition.onresult = (event: any) => {
+          if(!voiceContextRef.current.modalOpen)return;
           let currentTranscript = '';
           let confirmationIndex = -1;
           for (let i = 0; i < event.results.length; ++i) {
@@ -835,7 +839,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
       try{
         await prepareLocalSpeech(Ctor,recognition,setCaptureStatus);
         const latest=voiceContextRef.current;
-        if(latest.patientId!==context.patientId || latest.activeSnapshotId!==context.activeSnapshotId || latest.readOnly)return;
+        if(latest.patientId!==context.patientId || latest.activeSnapshotId!==context.activeSnapshotId || latest.readOnly || !latest.modalOpen)return;
         recognition.start();started=true;
       }catch(error){setCaptureStatus(error instanceof Error?error.message:'Não foi possível iniciar a captura.');setIsListening(false);}
       finally{if(!started){captureStartingRef.current=false;setCapturePreparing(false);}}
@@ -846,14 +850,14 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   const processVoiceCommand = async (commandText: string) => {
     if (!commandText.trim() || voiceBusyRef.current) return;
     const context={...voiceContextRef.current};
-    if(context.readOnly || context.activeSnapshotId!=='current'){
+    if(context.readOnly || context.activeSnapshotId!=='current' || !context.modalOpen){
       setAddedSuccessMsg('Volte ao odontograma atual para aplicar comandos.');return;
     }
     voiceBusyRef.current=true;setVoiceProcessing(true);
     try {
       const result=await parseDentalVoiceCommandWithAI(commandText,selectedTeeth,clinicInfo.aiProvider || 'disabled');
       const latest=voiceContextRef.current;
-      if(latest.patientId!==context.patientId || latest.activeSnapshotId!==context.activeSnapshotId || latest.readOnly)return;
+      if(latest.patientId!==context.patientId || latest.activeSnapshotId!==context.activeSnapshotId || latest.readOnly || !latest.modalOpen)return;
       setLastVoiceResult(result);
       // Clinical writes happen only through the explicit Aplicar button.
       if(voiceFeedbackSpeech && result.spokenFeedback)speakDentalFeedback(result.spokenFeedback);
@@ -864,7 +868,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   };
 
   const applyVoiceResult = (result: VoiceOdontogramResult) => {
-    if(voiceContextRef.current.readOnly || voiceContextRef.current.activeSnapshotId!=='current'){
+    if(voiceContextRef.current.readOnly || voiceContextRef.current.activeSnapshotId!=='current' || !voiceContextRef.current.modalOpen){
       setAddedSuccessMsg('Volte ao odontograma atual para aplicar comandos.');return;
     }
     if(result.action==='needs_review'){setAddedSuccessMsg(result.summary);return;}
@@ -881,7 +885,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   };
 
   voiceApplyRef.current = (transcript?:string) => {
-    if(voiceBusyRef.current || voiceContextRef.current.readOnly || voiceContextRef.current.activeSnapshotId!=='current'){
+    if(voiceBusyRef.current || voiceContextRef.current.readOnly || voiceContextRef.current.activeSnapshotId!=='current' || !voiceContextRef.current.modalOpen){
       setAddedSuccessMsg('Não é possível aplicar agora. Confira o odontograma atual.');return;
     }
     if(voiceConfirmationConsumedRef.current){setAddedSuccessMsg('Este comando já foi aplicado. Dite ou prepare um novo comando.');return;}
