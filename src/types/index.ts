@@ -213,6 +213,8 @@ export interface PatientFile {
   fileType: 'pdf';
   uploadedAt: string;
   sourceDocumentId: string;
+  sourceEvolutionId?: string;
+  examDate?: string;
 }
 
 export interface Patient {
@@ -350,6 +352,9 @@ export interface OdontogramSnapshot {
 }
 
 export interface ClinicalEvolutionEntry {
+  sourcePanel?: ClinicalPanelKind;
+  pdfFileId?: string;
+  savedAt?: string;
   id: string;
   patientId: string;
   date: string;
@@ -672,6 +677,7 @@ export interface TreatmentPlan {
 }
 
 export interface ExtraoralExam {
+  examDate?: string;
   faceSymmetry?: string;
   neckLymphNodes?: string;
   atmJoints?: string;
@@ -690,6 +696,7 @@ export interface ExtraoralExam {
 }
 
 export interface IntraoralExam {
+  examDate?: string;
   buccalMucosa?: string;
   tongueAndFloor?: string;
   palateHardSoft?: string;
@@ -782,6 +789,7 @@ export interface PainEvaluationExam {
 }
 
 export interface ClinicalExam {
+  odontogramExamDate?: string;
   patientId: string;
   updatedAt: string;
   extraoral: ExtraoralExam;
@@ -817,3 +825,5 @@ export interface SavedClinicDocument {
   patientFileId?: string;
 }
 // DentisPro: correcao-lint50-v1
+
+export type ClinicalPanelKind = "pain" | "extraoral" | "intraoral" | "odontogram";

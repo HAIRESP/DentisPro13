@@ -1,3 +1,4 @@
+import {localExamDate} from '../../utils/clinicalPanelRecord';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Odontogram } from './Odontogram';
@@ -36,7 +37,8 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
     setSelectedPatientId, 
     updatePatient, 
     getClinicalExam, 
-    updateClinicalExam, 
+    updateClinicalExam,
+    saveClinicalPanel, 
     clinicInfo,
     activeProfessional,
     layoutTheme 
@@ -49,6 +51,9 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
 
   const [activeSection, setActiveSection] = useState<'odontogram' | 'dor_urgencia' | 'extraoral' | 'intraoral'>('odontogram');
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const savingRef=React.useRef(false);
+  const [savingPanel,setSavingPanel]=useState(false);
+  const [panelError,setPanelError]=useState('');
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [copiedSuccess, setCopiedSuccess] = useState(false);
@@ -56,8 +61,8 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
   const exam = getClinicalExam(activePatientId);
 
   // Local draft state for extraoral, intraoral, and general exam notes
-  const [extraoral, setExtraoral] = useState(exam.extraoral || {});
-  const [intraoral, setIntraoral] = useState(exam.intraoral || {});
+  const [extraoral, setExtraoral] = useState({...exam.extraoral,examDate:exam.extraoral?.examDate || localExamDate()});
+  const [intraoral, setIntraoral] = useState({...exam.intraoral,examDate:exam.intraoral?.examDate || localExamDate()});
   const [generalNotes, setGeneralNotes] = useState(exam.generalNotes || '');
 
   const patientImages = currentPatient?.images || exam.odontogramImages || extraoral.images || intraoral.images || [];
@@ -80,20 +85,21 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
   React.useEffect(() => {
     if (activePatientId) {
       const e = getClinicalExam(activePatientId);
-      setExtraoral(e.extraoral || {});
-      setIntraoral(e.intraoral || {});
+      setExtraoral({...e.extraoral,examDate:e.extraoral?.examDate || localExamDate()});
+      setIntraoral({...e.intraoral,examDate:e.intraoral?.examDate || localExamDate()});
       setGeneralNotes(e.generalNotes || '');
     }
   }, [activePatientId]);
 
-  const handleSaveExam = () => {
-    updateClinicalExam(activePatientId, {
-      extraoral,
-      intraoral,
-      generalNotes
-    });
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+  const handleSaveExam = async () => {
+    if(savingRef.current || !['extraoral','intraoral'].includes(activeSection))return false;
+    savingRef.current=true;setSavingPanel(true);setPanelError('');
+    try{
+      const panel=activeSection as 'extraoral'|'intraoral';const data={...(panel==='extraoral'?extraoral:intraoral),generalNotes};
+      await saveClinicalPanel(activePatientId,panel,data,data.examDate);
+      setSavedSuccess(true);setTimeout(()=>setSavedSuccess(false),3000);return true;
+    }catch(error){setPanelError(error instanceof Error?error.message:'Não foi possível arquivar o exame.');return false;}
+    finally{savingRef.current=false;setSavingPanel(false);}
   };
 
   // WhatsApp Message Generator
@@ -101,7 +107,8 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
     const patientName = currentPatient?.name || 'Paciente';
     const doctorName = activeProfessional?.name || clinicInfo.dentistName || 'Cirurgião-Dentista';
     const cro = activeProfessional?.cro || clinicInfo.cro || 'CRO';
-    const dateStr = new Date().toLocaleDateString('pt-BR');
+    const panelDate=activeSection==='extraoral'?extraoral.examDate:activeSection==='intraoral'?intraoral.examDate:activeSection==='dor_urgencia'?exam.painExam?.examDate:exam.odontogramExamDate;
+    const dateStr=panelDate ? panelDate.split('-').reverse().join('/') : 'Não informada';
 
     let msg = `📋 *LAUDO E RESUMO DE EXAME CLÍNICO ODONTOLÓGICO*\n`;
     msg += `🏥 *${clinicInfo.name || 'DentisPro Odontologia'}*\n`;
@@ -203,7 +210,7 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
       printDocumentWithTitle({
         docTitle: 'Exame_Clinico_Odontologico',
         patientName: currentPatient?.name,
-        date: new Date()
+        date: new Date((activeSection==='extraoral'?extraoral.examDate:activeSection==='intraoral'?intraoral.examDate:activeSection==='dor_urgencia'?exam.painExam?.examDate:exam.odontogramExamDate || localExamDate())+'T12:00:00')
       });
     }, 400);
   };
@@ -312,12 +319,19 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
 
             <button
               type="button"
-              onClick={handleSaveExam}
+              disabled={savingPanel}
+              onClick={()=>void handleSaveExam()}
               className={`px-5 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-xl shadow-2xs flex items-center gap-2 transition cursor-pointer`}
             >
               <Save className="w-4 h-4" /> Salvar Exame Extraoral
             </button>
           </div>
+          <div className="bg-[#fbfbf9] rounded-2xl border border-[#e5e5d1] p-4 text-xs space-y-1.5">
+            <label htmlFor="extraoral-exam-date" className="block font-bold text-[#5a5a40]">Data do exame:</label>
+            <input id="extraoral-exam-date" type="date" value={extraoral.examDate} onChange={e=>setExtraoral({...extraoral,examDate:e.target.value})} className="bg-white border border-[#e5e5d1] rounded-lg px-2 py-0.5 text-xs font-bold text-[#5a5a40] focus:outline-none" />
+          </div>
+          {panelError && <p role="alert" className="text-xs text-red-700">{panelError}</p>}
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             {/* Simetria Facial */}
@@ -513,8 +527,9 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
 
           {/* Photo Gallery & Advanced Editor for Extraoral Exam */}
           <ImageGalleryWithEditor
-            title="Fotos e radiografias (Exame Extraoral)"
+            title="Galeria do Prontuário"
             description="Importe e gerencie fotografias e radiografias clínicas do paciente. Clique em qualquer imagem para abrir o editor avançado com desenho, inversão RX e legendas."
+            files={currentPatient?.files || []}
             images={patientImages}
             onUpdateImages={handleUpdatePatientImages}
           />
@@ -535,12 +550,19 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
 
             <button
               type="button"
-              onClick={handleSaveExam}
+              disabled={savingPanel}
+              onClick={()=>void handleSaveExam()}
               className={`px-5 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-xl shadow-2xs flex items-center gap-2 transition cursor-pointer`}
             >
               <Save className="w-4 h-4" /> Salvar Exame Intraoral
             </button>
           </div>
+          <div className="bg-[#fbfbf9] rounded-2xl border border-[#e5e5d1] p-4 text-xs space-y-1.5">
+            <label htmlFor="intraoral-exam-date" className="block font-bold text-[#5a5a40]">Data do exame:</label>
+            <input id="intraoral-exam-date" type="date" value={intraoral.examDate} onChange={e=>setIntraoral({...intraoral,examDate:e.target.value})} className="bg-white border border-[#e5e5d1] rounded-lg px-2 py-0.5 text-xs font-bold text-[#5a5a40] focus:outline-none" />
+          </div>
+          {panelError && <p role="alert" className="text-xs text-red-700">{panelError}</p>}
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             {/* Mucosa Jugal e Lábio Interno */}
@@ -670,8 +692,9 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
 
           {/* Photo Gallery & Advanced Editor for Intraoral Exam */}
           <ImageGalleryWithEditor
-            title="Fotos e radiografias (Exame Intraoral)"
+            title="Galeria do Prontuário"
             description="Importe e gerencie fotografias e radiografias clínicas do paciente. Clique em qualquer imagem para abrir o editor avançado com desenho, inversão RX e legendas."
+            files={currentPatient?.files || []}
             images={patientImages}
             onUpdateImages={handleUpdatePatientImages}
           />
@@ -778,7 +801,7 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
           </div>
 
           <div className="text-right text-[11px] text-stone-700 space-y-1">
-            <p><strong>Data do Exame:</strong> {new Date().toLocaleDateString('pt-BR')}</p>
+            <p><strong>Data do Exame:</strong> {(activeSection==='extraoral'?extraoral.examDate:activeSection==='intraoral'?intraoral.examDate:activeSection==='dor_urgencia'?exam.painExam?.examDate:exam.odontogramExamDate)?.split('-').reverse().join('/') || 'Não informada'}</p>
             {clinicInfo.phone && <p><strong>Tel:</strong> {clinicInfo.phone}</p>}
             {clinicInfo.email && <p><strong>Email:</strong> {clinicInfo.email}</p>}
           </div>
@@ -815,7 +838,7 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
 
         {/* Extraoral Findings */}
         <div className="border border-stone-300 p-3 rounded-lg text-xs space-y-1">
-          <h3 className="font-bold text-stone-900 uppercase text-[11px] border-b border-stone-200 pb-1">2. Achados do Exame Extraoral</h3>
+          <h3 className="font-bold text-stone-900 uppercase text-[11px] border-b border-stone-200 pb-1">2. Achados do Exame Extraoral — {extraoral.examDate?.split('-').reverse().join('/') || 'Data não informada'}</h3>
           <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
             <div><strong>Simetria Facial:</strong> {extraoral.faceSymmetry || 'Normal'}</div>
             <div><strong>Linfonodos:</strong> {extraoral.neckLymphNodes || 'Impalpáveis'}</div>
@@ -834,7 +857,7 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
 
         {/* Intraoral Findings */}
         <div className="border border-stone-300 p-3 rounded-lg text-xs space-y-1">
-          <h3 className="font-bold text-stone-900 uppercase text-[11px] border-b border-stone-200 pb-1">3. Achados do Exame Intraoral</h3>
+          <h3 className="font-bold text-stone-900 uppercase text-[11px] border-b border-stone-200 pb-1">3. Achados do Exame Intraoral — {intraoral.examDate?.split('-').reverse().join('/') || 'Data não informada'}</h3>
           <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
             <div><strong>Mucosa Jugal:</strong> {intraoral.buccalMucosa || 'Normocorada'}</div>
             <div><strong>Língua/Assoalho:</strong> {intraoral.tongueAndFloor || 'Sem lesões'}</div>

@@ -62,10 +62,10 @@ apenas interpreta o texto; a gravação requer Aplicar, mesmo que Interpretar au
 prepara a interpretação ao encerrar a fala e nunca grava alterações clínicas. A versão revisada é utilizada na confirmação. Estilo preservado.
 Verificado com eventos de reconhecimento simulados e TypeScript.
 
-Pendência para a próxima instalação conjunta: a captura real no Chrome ainda
-precisa de verificação do reconhecimento local, disponibilidade do idioma pt-BR,
-preparação do pacote e mensagens visíveis de permissão/dispositivo/idioma.
-Não confundir esta ligação do campo com a correção da inicialização do microfone.
+A captura no Chrome verifica o reconhecimento local e a disponibilidade de pt-BR,
+prepara o pacote quando há suporte e exibe mensagens de permissão, dispositivo e
+idioma. Essa implementação integra o pacote conjunto; captura com microfone real
+no Windows ainda depende de conferência.
 
 ## Confirmação falada
 
@@ -76,5 +76,5 @@ Resultados parciais não confirmam. Histórico, modo de leitura, comando inváli
 processamento em andamento e repetição após aplicação são bloqueados.
 A transcrição clínica permanece visível para conferência. Reiniciar o microfone
 conserva o comando preparado para permitir a confirmação falada.
-Requer captura de áudio funcionando; a preparação do idioma/microfone continua
-pendente para a instalação conjunta.
+Requer captura de áudio funcionando; a preparação do idioma e os estados do
+microfone fazem parte da instalação conjunta.

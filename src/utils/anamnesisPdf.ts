@@ -6,7 +6,9 @@ import { anamnesisRows } from './anamnesisData.ts';
 import { formatSafeFilename } from './printUtils.ts';
 
 export type AnamnesisPdfInput = { patient: Partial<Patient>; anamnesis: Partial<Anamnesis>;
-  clinic: ClinicInfo; professional?: Partial<Professional>; date?: Date };
+  clinic: ClinicInfo; professional?: Partial<Professional>; date?: Date;
+  documentTitle?: string; rows?: Array<{section:string;label:string;answer:string}>;
+  drawIntro?: (pdf:jsPDF,y:number)=>number; };
 
 async function loadImage(url?: string): Promise<string | undefined> {
   if (!url) return undefined;
@@ -44,7 +46,8 @@ export async function buildAnamnesisPdf(input: AnamnesisPdfInput) {
   pdf.addFileToVFS('Anamnesis-Bold.ttf',anamnesisFontBold);pdf.addFont('Anamnesis-Bold.ttf','Anamnesis','bold');
   const name = professional?.name || clinic.dentistName;
   const cro = professional?.cro || clinic.cro;
-  pdf.setProperties({title: 'Prontuário Médico e Histórico Clínico Completo', author:name});
+  const title=input.documentTitle || 'Prontuário Médico e Histórico Clínico Completo';
+  pdf.setProperties({title, author:name});
   const left = 15, width = 180, bottom = 275;
   let y = 0;
   function imageBox(data: string, x: number, top: number, w: number, h: number) {
@@ -68,7 +71,7 @@ export async function buildAnamnesisPdf(input: AnamnesisPdfInput) {
     pdf.text(sub,left,y); y+=sub.length*4+3;
     pdf.setDrawColor(170);pdf.line(left,y,195,y);y+=6;
     pdf.setFont('Anamnesis','bold');pdf.setFontSize(12);
-    pdf.text('Prontuário Médico e Histórico Clínico Completo',left,y);y+=7;
+    const titleLines=pdf.splitTextToSize(title,width);pdf.text(titleLines,left,y);y+=titleLines.length*6+1;
     pdf.setFont('Anamnesis','normal');pdf.setFontSize(9);
     const identity = pdf.splitTextToSize(`Paciente: ${patient.name || 'Não informado'} | CPF: ${patient.cpf || 'Não informado'}\nNascimento: ${patient.birthDate?.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$3/$2/$1') || 'Não informado'} | Data: ${date.toLocaleDateString('pt-BR')}`,width);
     pdf.text(identity,left,y);y+=identity.length*4+5;
@@ -80,16 +83,17 @@ export async function buildAnamnesisPdf(input: AnamnesisPdfInput) {
     for(const line of lines){ensure(5);pdf.text(line,left,y);y+=4.3;}
   }
   page();
+  if(input.drawIntro)y=input.drawIntro(pdf,y);
   let section='';
-  for(const row of anamnesisRows(anamnesis)){
+  for(const row of input.rows || anamnesisRows(anamnesis)){
     if(row.section!==section){ensure(18);y+=3;text(row.section,true);y+=2;section=row.section;}
     ensure(10);text(row.label,true);text(row.answer);y+=2;
   }
   const labelLines=pdf.splitTextToSize(clinic.signatureLabel || `${name || ''} • ${cro || ''}`,60);
   const signatureHeight=37 + (signature ? 14 : 0) + (clinic.showSignatureLine!==false ? 4 : 0) + labelLines.length*4 + (stamp ? 28 : 0);
   ensure(signatureHeight);y+=5;
-  text('Conferência das informações',true);
-  text('Informações relatadas pelo paciente ou responsável e revisadas pelo profissional.');
+  text(input.documentTitle ? 'Registro do exame' : 'Conferência das informações',true);
+  text(input.documentTitle ? 'Registro clínico salvo pelo profissional na data do exame indicada.' : 'Informações relatadas pelo paciente ou responsável e revisadas pelo profissional.');
   y+=10;pdf.line(15,y,95,y);pdf.line(115,y,195,y);y+=5;
   pdf.text('Paciente / responsável',15,y);pdf.text('Data da conferência: ____/____/________',115,y);y+=8;
   const x = clinic.signatureAlignment==='left' ? 15 : clinic.signatureAlignment==='center' ? 75 : 135;
@@ -105,7 +109,7 @@ export async function buildAnamnesisPdf(input: AnamnesisPdfInput) {
     pdf.text(footer.slice(0,2),15,286);
     pdf.text(`${p} / ${pages}`,195,290,{align:'right'});
   }
-  return {pdf,filename:formatSafeFilename('Prontuario_Medico_Historico_Clinico',patient.name,date)+'.pdf'};
+  return {pdf,filename:formatSafeFilename(input.documentTitle || 'Prontuario_Medico_Historico_Clinico',patient.name,date)+'.pdf'};
 }
 export async function exportAnamnesisPdf(input:AnamnesisPdfInput,mode:'download'|'preview'='download') {
   const popup = mode==='preview' ? window.open('about:blank','_blank') : null;

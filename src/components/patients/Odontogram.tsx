@@ -1,3 +1,5 @@
+import {prepareLocalSpeech,speechErrorMessage} from '../../utils/localSpeech';
+import {localExamDate} from '../../utils/clinicalPanelRecord';
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
@@ -142,10 +144,13 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   const [activeSnapshotId, setActiveSnapshotId] = useState<string>('current');
   const [isSnapshotModalOpen, setIsSnapshotModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-  const [snapshotDate, setSnapshotDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [snapshotDate, setSnapshotDate] = useState<string>(getClinicalExam(patientId).odontogramExamDate || localExamDate());
   const [selectedMotivoOption, setSelectedMotivoOption] = useState<string>('Avaliação');
   const [customSnapshotTitle, setCustomSnapshotTitle] = useState<string>('');
   const [snapshotNotes, setSnapshotNotes] = useState<string>('');
+  const snapshotBusyRef=useRef(false);
+  const [snapshotBusy,setSnapshotBusy]=useState(false);
+  const [snapshotError,setSnapshotError]=useState('');
 
   // Canvas Display Scale / Auto-Fit Mode & Orientation
   const [customScale, setCustomScale] = useState<number>(100); // 80% to 130%
@@ -155,6 +160,9 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   // AI Voice Sensor & Intelligent Filling States
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState<boolean>(false);
   const [isListening, setIsListening] = useState<boolean>(false);
+  const [captureStatus,setCaptureStatus]=useState('Verificando suporte à captura…');
+  const [capturePreparing,setCapturePreparing]=useState(false);
+  const captureStartingRef=useRef(false);
   const [voiceTranscript, setVoiceTranscript] = useState<string>('');
   const [voiceProcessing, setVoiceProcessing] = useState<boolean>(false);
   const [lastVoiceResult, setLastVoiceResult] = useState<VoiceOdontogramResult | null>(null);
@@ -226,7 +234,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     return `${selectedTeeth.length} dentes selecionados (${selectedTeeth.sort((a,b)=>a-b).join(', ')}) • Faces válidas: ${validFaces.map(f => f.code).join(', ')}`;
   }, [selectedTeeth, validFaces]);
 
-  useEffect(() => {setSelectedTeeth([]);setSelectedSurfaces([]);setToothNote('');setActiveSnapshotId('current');},[patientId]);
+  useEffect(() => {setSelectedTeeth([]);setSelectedSurfaces([]);setToothNote('');setActiveSnapshotId('current');setSnapshotDate(getClinicalExam(patientId).odontogramExamDate || localExamDate());},[patientId]);
 
   // Keep selected surfaces clean when tooth selection changes
   useEffect(() => {
@@ -259,12 +267,13 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         // Never use browser speech services that may send audio to a remote provider.
-        if (!('processLocally' in recognition)) return;
+        if (!('processLocally' in recognition)){setCaptureStatus('Reconhecimento local indisponível neste navegador.');return;}
         recognition.processLocally = true;
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = 'pt-BR';
 
+        recognition.onstart=()=>{captureStartingRef.current=false;setIsListening(true);setCapturePreparing(false);setCaptureStatus('Ouvindo. A transcrição aparecerá no campo abaixo.');};
         recognition.onresult = (event: any) => {
           let currentTranscript = '';
           let confirmationIndex = -1;
@@ -287,16 +296,17 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
         };
 
         recognition.onerror = (event: any) => {
-          console.warn('[VOICE RECOGNITION ERROR]:', event.error);
-          setIsListening(false);
+          setCaptureStatus(speechErrorMessage(event.error));
+          setIsListening(false);setCapturePreparing(false);captureStartingRef.current=false;
         };
 
         recognition.onend = () => {
-          setIsListening(false);
+          setIsListening(false);setCapturePreparing(false);captureStartingRef.current=false;
+          setCaptureStatus(prev=>prev.startsWith('Ouvindo')?'Captura encerrada. Confira a transcrição.':prev);
         };
 
-        speechRecognitionRef.current = recognition;
-      }
+        speechRecognitionRef.current = recognition;setCaptureStatus('Toque no microfone para preparar a captura em português.');
+      }else{setCaptureStatus('Reconhecimento de voz indisponível neste navegador.');}
     }
 
     return () => {
@@ -744,22 +754,16 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   };
 
   // Snapshot handler
-  const handleCreateChronologicalSnapshot = (e: React.FormEvent) => {
-    e.preventDefault();
-    const finalTitle = selectedMotivoOption === 'Outro' 
-      ? customSnapshotTitle.trim() || 'Avaliação'
-      : selectedMotivoOption;
-    
-    saveOdontogramSnapshot(patientId, {
-      date: snapshotDate,
-      title: finalTitle,
-      conditions: JSON.parse(JSON.stringify(activePatientConditions)),
-      notes: snapshotNotes
-    });
-
-    setIsSnapshotModalOpen(false);
-    setCustomSnapshotTitle('');
-    setSnapshotNotes('');
+  const handleCreateChronologicalSnapshot = async (e: React.FormEvent) => {
+    e.preventDefault();if(snapshotBusyRef.current)return;
+    snapshotBusyRef.current=true;setSnapshotBusy(true);setSnapshotError('');
+    try{
+      const finalTitle=selectedMotivoOption==='Outro'?customSnapshotTitle.trim()||'Avaliação':selectedMotivoOption;
+      await saveOdontogramSnapshot(patientId,{date:snapshotDate,title:finalTitle,conditions:structuredClone(activePatientConditions),notes:snapshotNotes});
+      setIsSnapshotModalOpen(false);setCustomSnapshotTitle('');setSnapshotNotes('');
+      setAddedSuccessMsg('Odontograma salvo no histórico de evoluções e PDF na Galeria do Prontuário.');
+    }catch(error){setSnapshotError(error instanceof Error?error.message:'Não foi possível arquivar o odontograma.');}
+    finally{snapshotBusyRef.current=false;setSnapshotBusy(false);}
   };
 
   // Tooth groupings for shortcuts
@@ -810,7 +814,8 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   };
 
   // Voice Recognition Controls
-  const handleToggleVoiceListening = () => {
+  const handleToggleVoiceListening = async () => {
+    if(captureStartingRef.current)return;
     if (isListening) {
       if (speechRecognitionRef.current) {
         try { speechRecognitionRef.current.stop(); } catch (e) {}
@@ -822,17 +827,19 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     } else {
       // Keep the prepared command visible when restarting the microphone to confirm it.
       processedConfirmationRef.current=-1;
-      if (speechRecognitionRef.current) {
-        try {
-          speechRecognitionRef.current.start();
-          setIsListening(true);
-        } catch (err) {
-          console.warn('Erro ao iniciar reconhecimento de voz:', err);
-          setIsListening(false);
-        }
-      } else {
-        alert('Reconhecimento de voz não suportado pelo navegador. Você pode digitar seu comando no campo abaixo.');
-      }
+      const recognition=speechRecognitionRef.current;
+      const Ctor=(window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      captureStartingRef.current=true;setCapturePreparing(true);
+      const context={...voiceContextRef.current};
+      let started=false;
+      try{
+        await prepareLocalSpeech(Ctor,recognition,setCaptureStatus);
+        const latest=voiceContextRef.current;
+        if(latest.patientId!==context.patientId || latest.activeSnapshotId!==context.activeSnapshotId || latest.readOnly)return;
+        recognition.start();started=true;
+      }catch(error){setCaptureStatus(error instanceof Error?error.message:'Não foi possível iniciar a captura.');setIsListening(false);}
+      finally{if(!started){captureStartingRef.current=false;setCapturePreparing(false);}}
+
     }
   };
 
@@ -1197,6 +1204,11 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
             </button>
           )}
         </div>
+      </div>
+
+      <div className="bg-[#fbfbf9] rounded-2xl border border-[#e5e5d1] p-4 text-xs space-y-1.5">
+        <label htmlFor="odontogram-exam-date" className="block font-bold text-[#5a5a40]">Data do exame:</label>
+        <input id="odontogram-exam-date" type="date" disabled={readOnly || activeSnapshotId!=='current'} value={selectedSnapshot?.date || snapshotDate} onChange={e=>setSnapshotDate(e.target.value)} className="bg-white border border-[#e5e5d1] rounded-lg px-2 py-0.5 text-xs font-bold text-[#5a5a40] focus:outline-none" />
       </div>
 
       {/* Success Notification Toast (Fixed position to prevent any odontogram jumping/layout shift) */}
@@ -1921,8 +1933,9 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
 
       {/* Radiographic / Patient Clinical Photos Section */}
       <ImageGalleryWithEditor
-        title="Galeria Unificada do Prontuário (Fotos e Radiografias)"
+        title="Galeria do Prontuário"
         description="Anexe radiografias periapicais, panorâmicas, telerradiografias ou fotos intraorais. Todas as fotos pertencem ao banco de dados unificado deste prontuário."
+        files={currentPatient?.files || []}
         images={odontogramImages}
         onUpdateImages={(newImgs) => {
           updatePatient(patientId, { images: newImgs });
@@ -1972,7 +1985,8 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
               <div className="flex flex-col items-center justify-center gap-2">
                 <button
                   type="button"
-                  onClick={handleToggleVoiceListening}
+                  disabled={capturePreparing}
+                  onClick={()=>void handleToggleVoiceListening()}
                   className={`
                     w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer shadow-lg
                     ${isListening 
@@ -1985,10 +1999,10 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
 
                 <div>
                   <span className="text-xs font-bold text-[#2c2c2c]">
-                    {isListening ? 'Ouvindo... Fale o comando odontológico' : 'Toque no microfone para falar'}
+                    {isListening ? 'Ouvindo... Fale o comando odontológico' : capturePreparing ? 'Preparando captura…' : 'Toque no microfone para falar'}
                   </span>
                   <p className="text-[10px] text-gray-500">
-                    {isListening ? 'Fale dentes, faces ou procedimentos clínicos em português' : 'Sensor pronto para captura'}
+                    {isListening ? 'Fale dentes, faces ou procedimentos clínicos em português' : captureStatus}
                   </p>
                 </div>
               </div>
@@ -2343,7 +2357,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
       {/* MODAL FOR SAVING SNAPSHOT / CRONOLOGIA DO ODONTOGRAMA */}
       {isSnapshotModalOpen && (
         <div className="fixed inset-0 z-50 bg-[#2c2c2c]/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <form onSubmit={handleCreateChronologicalSnapshot} className="bg-white border border-[#e5e5d1] rounded-[32px] max-w-md w-full p-6 shadow-2xl space-y-4">
+          <form onSubmit={e=>void handleCreateChronologicalSnapshot(e)} className="bg-white border border-[#e5e5d1] rounded-[32px] max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[#e5e5d1] pb-3">
               <div>
                 <h3 className="text-base font-serif italic text-[#5a5a40] flex items-center gap-2">
@@ -2403,6 +2417,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
               </div>
             </div>
 
+            {snapshotError && <p role="alert" className="text-xs text-red-700">{snapshotError}</p>}
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#e5e5d1]">
               <button
                 type="button"
@@ -2414,9 +2429,10 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
 
               <button
                 type="submit"
+                disabled={snapshotBusy}
                 className={`px-4 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer`}
               >
-                <Check className="w-4 h-4" /> Salvar no Histórico
+                <Check className="w-4 h-4" /> {snapshotBusy ? 'Salvando…' : 'Salvar no Histórico'}
               </button>
             </div>
           </form>

@@ -1146,20 +1146,11 @@ export const PatientList: React.FC = () => {
                 {/* Tab Content 7: Galeria Unificada de Fotos & Mídia do Prontuário */}
                 {activeProfileTab === 'galeria' && (
                   <div className="space-y-4 pt-2">
-                    {(selectedPatient.files || []).length > 0 && <div className={`${t.cardBg} border ${t.cardBorder} rounded-2xl p-4 space-y-3`}>
-                      <h3 className={`text-sm font-bold ${t.headingText}`}>Documentos PDF do paciente</h3>
-                      {selectedPatient.files.map(file => <div key={file.id} className={`flex flex-wrap items-center justify-between gap-3 border-b ${t.cardBorder} pb-3`}>
-                        <div><p className={`text-xs font-semibold ${t.modalText}`}>{file.name}</p><p className={`text-xs ${t.modalMutedText}`}>{new Date(file.uploadedAt).toLocaleString('pt-BR')}</p></div>
-                        <div className="flex gap-3 text-xs">
-                          <button type="button" className="font-semibold underline" onClick={() => {try{openStoredPatientPdf(file.fileUrl);}catch(error){window.alert(error instanceof Error ? error.message : 'Não foi possível abrir o PDF.');}}}>Abrir / imprimir</button>
-                          <a className="font-semibold underline" href={file.fileUrl} download={file.name}>Baixar</a>
-                        </div>
-                      </div>)}
-                    </div>}
                     <ImageGalleryWithEditor
                       key={selectedPatient.id}
-                      title="Galeria Unificada do Prontuário"
+                      title="Galeria do Prontuário"
                       description="Banco de imagens centralizado deste paciente. Fotos de exames clínicos (extraoral, intraoral, odontograma), radiografias e procedimentos realizados são compartilhados e persistem neste prontuário."
+                      files={selectedPatient.files || []}
                       images={selectedPatient.images || []}
                       onUpdateImages={(newImgs) => updatePatient(selectedPatient.id, { images: newImgs })}
                     />

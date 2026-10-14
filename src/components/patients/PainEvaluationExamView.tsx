@@ -1,3 +1,4 @@
+import {localExamDate} from '../../utils/clinicalPanelRecord';
 import { medicationSummary, medicationAnswer } from '../../utils/anamnesisData';
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -111,7 +112,8 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
   const { 
     patients, 
     getClinicalExam, 
-    updateClinicalExam, 
+    updateClinicalExam,
+    saveClinicalPanel, 
     updateToothCondition,
     clinicInfo, 
     activeProfessional, 
@@ -125,7 +127,7 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
   const initialPainExam: PainEvaluationExam = clinicalExam.painExam || {
     patientId,
     examType: 'urgencia',
-    examDate: new Date().toISOString().split('T')[0],
+    examDate: localExamDate(),
     chiefComplaint: currentPatient?.anamnesis?.chiefComplaint || '',
     painCharacteristics: {
       provocada: false,
@@ -166,6 +168,9 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
 
   const [examState, setExamState] = useState<PainEvaluationExam>(initialPainExam);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [archiveBusy,setArchiveBusy]=useState(false);
+  const archiveBusyRef=useRef(false);
+  const [archiveError,setArchiveError]=useState('');
   const [showHistoryPreview, setShowHistoryPreview] = useState(true);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -201,6 +206,7 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
 
     setIsAutoSaving(true);
     const handler = setTimeout(() => {
+      if(archiveBusyRef.current)return;
       const updatedExam: PainEvaluationExam = {
         ...examState,
         patientId,
@@ -216,29 +222,20 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
     return () => clearTimeout(handler);
   }, [examState, patientId]);
 
-  const handleSave = () => {
-    const updatedExam: PainEvaluationExam = {
-      ...examState,
-      patientId,
-      updatedAt: new Date().toISOString()
-    };
-    updateClinicalExam(patientId, {
-      painExam: updatedExam
-    });
-    setLastSavedTime(new Date().toLocaleTimeString('pt-BR'));
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
+  const handleSave = async () => {
+    if(archiveBusyRef.current)return false;
+    archiveBusyRef.current=true;setArchiveBusy(true);setArchiveError('');
+    try{
+      const updatedExam={...examState,patientId,updatedAt:new Date().toISOString()};
+      await saveClinicalPanel(patientId,'pain',updatedExam,examState.examDate);
+      setLastSavedTime(new Date().toLocaleTimeString('pt-BR'));setSaveSuccess(true);
+      setTimeout(()=>setSaveSuccess(false),3000);return true;
+    }catch(error){setArchiveError(error instanceof Error?error.message:'Não foi possível salvar a ficha.');return false;}
+    finally{archiveBusyRef.current=false;setArchiveBusy(false);}
   };
 
-  const handlePrint = () => {
-    handleSave();
-    setTimeout(() => {
-      printDocumentWithTitle({
-        docTitle: 'Ficha_Avaliacao_Dor_Endodontica',
-        patientName: currentPatient?.name,
-        date: new Date()
-      });
-    }, 300);
+  const handlePrint = async () => {
+    if(await handleSave())printDocumentWithTitle({docTitle:'Ficha_Avaliacao_Dor_Endodontica',patientName:currentPatient?.name,date:new Date(examState.examDate+'T12:00:00')});
   };
 
   // Helper for cycling (+)(-) split sign
@@ -526,47 +523,11 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
           </div>
         </div>
 
-        {/* Patient Identification Header Strip (Pre-filled & Editable) */}
         <div className="bg-[#fbfbf9] rounded-2xl border border-[#e5e5d1] p-4 text-xs space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <span className="text-[11px] font-bold text-slate-500 block mb-0.5">Nome do Paciente:</span>
-              <p className="text-sm font-bold text-slate-900">{currentPatient?.name || 'Não informado'}</p>
-            </div>
-            <div>
-              <span className="text-[11px] font-bold text-slate-500 block mb-0.5">Ficha nº:</span>
-              <p className="text-sm font-mono font-bold text-slate-800">#{currentPatient?.id?.replace('pat-', '') || '001'}</p>
-            </div>
-            <div>
-              <span className="text-[11px] font-bold text-slate-500 block mb-0.5">Telefone / WhatsApp:</span>
-              <p className="text-sm font-bold text-slate-800">{currentPatient?.phone || 'Não cadastrado'}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-[#e5e5d1]">
-            <div>
-              <span className="text-[10px] font-bold text-slate-500 block">Endereço:</span>
-              <p className="text-xs text-slate-700 truncate">{currentPatient?.address?.street ? `${currentPatient.address.street}, ${currentPatient.address.number || ''}` : 'Consultório'}</p>
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-slate-500 block">Sexo / Gênero:</span>
-              <p className="text-xs font-semibold text-slate-700 capitalize">{currentPatient?.gender || 'Não informado'}</p>
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-slate-500 block">Data de Nascimento:</span>
-              <p className="text-xs text-slate-700">{currentPatient?.birthDate ? currentPatient.birthDate.split('-').reverse().join('/') : 'Não informada'}</p>
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-slate-500 block">Data do Exame:</span>
-              <input
-                type="date"
-                value={examState.examDate}
-                onChange={(e) => setExamState(prev => ({ ...prev, examDate: e.target.value }))}
-                className="bg-white border border-slate-300 rounded-lg px-2 py-0.5 text-xs font-bold text-slate-800 focus:outline-none"
-              />
-            </div>
-          </div>
+          <label className="text-[10px] font-bold text-slate-500 block" htmlFor="pain-exam-date">Data do Exame:</label>
+          <input id="pain-exam-date" type="date" value={examState.examDate} onChange={e=>setExamState(prev=>({...prev,examDate:e.target.value}))} className="bg-white border border-slate-300 rounded-lg px-2 py-0.5 text-xs font-bold text-slate-800 focus:outline-none" />
         </div>
+        {archiveError && <p role="alert" className="text-xs text-red-700">{archiveError}</p>}
 
         {/* HISTÓRIA CLÍNICA */}
         <div className="space-y-4 pt-2">
@@ -1459,7 +1420,8 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={handleSave}
+              disabled={archiveBusy}
+              onClick={()=>void handleSave()}
               className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer"
             >
               <Save className="w-4 h-4" />
@@ -1477,7 +1439,7 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
                 <>
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                   <span className="text-slate-600">
-                    Auto-salvo {lastSavedTime ? `às ${lastSavedTime}` : 'automaticamente'}
+                    Rascunho salvo {lastSavedTime ? `às ${lastSavedTime}` : 'automaticamente'}
                   </span>
                 </>
               )}
