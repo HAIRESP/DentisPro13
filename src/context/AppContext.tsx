@@ -1,10 +1,16 @@
+import {buildClinicalPanelPdf} from '../utils/clinicalPanelPdf';
+import {commitClinicalPanel,clinicalPanelRows,panelTitles,examDateValue} from '../utils/clinicalPanelRecord';
+import type {ClinicalPanelKind} from '../types';
+import { archivedAnamnesisInput, buildAnamnesisPdf } from '../utils/anamnesisPdf';
+import { commitAnamnesis } from '../utils/anamnesisStore';
 import { STORAGE_KEYS } from '../utils/storageKeys';
 import { restoreDatabaseBackup } from '../utils/databaseBackup';
 import { APPOINTMENT_STOCK_LOCK } from '../utils/appointmentStockStore';
 import { useAppointmentStockStore } from './useAppointmentStockStore';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
-  Patient, 
+  Patient,
+  Anamnesis, 
   Appointment, 
   InventoryItem, 
   FinancialTransaction, 
@@ -173,7 +179,8 @@ export interface AppContextType {
   odontograms: Record<string, ToothCondition[]>;
   updateToothCondition: (patientId: string, condition: ToothCondition) => void;
   odontogramSnapshots: Record<string, OdontogramSnapshot[]>;
-  saveOdontogramSnapshot: (patientId: string, snapshotData: { date: string; title: string; conditions: ToothCondition[]; notes?: string }) => void;
+  saveOdontogramSnapshot: (patientId: string, snapshotData: { date: string; title: string; conditions: ToothCondition[]; notes?: string }) => Promise<void>;
+  saveClinicalPanel: (patientId:string,panel:ClinicalPanelKind,data:any,date:string,snapshotData?:{date:string;title:string;conditions:ToothCondition[];notes?:string})=>Promise<void>;
   deleteOdontogramSnapshot: (patientId: string, snapshotId: string) => void;
   restoreOdontogramSnapshot: (patientId: string, snapshotId: string) => void;
   
@@ -215,6 +222,7 @@ export interface AppContextType {
   
   // Saved Clinic Documents (Arquivos Recentes)
   savedClinicDocuments: SavedClinicDocument[];
+  savePatientMedicalHistory: (patientId:string, expected:Anamnesis | undefined, updates:Anamnesis, doc:Omit<SavedClinicDocument,'id'|'createdAt'|'formattedDateStr'|'status'>) => Promise<void>;
   addSavedClinicDocument: (doc: Omit<SavedClinicDocument, 'id' | 'createdAt' | 'formattedDateStr' | 'status'>) => SavedClinicDocument;
   deleteSavedClinicDocument: (id: string) => void;
 
@@ -496,6 +504,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setSavedClinicDocuments(prev => [newDoc, ...prev]);
     return newDoc;
+  };
+
+  const savePatientMedicalHistory:AppContextType['savePatientMedicalHistory'] = async (patientId,expected,updates,doc) => {
+    const save = async () => {
+      const now=new Date();
+      const saved:SavedClinicDocument={...doc,id:`doc-saved-${crypto.randomUUID()}`,createdAt:now.toISOString(),
+        formattedDateStr:now.toLocaleString('pt-BR'),status:'gerado'};
+      const {pdf,filename}=await buildAnamnesisPdf(archivedAnamnesisInput(saved,clinicInfo));
+      const file={id:`patient-file-${crypto.randomUUID()}`,name:filename,fileUrl:pdf.output('datauristring'),fileType:'pdf' as const,uploadedAt:saved.createdAt,sourceDocumentId:saved.id};
+      saved.patientFileId=file.id;
+      const result=commitAnamnesis(localStorage,patients,savedClinicDocuments,patientId,expected,updates,saved,file);
+      setPatients(result.patients);setSavedClinicDocuments(result.documents);
+    };
+    if(!navigator.locks)throw Error('Este navegador não oferece o bloqueio necessário para salvar. Use Chrome ou Edge atualizado em localhost.');
+    await navigator.locks.request('dentispro-medical-history-save',save);
   };
 
   const deleteSavedClinicDocument = (id: string) => {
@@ -794,21 +817,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const saveOdontogramSnapshot = (patientId: string, snapshotData: { date: string; title: string; conditions: ToothCondition[]; notes?: string }) => {
-    const newSnapshot: OdontogramSnapshot = {
-      id: `snap-${Date.now()}`,
-      patientId,
-      date: snapshotData.date,
-      title: snapshotData.title,
-      conditions: snapshotData.conditions,
-      notes: snapshotData.notes,
-      dentistName: activeProfessional?.name || clinicInfo.dentistName,
-      createdAt: new Date().toISOString()
-    };
-    setOdontogramSnapshots(prev => ({
-      ...prev,
-      [patientId]: [newSnapshot, ...(prev[patientId] || [])]
-    }));
+  const saveClinicalPanel:AppContextType['saveClinicalPanel'] = async (patientId,panel,data,date,snapshotData) => {
+    examDateValue(date);
+    if(!navigator.locks)throw Error('Este navegador não oferece o bloqueio necessário para arquivar o exame.');
+    const payload=structuredClone(data);
+    await navigator.locks.request('dentispro-clinical-panels-save',async()=>{
+      const patient=patients.find(p=>p.id===patientId);if(!patient)throw Error('Paciente não encontrado.');
+      const savedAt=new Date().toISOString();const evolutionId=`evo-${crypto.randomUUID()}`;
+      const {pdf,filename}=await buildClinicalPanelPdf({patient,panel,date,data:payload,clinic:{...clinicInfo},professional:activeProfessional});
+      const file={id:`patient-file-${crypto.randomUUID()}`,name:filename,fileUrl:pdf.output('datauristring'),fileType:'pdf' as const,uploadedAt:savedAt,sourceDocumentId:evolutionId,sourceEvolutionId:evolutionId,examDate:date};
+      const evolution:ClinicalEvolutionEntry={id:evolutionId,patientId,date,sourcePanel:panel,pdfFileId:file.id,savedAt,dentistName:activeProfessional?.name || clinicInfo.dentistName,clinicName:clinicInfo.name,procedure:panelTitles[panel],description:clinicalPanelRows(panel,payload).map(r=>`${r.section} — ${r.label}: ${r.answer}`).join('\n'),status:'concluido'};
+      const snapshot:OdontogramSnapshot|undefined=snapshotData?{...structuredClone(snapshotData),id:`snap-${crypto.randomUUID()}`,patientId,dentistName:evolution.dentistName,createdAt:savedAt}:undefined;
+      const result=commitClinicalPanel(localStorage,{patients,exams:clinicalExams,evolutions:clinicalEvolutions,snapshots:odontogramSnapshots},{patientId,panel,date,data:payload,evolution,file,snapshot});
+      setPatients(result.patients);setClinicalExams(result.exams);setClinicalEvolutions(result.evolutions);setOdontogramSnapshots(result.snapshots);
+    });
+  };
+
+  const saveOdontogramSnapshot:AppContextType['saveOdontogramSnapshot'] = async (patientId,snapshotData) => {
+    await saveClinicalPanel(patientId,'odontogram',{title:snapshotData.title,conditions:snapshotData.conditions,notes:snapshotData.notes},snapshotData.date,snapshotData);
   };
 
   const deleteOdontogramSnapshot = (patientId: string, snapshotId: string) => {
@@ -1283,6 +1309,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateInsuranceGuideStatus,
         savedClinicDocuments,
         addSavedClinicDocument,
+        savePatientMedicalHistory,
         deleteSavedClinicDocument,
         documentTemplates,
         updateDocumentTemplate,
@@ -1294,6 +1321,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateToothCondition,
         odontogramSnapshots,
         saveOdontogramSnapshot,
+        saveClinicalPanel,
         deleteOdontogramSnapshot,
         restoreOdontogramSnapshot,
         clinicalEvolutions,

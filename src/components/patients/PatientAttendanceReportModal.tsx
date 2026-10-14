@@ -1,3 +1,4 @@
+import { medicationSummary, medicationAnswer } from '../../utils/anamnesisData';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
@@ -123,7 +124,7 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
       
       const alertsSummary = [
         anam.hasAllergies && `Alergias: ${anam.allergyDetails || 'Presente'}`,
-        anam.continuousMedication && `Medicações: ${anam.continuousMedication || 'Em uso'}`,
+        medicationAnswer(anam) === true && `Medicações: ${medicationSummary(anam)}`,
         anam.usesBisphosphonates && 'Uso de Bisfosfonatos (Alerta Risco de Osteonecrose)',
         anam.usesAnticoagulants && 'Uso de Anticoagulantes (Risco Hemorrágico)',
         anam.hasHypertension && 'Hipertensão Arterial',
@@ -660,7 +661,7 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
                   <div className="bg-white p-2.5 rounded-xl border border-[#e5e5d1] text-stone-700">
                     <strong className="block text-[11px]">Medicações Contínuas:</strong>
                     <span className="text-[11.5px] font-medium">
-                      {patient.anamnesis.continuousMedication || 'Nenhuma medicação contínua'}
+                      {medicationSummary(patient.anamnesis)}
                     </span>
                   </div>
                 </div>
