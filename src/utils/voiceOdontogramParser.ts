@@ -1,3 +1,5 @@
+import { authenticatedFetch } from './authenticatedFetch';
+import type { AIProvider } from '../context/AppContext';
 import { ToothConditionType, ToothSurface } from '../types';
 
 export interface VoiceOdontogramResult {
@@ -125,7 +127,7 @@ export function parseLocalDentalVoiceCommand(
   // Fallback to currently selected teeth if user speaks "neste dente", "nestes dentes" or no tooth mentioned
   const finalTeeth = extractedTeeth.length > 0 
     ? Array.from(new Set(extractedTeeth))
-    : (currentlySelectedTeeth.length > 0 ? currentlySelectedTeeth : [16]);
+    : currentlySelectedTeeth;
 
   // Determine Condition Type
   let conditionType: ToothConditionType = 'carie';
@@ -175,6 +177,10 @@ export function parseLocalDentalVoiceCommand(
   } else if (text.includes('hígido') || text.includes('higido') || text.includes('saudável') || text.includes('limpo') || text.includes('sem alteração')) {
     conditionType = 'sio';
     isWholeTooth = true;
+  }
+
+  if (action === 'apply_condition' && !/(cárie|carie|lesão|cavidade|mancha|insatisfat|infiltrad|infiltração|recidiva|endod|biopulpectomia|necropulpectomia|canal|endo|restaura|resina|amálgama|amalgama|obtur|extra|exodontia|residual|ausente|perdido|falta|não tem|agenesia|implante|parafuso|osseointegrado|prótese|protese|coroa|metalocerâmica|faceta|bloco|onlay|inlay|gengival|tártaro|tartaro|bolsa|cálculo|calculo|giro|rodado|girado|hígido|higido|saudável|limpo|sem alteração)/.test(text)) {
+    throw new Error('Condição não reconhecida. Informe o dente e a condição antes de aplicar.');
   }
 
   // Extract Surfaces
@@ -231,17 +237,18 @@ export function parseLocalDentalVoiceCommand(
 }
 
 /**
- * Sends speech text to server Gemini AI route with fallback to local heuristic
+ * Sends speech text to configured AI route with fallback to local heuristic
  */
-export async function parseDentalVoiceCommandWithGemini(
+export async function parseDentalVoiceCommandWithAI(
   textCommand: string,
-  currentSelectedTeeth: number[] = []
+  currentSelectedTeeth: number[] = [],
+  provider: AIProvider = 'disabled'
 ): Promise<VoiceOdontogramResult> {
   try {
-    const response = await fetch('/api/gemini/parse-voice-odontogram', {
+    const response = await authenticatedFetch('/api/ai/parse-voice-odontogram', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ textCommand, currentSelectedTeeth })
+      body: JSON.stringify({ textCommand, currentSelectedTeeth, provider })
     });
 
     if (response.ok) {
@@ -260,7 +267,7 @@ export async function parseDentalVoiceCommandWithGemini(
       }
     }
   } catch (err) {
-    console.warn('[VOICE GEMINI] Fallback para parser local inteligente:', err);
+    console.warn('[VOICE AI] Fallback para parser local inteligente:', err);
   }
 
   return parseLocalDentalVoiceCommand(textCommand, currentSelectedTeeth);
@@ -280,7 +287,8 @@ export function speakDentalFeedback(text: string) {
 
     // Pick a Portuguese voice if available
     const voices = window.speechSynthesis.getVoices();
-    const ptVoice = voices.find(v => v.lang.startsWith('pt') || v.lang.includes('BR'));
+    const ptVoice = voices.find(v => v.localService && (v.lang.startsWith('pt') || v.lang.includes('BR')));
+    if (!ptVoice) return;
     if (ptVoice) {
       utterance.voice = ptVoice;
     }

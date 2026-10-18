@@ -1,3 +1,6 @@
+import { TclePlanEditor } from './TclePlanEditor';
+import type { TcleProcedure } from '../../utils/tclePlan';
+import { escapeTcle, renderTcleProceduresBody, renderTclePatientSignature, type TcleProceduresData } from '../../utils/tcleProcedures';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
@@ -281,6 +284,13 @@ export const DENTAL_DOCUMENT_TEMPLATES: DocumentTemplate[] = [
   },
 
   // 4. CLASSE TERMOS & TCLE
+  {
+    id: 'tcle_procedimentos_odontologicos', category: 'termo',
+    title: 'TCLE - Procedimentos Odontológicos',
+    subtitle: 'Consulta inicial, educação em saúde bucal e raspagem supra-gengival',
+    icon: FileSignature,
+    description: 'Consentimento dos procedimentos do plano do paciente, com descrições, riscos, benefícios, valores e assinaturas.'
+  },
   {
     id: 'tcle_endodontia',
     category: 'termo',
@@ -941,7 +951,7 @@ export const DentalDocumentManager: React.FC = () => {
           <div>
             <div class="dentist-name">${clinicInfo.headerSubtitle || dentistName}</div>
             <div class="dentist-cro">Cirurgião-Dentista ${dentistCro} ${clinicInfo.specialty ? `• ${clinicInfo.specialty}` : ''}</div>
-            <div class="dentist-sub">EPAO: ${clinicInfo.epao || '825 CE'} • CNPJ: ${formatCNPJ(clinicInfo.cnpj || '22.144.932/0001-40')}</div>
+            <div class="dentist-sub">EPAO: ${clinicInfo.epaoNumber || 'Não informado'} • CNPJ: ${formatCNPJ(clinicInfo.cnpj || '22.144.932/0001-40')}</div>
           </div>
         </div>
         <div class="clinic-right">
@@ -2001,7 +2011,9 @@ export const DentalDocumentManager: React.FC = () => {
 
     // 13. TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO (TCLE)
     if (isTermo) {
-      const summaryText = doc.summary || 'O paciente declara haver recebido todos os esclarecimentos cabíveis a respeito do procedimento odontológico proposto, seus riscos e benefícios, autorizando sua realização.';
+      const termDate = templateId === 'tcle_procedimentos_odontologicos' ? (tData.tcleProcedures?.date || docDateStr) : docDateStr;
+      const termCity = templateId === 'tcle_procedimentos_odontologicos' ? (tData.tcleProcedures?.city || cityOnly) : cityOnly;
+      const summaryText = templateId === 'tcle_procedimentos_odontologicos' ? renderTcleProceduresBody(tData.tcleProcedures || currentTcleProcedures()) : doc.summary || 'O paciente declara haver recebido todos os esclarecimentos cabíveis a respeito do procedimento odontológico proposto, seus riscos e benefícios, autorizando sua realização.';
 
       return `
 <!DOCTYPE html>
@@ -2015,13 +2027,13 @@ export const DentalDocumentManager: React.FC = () => {
   ${standardHeaderHtml}
 
   <div class="title-box">
-    <div class="title">${doc.title.toUpperCase()}</div>
+    <div class="title">${escapeTcle(doc.title.toUpperCase())}</div>
     <div class="title-sub">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO (TCLE)</div>
   </div>
 
   <div class="patient-card">
-    <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${doc.patientName}</span></div>
-    <div><strong>DATA:</strong> ${docDateStr}</div>
+    <div><strong>PACIENTE:</strong> <span style="font-size: 12px; font-weight: bold; text-decoration: underline;">${escapeTcle(doc.patientName)}</span></div>
+    <div><strong>DATA:</strong> ${escapeTcle(termDate)}</div>
   </div>
 
   <div class="section-card" style="text-align: justify; font-size: 11.5px; line-height: 1.7; padding: 14px 16px;">
@@ -2029,12 +2041,12 @@ export const DentalDocumentManager: React.FC = () => {
   </div>
 
   <div class="date-row">
-    ${cityOnly}, ${docDateStr}
+    ${escapeTcle(termCity)}, ${escapeTcle(termDate)}
   </div>
 
-  <div class="grid-2" style="margin-top: 25px; margin-bottom: 10px; align-items: flex-end;">
+  <div class="grid-2" style="margin-top: 25px; margin-bottom: 10px; align-items: flex-end; break-inside: avoid;">
     <div style="border-top: 1.5px solid #222; text-align: center; padding-top: 4px; font-size: 10.5px; margin-bottom: 6px;">
-      <strong>${doc.patientName}</strong><br/>
+      <strong>${escapeTcle(doc.patientName)}</strong><br/>
       <span style="color: #666; font-size: 9.5px;">Paciente / Responsável Legal</span>
     </div>
     <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
@@ -2150,6 +2162,14 @@ export const DentalDocumentManager: React.FC = () => {
     templateData?: Record<string, any>;
     cidCode?: string;
   }) => {
+    if (doc.templateId === 'tcle_procedimentos_odontologicos' && doc.templateData?.tcleProcedures) {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) { alert('Permita a abertura da janela de impressão.'); return; }
+      printWindow.document.open();
+      printWindow.document.write(buildDocumentPrintHtml(doc));
+      printWindow.document.close();
+      return;
+    }
     // 1. Localiza o modelo correspondente para carregar na folha A4 oficial
     let matchedTemplate = DENTAL_DOCUMENT_TEMPLATES.find(t => t.id === doc.templateId);
     if (!matchedTemplate && doc.title) {
@@ -3216,6 +3236,8 @@ export const DentalDocumentManager: React.FC = () => {
   const [reciboReferente, setReciboReferente] = useState('Tratamento odontológico reabilitador e procedimentos clínicos especializados.');
   const [reciboFormaPagamento, setReciboFormaPagamento] = useState('PIX');
 
+  const [tcleLegalGuardian, setTcleLegalGuardian] = useState('');
+  const [tclePlan, setTclePlan] = useState<{patientId:string; planId:string; procedures:TcleProcedure[]}>({patientId:'',planId:'',procedures:[]});
   // Parameters for Termos (TCLEs)
   const [tcleImplanteRegiao, setTcleImplanteRegiao] = useState('Região dos elementos dentários 36 e 46');
   const [tcleImplanteEnxerto, setTcleImplanteEnxerto] = useState(true);
@@ -3227,6 +3249,20 @@ export const DentalDocumentManager: React.FC = () => {
 
   const selectedPatient = patients.find(p => p.id === selectedPatientId);
   const patientDisplayName = customPatientName || selectedPatient?.name || 'Nome do Paciente';
+  React.useEffect(() => { setTcleLegalGuardian(''); setTclePlan({patientId:'',planId:'',procedures:[]}); }, [selectedPatientId]);
+  const currentTcleProcedures = (): TcleProceduresData => ({
+    planId: tclePlan.patientId === selectedPatientId ? tclePlan.planId : '',
+    procedures: tclePlan.patientId === selectedPatientId ? tclePlan.procedures.map(p=>({...p})) : [],
+    patientName: patientDisplayName,
+    document: selectedPatient ? [selectedPatient.rg ? `RG: ${selectedPatient.rg}` : '', selectedPatient.cpf ? `CPF: ${formatCPF(selectedPatient.cpf)}` : ''].filter(Boolean).join(' / ') : '',
+    birthDate: selectedPatient?.birthDate ? getPatientAgeAndBirthDate(selectedPatient.birthDate).birthDateFormatted : '',
+    legalGuardian: tcleLegalGuardian,
+    professionalName: effectiveDentistName,
+    professionalCro: documentProf?.croUf && documentProf?.croNumber ? `CRO-${documentProf.croUf} nº ${documentProf.croNumber}` : effectiveDentistCro,
+    city: [effectiveClinicCity, clinicInfo.state && !effectiveClinicCity.endsWith(clinicInfo.state) ? clinicInfo.state : ''].filter(Boolean).join(' - '),
+    date: new Date(docDate + 'T12:00:00').toLocaleDateString('pt-BR', {day:'2-digit',month:'long',year:'numeric'})
+  });
+
 
   // Automatically sync patient age and health insurance when selecting a registered patient
   React.useEffect(() => {
@@ -3343,6 +3379,11 @@ export const DentalDocumentManager: React.FC = () => {
   };
 
   const handleGenerateDocument = () => {
+    if(activeTemplate?.id === 'tcle_procedimentos_odontologicos') {
+      const data=currentTcleProcedures();
+      if(!selectedPatientId || !data.planId || !data.procedures?.length) {window.alert('Selecione o plano e ao menos um procedimento deste paciente.');return;}
+      if(data.procedures.some(p=>!p.patientDescription?.trim() || !p.risks?.trim() || !p.benefits?.trim())) {window.alert('Preencha a descrição ao paciente, os riscos e os benefícios de cada procedimento selecionado antes de gerar o TCLE. Você pode salvar os textos incompletos para continuar depois.');return;}
+    }
     if (activeTemplate) {
       let docSummary = '';
       if (activeTemplate.id === 'receituario_controle_especial' || activeTemplate.title.toLowerCase().includes('controle especial')) {
@@ -3450,13 +3491,14 @@ export const DentalDocumentManager: React.FC = () => {
         tcleImplanteRegiao,
         tcleImplanteEnxerto,
         tcleClareamentoTipo,
-        tcleOrtoTipo
+        tcleOrtoTipo,
+        ...(activeTemplate.id === 'tcle_procedimentos_odontologicos' ? {tcleProcedures: currentTcleProcedures()} : {})
       };
 
       addSavedClinicDocument({
         title: activeTemplate.title,
         subtitle: activeTemplate.subtitle,
-        category: activeTemplate.category,
+        category: activeTemplate.category === 'receituario' ? 'receita' : activeTemplate.category,
         patientId: selectedPatientId,
         patientName: patientDisplayName,
         professionalName: effectiveDentistName,
@@ -7435,6 +7477,15 @@ export const DentalDocumentManager: React.FC = () => {
                 </div>
               )}
 
+              {activeTemplate.id === 'tcle_procedimentos_odontologicos' && (
+                <div className="bg-white border border-[#e5e5d1] rounded-2xl p-4 space-y-2">
+                  <label className="block text-xs font-bold text-[#5a5a40]">Responsável legal (se aplicável)</label>
+                  <input type="text" value={tcleLegalGuardian} onChange={e=>setTcleLegalGuardian(e.target.value)}
+                    className="w-full border border-[#e5e5d1] rounded-xl p-3 text-sm" placeholder="Nome completo do responsável legal" />
+                  <TclePlanEditor key={selectedPatientId || 'sem-paciente'} patientId={selectedPatientId || ''} onChange={(planId,procedures)=>setTclePlan({patientId:selectedPatientId || '',planId,procedures})} />
+                </div>
+              )}
+
               {/* 15. PARÂMETROS ESPECÍFICOS: TERMOS TCLE (IMPLANTE / CLAREAMENTO / ORTODONTIA) */}
               {activeTemplate.id === 'tcle_cirurgia_implantes' && (
                 <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-4`}>
@@ -7638,8 +7689,8 @@ export const DentalDocumentManager: React.FC = () => {
                         <p className="text-[10px] text-stone-600 font-mono">
                           {clinicInfo.headerSubtitle || `Cirurgião-Dentista ${effectiveDentistCro} ${effectiveDentistSpecialty ? `• ${effectiveDentistSpecialty}` : ''}`}
                         </p>
-                        {clinicInfo.epao && (
-                          <p className="text-[9.5px] text-stone-500 font-mono">EPAO: {clinicInfo.epao}</p>
+                        {clinicInfo.epaoNumber && (
+                          <p className="text-[9.5px] text-stone-500 font-mono">EPAO: {clinicInfo.epaoNumber}</p>
                         )}
                         {clinicInfo.cnpj && (
                           <p className="text-[9.5px] text-stone-500">CNPJ: {formatCNPJ(clinicInfo.cnpj)}</p>
@@ -7876,6 +7927,13 @@ export const DentalDocumentManager: React.FC = () => {
                       <p className="text-base leading-loose">
                         Declaro, para os devidos fins de direito, que o(a) Sr(a). <strong className="font-bold underline">{patientDisplayName}</strong> esteve presente neste consultório odontológico no dia <strong className="font-bold">{formattedFormattedDate}</strong>, durante o período de <strong className="font-bold">{docTime}</strong> ({periodoStr}), submetendo-se a tratamento e acompanhamento clínico odontológico.
                       </p>
+                    </div>
+                  )}
+
+                  {activeTemplate.id === 'tcle_procedimentos_odontologicos' && (
+                    <div className="space-y-4">
+                      <div dangerouslySetInnerHTML={{__html:renderTcleProceduresBody(currentTcleProcedures())}} />
+                      <div dangerouslySetInnerHTML={{__html:renderTclePatientSignature(currentTcleProcedures())}} />
                     </div>
                   )}
 
@@ -8437,7 +8495,7 @@ export const DentalDocumentManager: React.FC = () => {
                         <div className="border border-stone-800 p-2.5 rounded-lg bg-white space-y-1">
                           <span className="font-bold uppercase text-[10.5px] border-b border-stone-200 pb-0.5 block">Identificação do Emitente</span>
                           <p className="font-bold">{effectiveDentistName} • {effectiveDentistCro}</p>
-                          <p className="text-[10.5px] text-stone-600">{effectiveClinicAddress} - {formatCityOnly(effectiveClinicCity)}/{clinicInfo.uf || 'CE'}</p>
+                          <p className="text-[10.5px] text-stone-600">{effectiveClinicAddress} - {formatCityOnly(effectiveClinicCity)}/{clinicInfo.state || 'CE'}</p>
                           <p className="text-[10.5px] text-stone-600">Tel: {effectiveClinicPhone}</p>
                         </div>
 
@@ -8445,7 +8503,7 @@ export const DentalDocumentManager: React.FC = () => {
                           <span className="font-bold uppercase text-[10.5px] border-b border-stone-200 pb-0.5 block">Identificação do Paciente</span>
                           <p className="font-bold text-stone-900 underline">{patientDisplayName}{selectedPatient?.cpf ? ` • CPF: ${selectedPatient.cpf}` : ''}</p>
                           <p className="text-[10.5px] text-stone-600">Endereço: {selectedPatient?.address?.street ? `${selectedPatient.address.street}${selectedPatient.address.number ? `, ${selectedPatient.address.number}` : ''}${selectedPatient.address.neighborhood ? ` - ${selectedPatient.address.neighborhood}` : ''}` : '____________________________________'}</p>
-                          <p className="text-[10.5px] text-stone-600">Cidade: {selectedPatient?.address?.city ? `${selectedPatient.address.city} - ${selectedPatient.address.state || clinicInfo.uf || 'CE'}` : `${formatCityOnly(clinicInfo.city || 'Fortaleza')} - ${clinicInfo.uf || 'CE'}`}</p>
+                          <p className="text-[10.5px] text-stone-600">Cidade: {selectedPatient?.address?.city ? `${selectedPatient.address.city} - ${selectedPatient.address.state || clinicInfo.state || 'CE'}` : `${formatCityOnly(clinicInfo.city || 'Fortaleza')} - ${clinicInfo.state || 'CE'}`}</p>
                         </div>
                       </div>
 
@@ -9243,3 +9301,4 @@ export const DentalDocumentManager: React.FC = () => {
     </>
   );
 };
+// DentisPro: correcao-lint50-v1

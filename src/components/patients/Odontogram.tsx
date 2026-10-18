@@ -1,3 +1,7 @@
+import { ClinicalSaveButton } from './ClinicalSaveButton';
+import { ExamMeasurements } from './ExamMeasurements';
+import { localExamDate } from '../../utils/clinicalPanelArchive';
+import { extractAppliedVoiceCommand } from '../../utils/voiceApplyCommand';
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
@@ -40,7 +44,7 @@ import {
 } from 'lucide-react';
 import { ImageGalleryWithEditor } from '../common/ImageGalleryWithEditor';
 import { 
-  parseDentalVoiceCommandWithGemini, 
+  parseDentalVoiceCommandWithAI,
   parseLocalDentalVoiceCommand, 
   speakDentalFeedback, 
   VoiceOdontogramResult 
@@ -118,9 +122,11 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     restoreOdontogramSnapshot, 
     getClinicalExam, 
     updateClinicalExam,
+    saveClinicalPanel,
     patients,
     updatePatient,
-    layoutTheme
+    layoutTheme,
+    clinicInfo
   } = useApp();
 
   const t = getThemeStyles(layoutTheme);
@@ -140,7 +146,13 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   const [activeSnapshotId, setActiveSnapshotId] = useState<string>('current');
   const [isSnapshotModalOpen, setIsSnapshotModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-  const [snapshotDate, setSnapshotDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [snapshotDate, setSnapshotDate] = useState<string>(getClinicalExam(patientId).odontogramDate || localExamDate());
+  const [odontogramVitalSigns, setOdontogramVitalSigns] = useState(getClinicalExam(patientId).odontogramVitalSigns || {});
+  React.useEffect(() => {
+    const exam = getClinicalExam(patientId);
+    setSnapshotDate(exam.odontogramDate || localExamDate());
+    setOdontogramVitalSigns(exam.odontogramVitalSigns || {});
+  }, [patientId]);
   const [selectedMotivoOption, setSelectedMotivoOption] = useState<string>('Avaliação');
   const [customSnapshotTitle, setCustomSnapshotTitle] = useState<string>('');
   const [snapshotNotes, setSnapshotNotes] = useState<string>('');
@@ -156,10 +168,22 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   const [voiceTranscript, setVoiceTranscript] = useState<string>('');
   const [voiceProcessing, setVoiceProcessing] = useState<boolean>(false);
   const [lastVoiceResult, setLastVoiceResult] = useState<VoiceOdontogramResult | null>(null);
-  const [voiceAutoApply, setVoiceAutoApply] = useState<boolean>(true);
   const [voiceFeedbackSpeech, setVoiceFeedbackSpeech] = useState<boolean>(true);
   const [manualVoiceInput, setManualVoiceInput] = useState<string>('');
   const speechRecognitionRef = useRef<any>(null);
+  const voiceCommitRef = useRef<(text:string)=>void>(()=>{});
+  const voiceBusyRef = useRef(false);
+  const voiceSessionRef = useRef(0);
+  const lastAppliedTranscriptRef = useRef('');
+  const captureRef = React.useRef<HTMLDivElement>(null);
+  const [savingPanel,setSavingPanel] = useState(false);
+  const saveOdontogramPanel = async () => {
+    if(savingPanel) return false;
+    setSavingPanel(true);
+    try { await saveClinicalPanel(patientId,'odontogram',snapshotDate,{odontogramVitalSigns},captureRef.current);setAddedSuccessMsg('Odontograma, evolução e PDF salvos.');return true; }
+    catch(error) {alert(error instanceof Error?error.message:'Falha ao salvar odontograma.');return false;}
+    finally {setSavingPanel(false);}
+  };
 
   // Mouse Drag Selection State
   const [isMouseDown, setIsMouseDown] = useState(false);
@@ -240,16 +264,29 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
+        // Never use browser speech services that may send audio to a remote provider.
+        if (!('processLocally' in recognition)) return;
+        recognition.processLocally = true;
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = 'pt-BR';
 
+        let committed = false;
+        recognition.onstart = () => { committed = false; };
         recognition.onresult = (event: any) => {
-          let currentTranscript = '';
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            currentTranscript += event.results[i][0].transcript;
+          if (committed) return;
+          let complete = '', finalText = '';
+          for (let i=0;i<event.results.length;i++) {
+            complete += event.results[i][0].transcript+' ';
+            if(event.results[i].isFinal) finalText += event.results[i][0].transcript+' ';
           }
-          setVoiceTranscript(currentTranscript);
+          setVoiceTranscript(complete.trim());setManualVoiceInput(complete.trim());
+          const command=extractAppliedVoiceCommand(finalText);
+          if(command !== null && command) {
+            committed = true;recognition.stop();setIsListening(false);
+            setVoiceTranscript(command);setManualVoiceInput(command);
+            voiceCommitRef.current(command);
+          }
         };
 
         recognition.onerror = (event: any) => {
@@ -266,6 +303,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     }
 
     return () => {
+      voiceSessionRef.current++;
       if (speechRecognitionRef.current) {
         try {
           speechRecognitionRef.current.stop();
@@ -706,8 +744,9 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   };
 
   // Snapshot handler
-  const handleCreateChronologicalSnapshot = (e: React.FormEvent) => {
+  const handleCreateChronologicalSnapshot = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!await saveOdontogramPanel()) return;
     const finalTitle = selectedMotivoOption === 'Outro' 
       ? customSnapshotTitle.trim() || 'Avaliação'
       : selectedMotivoOption;
@@ -778,11 +817,9 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
         try { speechRecognitionRef.current.stop(); } catch (e) {}
       }
       setIsListening(false);
-      if (voiceTranscript.trim()) {
-        processVoiceCommand(voiceTranscript);
-      }
+
     } else {
-      setVoiceTranscript('');
+      setVoiceTranscript('');setManualVoiceInput('');lastAppliedTranscriptRef.current='';
       setLastVoiceResult(null);
       if (speechRecognitionRef.current) {
         try {
@@ -799,32 +836,23 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   };
 
   const processVoiceCommand = async (commandText: string) => {
-    if (!commandText.trim()) return;
-    setVoiceProcessing(true);
-
+    const text=commandText.trim();
+    if (!text || voiceBusyRef.current || readOnly || activeSnapshotId !== 'current' || lastAppliedTranscriptRef.current===text) return;
+    voiceBusyRef.current=true;setVoiceProcessing(true);
+    const session=voiceSessionRef.current;
     try {
-      const result = await parseDentalVoiceCommandWithGemini(commandText, selectedTeeth);
-      setLastVoiceResult(result);
-
-      if (voiceAutoApply && result) {
-        applyVoiceResult(result);
-      }
-
-      if (voiceFeedbackSpeech && result.spokenFeedback) {
-        speakDentalFeedback(result.spokenFeedback);
-      }
-    } catch (err) {
-      console.error('Erro no processamento de comando de voz:', err);
-      // Heuristic fallback
-      const fallbackResult = parseLocalDentalVoiceCommand(commandText, selectedTeeth);
-      setLastVoiceResult(fallbackResult);
-      if (voiceAutoApply) {
-        applyVoiceResult(fallbackResult);
-      }
-    } finally {
-      setVoiceProcessing(false);
-    }
+      let result: VoiceOdontogramResult;
+      try { result=await parseDentalVoiceCommandWithAI(text,selectedTeeth,clinicInfo.aiProvider || 'disabled'); }
+      catch { result=parseLocalDentalVoiceCommand(text,selectedTeeth); }
+      if(session!==voiceSessionRef.current) return;
+      if(!result.teeth.length) throw Error('Nenhum dente reconhecido. Revise a transcrição.');
+      applyVoiceResult(result);setLastVoiceResult(result);lastAppliedTranscriptRef.current=text;
+      setVoiceTranscript(text);setManualVoiceInput(text);
+      if(voiceFeedbackSpeech && result.spokenFeedback) speakDentalFeedback(result.spokenFeedback);
+    } catch(error) { alert(error instanceof Error?error.message:'Não foi possível aplicar o comando.'); }
+    finally {voiceBusyRef.current=false;setVoiceProcessing(false);}
   };
+  voiceCommitRef.current = text => { void processVoiceCommand(text); };
 
   const applyVoiceResult = (result: VoiceOdontogramResult) => {
     if (result.action === 'select_teeth') {
@@ -1111,7 +1139,10 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   };
 
   return (
-    <div className="bg-white border border-[#e5e5d1] rounded-[32px] p-3 sm:p-6 shadow-sm space-y-5">
+    <div ref={captureRef} inert={savingPanel} className="bg-white border border-[#e5e5d1] rounded-[32px] p-3 sm:p-6 shadow-sm space-y-5">
+      <div className="flex flex-wrap items-center gap-3">
+        <ExamMeasurements date={snapshotDate} onDateChange={setSnapshotDate} values={odontogramVitalSigns} onChange={setOdontogramVitalSigns} disabled={readOnly || activeSnapshotId !== 'current'} />
+      </div>
       {/* Header & Main Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#e5e5d1] pb-4">
         <div>
@@ -1891,7 +1922,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
 
       {/* Radiographic / Patient Clinical Photos Section */}
       <ImageGalleryWithEditor
-        title="Galeria Unificada do Prontuário (Fotos e Radiografias)"
+        title="Galeria do Prontuário"
         description="Anexe radiografias periapicais, panorâmicas, telerradiografias ou fotos intraorais. Todas as fotos pertencem ao banco de dados unificado deste prontuário."
         images={odontogramImages}
         onUpdateImages={(newImgs) => {
@@ -1900,6 +1931,12 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
         }}
         readOnly={readOnly}
       />
+
+      {!readOnly && activeSnapshotId === 'current' && (
+        <div className="flex justify-start pt-4 border-t border-[#e5e5d1] print:hidden">
+          <ClinicalSaveButton saving={savingPanel} onSave={saveOdontogramPanel} />
+        </div>
+      )}
 
       {/* AI VOICE INTERACTIVE FILLING MODAL */}
       {isVoiceModalOpen && (
@@ -1917,7 +1954,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
                     <Sparkles className="w-4 h-4 text-amber-600" />
                   </h3>
                   <p className="text-[11px] text-gray-500">
-                    Preenchimento do odontograma por comando de voz com IA (Gemini 3.7 Flash)
+                    Preenchimento do odontograma por comando de voz com IA configurada
                   </p>
                 </div>
               </div>
@@ -1942,7 +1979,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
               <div className="flex flex-col items-center justify-center gap-2">
                 <button
                   type="button"
-                  onClick={handleToggleVoiceListening}
+                  aria-label={isListening ? "Parar escuta" : "Iniciar escuta"} disabled={voiceProcessing} onClick={handleToggleVoiceListening}
                   className={`
                     w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer shadow-lg
                     ${isListening 
@@ -1994,11 +2031,11 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
                   <div className="pt-1 border-t border-emerald-200/60 flex items-center justify-end gap-2">
                     <button
                       type="button"
-                      onClick={() => applyVoiceResult(lastVoiceResult)}
+                      disabled={voiceProcessing} onClick={() => processVoiceCommand(manualVoiceInput)}
                       className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold shadow-2xs cursor-pointer flex items-center gap-1"
                     >
                       <Check className="w-3.5 h-3.5" />
-                      <span>Reaplicar Condição</span>
+                      <span>Aplicar</span>
                     </button>
                   </div>
                 </div>
@@ -2006,32 +2043,25 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
 
               {/* Manual Text Command Input Fallback */}
               <div className="pt-2 border-t border-[#e5e5d1] text-left space-y-1.5">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">Ou digite o comando clínico por texto:</span>
+                <span className="text-[10px] font-bold text-gray-500 uppercase">Transcrição do comando clínico</span>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     placeholder="Ex: Dente 16 e 17 cárie oclusal e mesial..."
                     value={manualVoiceInput}
-                    onChange={(e) => setManualVoiceInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        processVoiceCommand(manualVoiceInput);
-                        setManualVoiceInput('');
-                      }
-                    }}
+                    onChange={(e) => {setManualVoiceInput(e.target.value);setVoiceTranscript(e.target.value);}}
                     className="flex-1 bg-white border border-[#e5e5d1] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#5a5a40]"
                   />
                   <button
                     type="button"
                     onClick={() => {
                       processVoiceCommand(manualVoiceInput);
-                      setManualVoiceInput('');
                     }}
                     disabled={!manualVoiceInput.trim() || voiceProcessing}
                     className={`px-3 py-1.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50`}
                   >
                     <Send className="w-3.5 h-3.5" />
-                    <span>Enviar</span>
+                    <span>Aplicar</span>
                   </button>
                 </div>
               </div>
@@ -2060,7 +2090,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
                     type="button"
                     onClick={() => {
                       setVoiceTranscript(sample);
-                      processVoiceCommand(sample);
+                      setManualVoiceInput(sample);
                     }}
                     className="px-2 py-1 bg-white hover:bg-amber-100 border border-[#e5e5d1] rounded-lg text-stone-700 font-medium transition cursor-pointer"
                   >
@@ -2072,15 +2102,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
 
             {/* Voice Options / Settings */}
             <div className="p-2.5 bg-[#f0f0e8]/60 rounded-xl border border-[#e5e5d1] flex flex-wrap items-center justify-between gap-2 text-xs">
-              <label className="flex items-center gap-1.5 text-stone-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={voiceAutoApply}
-                  onChange={(e) => setVoiceAutoApply(e.target.checked)}
-                  className="rounded text-[#5a5a40]"
-                />
-                <span className="font-semibold text-[11px]">Aplicar automaticamente ao falar</span>
-              </label>
+              <p className="text-xs">Diga “Aplicar” ao terminar ou clique em Aplicar. Parar a escuta mantém apenas a transcrição.</p>
 
               <label className="flex items-center gap-1.5 text-stone-700 cursor-pointer">
                 <input

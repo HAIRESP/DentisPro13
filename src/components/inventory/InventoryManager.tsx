@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useClinicDomain, useInventoryDomain, useAppointmentDomain, useTussDomain } from '../../context/DomainContexts';
 import { InventoryItem, InventoryItemType, InventoryOwnerScope, Appointment } from '../../types';
 import { CameraModal } from '../common/CameraModal';
 import { DailyClinicMaterialsReportModal } from './DailyClinicMaterialsReportModal';
@@ -8,6 +8,9 @@ import { YesterdayRegisteredMaterialsReportModal } from './YesterdayRegisteredMa
 import { AutoclaveCMERReportModal } from './AutoclaveCMERReportModal';
 import { AutocompleteInput } from '../common/AutocompleteInput';
 import { printDocumentWithTitle } from '../../utils/printUtils';
+import { normalizeStockUnit } from '../../utils/stockUnits';
+import { AUTOCLAVE_QUARANTINE_HOURS, getSterilizationReleaseBlockReason } from '../../utils/sterilizationCycle';
+import { formatBRDate, getItemReadinessInfo, getSterilizationExpiryDateStr } from '../../utils/inventoryReadiness';
 import { 
   Package, 
   Plus, 
@@ -171,42 +174,6 @@ const DEFAULT_UNITS = [
   'pote'
 ];
 
-// Helper to calculate sterilization expiration date (+6 months)
-export const getSterilizationExpiryDateStr = (dateStr?: string): string => {
-  if (!dateStr) return '';
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const day = parseInt(parts[2], 10);
-    const d = new Date(year, month, day);
-    d.setMonth(d.getMonth() + 6);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  }
-  return '';
-};
-
-export const formatBRDate = (dateStr?: string): string => {
-  if (!dateStr) return '---';
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  return dateStr;
-};
-
-// Helper to calculate readiness & sterilization indicator for inventory items
-export type ReadinessInfo = {
-  isReady: boolean;
-  statusType: 'sterilized' | 'maintenance_ok' | 'expired' | 'maintenance_overdue' | 'not_sterilized';
-  badgeText: string;
-  badgeTooltip: string;
-  badgeClass: string;
-};
-
 export interface AutoclaveLog {
   id: string;
   date: string;
@@ -223,6 +190,9 @@ export interface AutoclaveLog {
   biologicalTestPhotoUrl?: string;
   physicalTablePhotoUrl?: string;
   itemsIncluded: string[];
+  itemsIncludedIds?: string[];
+  cycleStatus?: 'quarantined' | 'rejected' | 'released';
+  releasedAt?: string;
   notes?: string;
 }
 
@@ -267,105 +237,20 @@ const INITIAL_AUTOCLAVE_LOGS: AutoclaveLog[] = [
 
 import { getThemeStyles } from '../../utils/themeUtils';
 
-export const getItemReadinessInfo = (item: InventoryItem): ReadinessInfo => {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const isEquipment = item.category === 'Equipamentos' || item.itemType === 'equipamento' || item.requiresMaintenance;
-
-  // 1. Expiration check (Automatic shutoff / indicator off if expired)
-  if (item.expirationDate && item.expirationDate < todayStr) {
-    return {
-      isReady: false,
-      statusType: 'expired',
-      badgeText: 'Vencido (Ind. Apagado)',
-      badgeTooltip: `Validade expirada em ${item.expirationDate}. Indicador apagado automaticamente — Proibido uso em procedimentos!`,
-      badgeClass: 'bg-rose-100 text-rose-800 border-rose-300 font-bold opacity-90'
-    };
-  }
-
-  // 2. Equipment maintenance check (Automatic shutoff if maintenance overdue)
-  if (isEquipment) {
-    const nextMaint = item.nextMaintenanceDate || item.maintenanceDate;
-    if (nextMaint && nextMaint < todayStr) {
-      return {
-        isReady: false,
-        statusType: 'maintenance_overdue',
-        badgeText: 'Manutenção Vencida',
-        badgeTooltip: `Revisão técnica vencida em ${nextMaint}. Indicador apagado automaticamente — Requer manutenção!`,
-        badgeClass: 'bg-rose-100 text-rose-800 border-rose-300 font-bold opacity-90'
-      };
-    }
-
-    return {
-      isReady: true,
-      statusType: 'maintenance_ok',
-      badgeText: 'Em Dia (Pronto p/ Uso)',
-      badgeTooltip: nextMaint ? `Manutenção em dia. Próxima revisão em ${nextMaint}` : 'Equipamento revisado e liberado para uso em procedimentos',
-      badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold'
-    };
-  }
-
-  // 3. Sterilization check for materials / instrumentals
-  if (item.requiresSterilization === false) {
-    return {
-      isReady: true,
-      statusType: 'sterilized',
-      badgeText: 'Pronto p/ Uso (Isento)',
-      badgeTooltip: 'Material liberado para procedimentos (não requer controle de esterilização em autoclave).',
-      badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold'
-    };
-  }
-
-  if (item.isSterilized === false) {
-    return {
-      isReady: false,
-      statusType: 'not_sterilized',
-      badgeText: 'Esterilizando / Em Manutenção',
-      badgeTooltip: 'Material em processo de esterilização ou equipamento em manutenção. Clique para alterar o status de prontidão.',
-      badgeClass: 'bg-amber-100 text-amber-900 border-amber-300 font-bold'
-    };
-  }
-
-  // Check 6-month validity limit on autoclave cycle date
-  if (item.sterilizationDate) {
-    const sterilExpiry = getSterilizationExpiryDateStr(item.sterilizationDate);
-    if (sterilExpiry && sterilExpiry < todayStr) {
-      return {
-        isReady: false,
-        statusType: 'not_sterilized',
-        badgeText: 'Esterilização Vencida (+6m)',
-        badgeTooltip: `O ciclo de autoclave (${formatBRDate(item.sterilizationDate)}) venceu em ${formatBRDate(sterilExpiry)} (limite de 6 meses). Necessita de reesterilização!`,
-        badgeClass: 'bg-rose-100 text-rose-800 border-rose-300 font-bold opacity-90'
-      };
-    }
-  }
-
-  return {
-    isReady: true,
-    statusType: 'sterilized',
-    badgeText: 'Esterilizado (Pronto p/ Uso)',
-    badgeTooltip: item.sterilizationDate 
-      ? `Esterilizado em ${formatBRDate(item.sterilizationDate)} (Validade de 6m até ${formatBRDate(getSterilizationExpiryDateStr(item.sterilizationDate))}). Liberado para procedimentos.` 
-      : 'Material esterilizado e liberado para procedimentos.',
-    badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold'
-  };
-};
-
 export const InventoryManager: React.FC = () => {
-  const { 
+  const {
     inventory, 
     addInventoryItem, 
     importInventoryBatch,
     updateInventoryItem, 
-    adjustStockQuantity, 
+    adjustStockQuantity,
+    deductAppointmentStock, 
     deleteInventoryItem, 
-    clearInventory, 
-    clinicInfo,
-    clinics,
-    professionals,
-    appointments,
-    tussProcedures,
-    layoutTheme
-  } = useApp();
+    clearInventory
+  } = useInventoryDomain();
+  const { clinicInfo, clinics, professionals, layoutTheme } = useClinicDomain();
+  const { appointments } = useAppointmentDomain();
+  const { tussProcedures } = useTussDomain();
 
   const t = getThemeStyles(layoutTheme);
 
@@ -492,16 +377,18 @@ export const InventoryManager: React.FC = () => {
   const [newCyclePressure, setNewCyclePressure] = useState('2.1');
   const [newCycleDuration, setNewCycleDuration] = useState('15');
   const [newCycleOperator, setNewCycleOperator] = useState('Hugo Andres Iglesias Ricoy');
-  const [newCycleBioResult, setNewCycleBioResult] = useState<'Aprovado (Negativo)' | 'Pendente' | 'Reprovado (Positivo)'>('Aprovado (Negativo)');
-  const [newCycleIntegratorResult, setNewCycleIntegratorResult] = useState<'Aprovado (Cor Conforme)' | 'Não Aprovado'>('Aprovado (Cor Conforme)');
-  const [newCyclePhysicalResult, setNewCyclePhysicalResult] = useState<'Aprovado (Parâmetros Físicos OK)' | 'Desvio Detectado'>('Aprovado (Parâmetros Físicos OK)');
-  const [newCycleIntegratorPhoto, setNewCycleIntegratorPhoto] = useState<string>('https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&auto=format&fit=crop&q=60');
-  const [newCycleBioPhoto, setNewCycleBioPhoto] = useState<string>('https://images.unsplash.com/photo-1579154204601-01588f351e67?w=500&auto=format&fit=crop&q=60');
-  const [newCyclePhysicalPhoto, setNewCyclePhysicalPhoto] = useState<string>('https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=500&auto=format&fit=crop&q=60');
+  const [newCycleBioResult, setNewCycleBioResult] = useState<'Aprovado (Negativo)' | 'Pendente' | 'Reprovado (Positivo)'>('Pendente');
+  const [newCycleIntegratorResult, setNewCycleIntegratorResult] = useState<'Aprovado (Cor Conforme)' | 'Não Aprovado'>('Não Aprovado');
+  const [newCyclePhysicalResult, setNewCyclePhysicalResult] = useState<'Aprovado (Parâmetros Físicos OK)' | 'Desvio Detectado'>('Desvio Detectado');
+  const [newCycleIntegratorPhoto, setNewCycleIntegratorPhoto] = useState<string>('');
+  const [newCycleBioPhoto, setNewCycleBioPhoto] = useState<string>('');
+  const [newCyclePhysicalPhoto, setNewCyclePhysicalPhoto] = useState<string>('');
   const [newCycleLaudoPhoto, setNewCycleLaudoPhoto] = useState<string>('');
   const [newCycleSelectedItems, setNewCycleSelectedItems] = useState<string[]>([]);
   const [newCycleNotes, setNewCycleNotes] = useState('');
   const [showAddCycleForm, setShowAddCycleForm] = useState(false);
+  const [updatingCycleId, setUpdatingCycleId] = useState<string | null>(null);
+  const [updatedBiologicalResult, setUpdatedBiologicalResult] = useState<'Aprovado (Negativo)' | 'Reprovado (Positivo)'>('Aprovado (Negativo)');
   const [previewingAutoclavePhoto, setPreviewingAutoclavePhoto] = useState<{ title: string; url: string } | null>(null);
 
   // Auto-calculate daily sterilization cycle sequence for the specific selected autoclave
@@ -553,8 +440,18 @@ export const InventoryManager: React.FC = () => {
 
   const handleSaveAutoclaveCycle = (e: React.FormEvent) => {
     e.preventDefault();
+    const includedItems = inventory.filter(item => newCycleSelectedItems.includes(item.id));
+    if (includedItems.length === 0) {
+      alert('Selecione ao menos um material ou instrumental para manter a rastreabilidade do ciclo.');
+      return;
+    }
+
+    const cycleId = `auto-log-${Date.now()}`;
+    const cycleFailed = newCycleBioResult === 'Reprovado (Positivo)' ||
+      newCycleIntegratorResult !== 'Aprovado (Cor Conforme)' ||
+      newCyclePhysicalResult !== 'Aprovado (Parâmetros Físicos OK)';
     const newLog: AutoclaveLog = {
-      id: `auto-log-${Date.now()}`,
+      id: cycleId,
       date: newCycleDate || new Date().toISOString().slice(0, 16),
       autoclaveName: newCycleAutoclaveName,
       cycleNumber: newCycleNumber,
@@ -568,37 +465,89 @@ export const InventoryManager: React.FC = () => {
       integratorPhotoUrl: newCycleIntegratorPhoto || undefined,
       biologicalTestPhotoUrl: newCycleBioPhoto || undefined,
       physicalTablePhotoUrl: newCyclePhysicalPhoto || undefined,
-      itemsIncluded: newCycleSelectedItems.length > 0 ? newCycleSelectedItems : ['Instrumentais Odontológicos Diversos'],
+      itemsIncluded: includedItems.map(item => item.name),
+      itemsIncludedIds: includedItems.map(item => item.id),
+      cycleStatus: cycleFailed ? 'rejected' : 'quarantined',
       notes: newCycleNotes + (newCycleLaudoPhoto ? ` [Laudo do Ciclo Anexado: ${newCycleLaudoPhoto}]` : '')
     };
 
     setAutoclaveLogs(prev => [newLog, ...prev]);
 
-    // Mark items as sterilized in inventory
-    if (newCycleSelectedItems.length > 0) {
-      const todayStr = new Date().toISOString().split('T')[0];
-      inventory.forEach(item => {
-        if (newCycleSelectedItems.includes(item.name)) {
-          updateInventoryItem(item.id, {
-            isSterilized: true,
-            sterilizationDate: todayStr,
-            sterilizedBy: newCycleOperator || 'Hugo Andres Iglesias Ricoy',
-            autoclaveModel: newCycleAutoclaveName || 'Autoclave Cristófoli Vitale Class 12L (Autoclave N° 1)',
-            autoclaveWaterVolume: '150 ml de água destilada',
-            autoclaveTemperature: `${newCycleTemp || '130'}°C`,
-            autoclavePressure: `${newCyclePressure || '1,8'} kgf/cm²`,
-            autoclaveSterilizationTime: `${newCycleDuration || '16'} minutos`,
-            autoclaveDryingMode: 'Secagem com porta entreaberta',
-            autoclaveCycleType: 'Automático (Programa Único)'
-          });
-        }
-      });
-    }
+    includedItems.forEach(item => updateInventoryItem(item.id, {
+      isSterilized: false,
+      sterilizationCycleId: cycleId,
+      sterilizationReleasedAt: undefined,
+      sterilizationDate: newCycleDate.slice(0, 10),
+      sterilizedBy: newCycleOperator,
+      autoclaveModel: newCycleAutoclaveName,
+      autoclaveWaterVolume: '150 ml de água destilada',
+      autoclaveTemperature: `${newCycleTemp}°C`,
+      autoclavePressure: `${newCyclePressure} bar`,
+      autoclaveSterilizationTime: `${newCycleDuration} minutos`,
+      autoclaveDryingMode: 'Secagem com porta entreaberta',
+      autoclaveCycleType: 'Automático (Programa Único)'
+    }));
 
     setShowAddCycleForm(false);
     setNewCycleNotes('');
     setNewCycleLaudoPhoto('');
-    alert(`✅ ${newCycleNumber} registrado com sucesso para a ${newCycleAutoclaveName}!`);
+    setNewCycleSelectedItems([]);
+    alert(cycleFailed
+      ? `Ciclo reprovado. Os ${includedItems.length} item(ns) permanecem bloqueados para uso. Registre um novo ciclo após reprocessamento.`
+      : `Ciclo registrado em quarentena. Os ${includedItems.length} item(ns) só poderão ser liberados após aprovação dos testes e ${AUTOCLAVE_QUARANTINE_HOURS} horas.`);
+  };
+
+  const handleRecordBiologicalResult = (log: AutoclaveLog) => {
+    if (log.cycleStatus !== 'quarantined' || log.biologicalTestResult !== 'Pendente') return;
+    const rejected = updatedBiologicalResult === 'Reprovado (Positivo)';
+    setAutoclaveLogs(prev => prev.map(current => current.id === log.id ? {
+      ...current,
+      biologicalTestResult: updatedBiologicalResult,
+      physicalTableResult: rejected || current.chemicalIntegratorResult !== 'Aprovado (Cor Conforme)'
+        ? 'Desvio Detectado'
+        : 'Aprovado (Parâmetros Físicos OK)',
+      cycleStatus: rejected ? 'rejected' : 'quarantined',
+      notes: `${current.notes || ''}${current.notes ? ' | ' : ''}Resultado biológico registrado em ${new Date().toISOString()}.`
+    } : current));
+    setUpdatingCycleId(null);
+  };
+
+  const handleReleaseAutoclaveCycle = (log: AutoclaveLog) => {
+    const blockReason = getSterilizationReleaseBlockReason(log);
+    if (blockReason) {
+      const messages = {
+        rejected: 'Este ciclo foi reprovado. Reprocesse os itens em um novo ciclo; este lote não pode ser liberado.',
+        already_released: 'Este ciclo já foi liberado.',
+        untracked_items: 'Este registro não contém os IDs dos itens; não é possível liberar materiais sem rastreabilidade.',
+        test_not_approved: 'Este ciclo não pode ser liberado: todos os testes precisam estar aprovados.',
+        invalid_cycle_date: 'A data do ciclo é inválida; não é possível confirmar o prazo de quarentena.',
+        quarantine_incomplete: `A quarentena de ${AUTOCLAVE_QUARANTINE_HOURS} horas ainda não terminou. O material permanece bloqueado.`
+      };
+      alert(messages[blockReason]);
+      return;
+    }
+    if (!window.confirm(`Liberar os materiais do ciclo ${log.cycleNumber} para uso?`)) return;
+
+    const cycleItems = log.itemsIncludedIds!.map(itemId => inventory.find(item => item.id === itemId));
+    if (cycleItems.some(item => !item || item.sterilizationCycleId !== log.id)) {
+      alert('A lista de itens vinculados ao ciclo mudou. Nenhum material foi liberado.');
+      return;
+    }
+
+    const cycleDate = log.date.slice(0, 10);
+    const releasedAt = new Date().toISOString();
+    cycleItems.forEach(item => {
+      if (!item) return;
+      updateInventoryItem(item.id, {
+        isSterilized: true,
+        sterilizationDate: cycleDate,
+        sterilizationReleasedAt: releasedAt
+      });
+    });
+
+    setAutoclaveLogs(prev => prev.map(current => current.id === log.id
+      ? { ...current, cycleStatus: 'released', releasedAt }
+      : current));
   };
 
   // Ownership & Scoping Form State
@@ -624,6 +573,8 @@ export const InventoryManager: React.FC = () => {
   const [quantity, setQuantity] = useState('10');
   const [minQuantity, setMinQuantity] = useState('5');
   const [unit, setUnit] = useState<InventoryItem['unit']>('caixa');
+  const [consumptionUnit, setConsumptionUnit] = useState('');
+  const [unitsPerStockUnit, setUnitsPerStockUnit] = useState('');
   const [unitCost, setUnitCost] = useState('50.00');
   const [manufacturingDate, setManufacturingDate] = useState('2025-01-01');
   const [expirationDate, setExpirationDate] = useState('2027-12-31');
@@ -632,9 +583,9 @@ export const InventoryManager: React.FC = () => {
   const [itemImages, setItemImages] = useState<string[]>([]);
   
   // Sterilization & Readiness State
-  const [requiresSterilization, setRequiresSterilization] = useState<boolean>(true);
-  const [isSterilized, setIsSterilized] = useState<boolean>(true);
-  const [sterilizationDate, setSterilizationDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [requiresSterilization, setRequiresSterilization] = useState<boolean>(false);
+  const [isSterilized, setIsSterilized] = useState<boolean>(false);
+  const [sterilizationDate, setSterilizationDate] = useState<string>('');
   const [sterilizedBy, setSterilizedBy] = useState<string>('Hugo Andres Iglesias Ricoy');
   const [autoclaveModel, setAutoclaveModel] = useState<string>('Autoclave Cristófoli Vitale Class 12L');
   const [autoclaveWaterVolume, setAutoclaveWaterVolume] = useState<string>('150 ml de água destilada');
@@ -662,7 +613,7 @@ export const InventoryManager: React.FC = () => {
   const [isScanningLens, setIsScanningLens] = useState(false);
   const [lensScanSuccess, setLensScanSuccess] = useState<string | null>(null);
 
-  // Google Lens AI Photo Staging & Prompts State
+  // Identificação visual Photo Staging & Prompts State
   const [isLensModalOpen, setIsLensModalOpen] = useState(false);
   const [currentCapturedPhoto, setCurrentCapturedPhoto] = useState<string | null>(null);
   const [stagedPhotos, setStagedPhotos] = useState<string[]>([]);
@@ -794,185 +745,6 @@ export const InventoryManager: React.FC = () => {
   };
 
   // Helper to parse URLs or dental product codes/barcodes
-  const parseProductUrlOrCode = (codeOrSearch?: string) => {
-    if (!codeOrSearch) return null;
-    const input = codeOrSearch.trim();
-
-    const isUrl = input.startsWith('http://') || input.startsWith('https://') || input.includes('www.') || input.includes('.com.br') || input.includes('.com');
-
-    if (isUrl) {
-      try {
-        let urlObj: URL | null = null;
-        try {
-          urlObj = new URL(input.startsWith('http') ? input : `https://${input}`);
-        } catch (e) {
-          urlObj = null;
-        }
-
-        let pathname = urlObj ? urlObj.pathname : input;
-        pathname = pathname.split('?')[0].split('#')[0].replace(/\/+$/, '');
-
-        const segments = pathname.split('/').filter(Boolean);
-        let rawSlug = segments.length > 0 ? segments[segments.length - 1] : '';
-        
-        // Strip file extensions like .html, .php, .aspx
-        rawSlug = rawSlug.replace(/\.(html|htm|php|aspx|jsp)$/i, '');
-
-        // Extract SKU/REF number if attached to the end (e.g. -126332)
-        let sku = '';
-        const skuMatch = rawSlug.match(/[-_](\d{4,8})$/);
-        if (skuMatch) {
-          sku = skuMatch[1];
-          rawSlug = rawSlug.replace(/[-_]\d{4,8}$/, '');
-        }
-
-        // Clean slug into words
-        let cleanSlug = rawSlug.replace(/[-_]+/g, ' ').trim();
-
-        // Dictionary for dental vocabulary capitalization and accents
-        const wordMap: Record<string, string> = {
-          'broca': 'Broca',
-          'tungstenio': 'Tungstênio',
-          'pera': 'Pêra',
-          'corte': 'Corte',
-          'cruzado': 'Cruzado',
-          'extra': 'Extra',
-          'grosso': 'Grosso',
-          'fino': 'Fino',
-          'superfino': 'Superfino',
-          'medio': 'Médio',
-          'n': 'Nº',
-          'no': 'Nº',
-          'american': 'American',
-          'burrs': 'Burrs',
-          'resina': 'Resina',
-          'filtek': 'Filtek',
-          'z350': 'Z350',
-          'xt': 'XT',
-          '3m': '3M',
-          'anestesico': 'Anestésico',
-          'alphacaine': 'Alphacaine',
-          'lidocaina': 'Lidocaína',
-          'mepivacaina': 'Mepivacaína',
-          'articaina': 'Articaína',
-          'epinefrina': 'Epinefrina',
-          'dfl': 'DFL',
-          'cristofoli': 'Cristófoli',
-          'autoclave': 'Autoclave',
-          'vitale': 'Vitale',
-          'class': 'Class',
-          'alicate': 'Alicate',
-          'fresa': 'Fresa',
-          'ponta': 'Ponta',
-          'diamantada': 'Diamantada',
-          'kg': 'KG',
-          'sorensen': 'Sorensen',
-          'fgm': 'FGM',
-          'dentsply': 'Dentsply',
-          'sirona': 'Sirona',
-          'kavo': 'KaVo',
-          'golgran': 'Golgran',
-          'duflex': 'Duflex',
-          'ultradent': 'Ultradent',
-          'maquira': 'Maquira',
-          'biodinamica': 'Biodinâmica',
-          'septodont': 'Septodont',
-          'coltene': 'Coltène',
-          'kulzer': 'Kulzer',
-          'voco': 'VOCO',
-          'angelus': 'Angelus',
-          'orthometric': 'Orthometric',
-          'morelli': 'Morelli',
-          'ionomero': 'Ionomero',
-          'cimento': 'Cimento',
-          'adesivo': 'Adesivo',
-          'single': 'Single',
-          'bond': 'Bond',
-          'luva': 'Luva',
-          'mascara': 'Máscara',
-          'algodao': 'Algodão',
-          'gaze': 'Gaze',
-          'sugador': 'Sugador',
-          'seladora': 'Seladora',
-          'fotopolimerizador': 'Fotopolimerizador',
-          'bio-art': 'Bio-Art',
-          'bioart': 'Bio-Art'
-        };
-
-        const words = cleanSlug.split(/\s+/);
-        const formattedWords = words.map(w => {
-          const lower = w.toLowerCase();
-          if (wordMap[lower]) return wordMap[lower];
-          if (/^\d+$/.test(w)) return w;
-          return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-        });
-
-        let name = formattedWords.join(' ');
-
-        if (!name || name.length < 3) {
-          name = 'Material Odontológico Extraído do Link';
-        }
-
-        // Category determination
-        const lowerName = name.toLowerCase();
-        let category = 'Outros';
-        if (lowerName.includes('broca') || lowerName.includes('fresa') || lowerName.includes('ponta') || lowerName.includes('burrs') || lowerName.includes('alicate') || lowerName.includes('sonda') || lowerName.includes('forceps') || lowerName.includes('alavanca')) {
-          category = 'Instrumentais';
-        } else if (lowerName.includes('resina') || lowerName.includes('adesivo') || lowerName.includes('filtek') || lowerName.includes('ionomero') || lowerName.includes('acido')) {
-          category = 'Resinas & Adesivos';
-        } else if (lowerName.includes('anestesico') || lowerName.includes('alphacaine') || lowerName.includes('lidocaina') || lowerName.includes('mepivacaina') || lowerName.includes('articaina')) {
-          category = 'Anestésicos';
-        } else if (lowerName.includes('autoclave') || lowerName.includes('seladora') || lowerName.includes('fotopolimerizador') || lowerName.includes('motor') || lowerName.includes('ultrassom')) {
-          category = 'Equipamentos';
-        } else if (lowerName.includes('luva') || lowerName.includes('mascara') || lowerName.includes('algodao') || lowerName.includes('gaze') || lowerName.includes('sugador') || lowerName.includes('touca')) {
-          category = 'Descartáveis';
-        } else if (lowerName.includes('lima') || lowerName.includes('cone') || lowerName.includes('gutta') || lowerName.includes('endo')) {
-          category = 'Endodontia';
-        }
-
-        // Supplier determination
-        let supplier = 'Dental Cremer';
-        if (lowerName.includes('american burrs')) supplier = 'American Burrs';
-        else if (lowerName.includes('3m')) supplier = '3M Oral Care';
-        else if (lowerName.includes('dfl')) supplier = 'DFL Odontologia';
-        else if (lowerName.includes('cristofoli')) supplier = 'Cristófoli Biossegurança';
-        else if (lowerName.includes('fgm')) supplier = 'FGM Dental Group';
-        else if (lowerName.includes('kg sorensen')) supplier = 'KG Sorensen';
-        else if (lowerName.includes('golgran')) supplier = 'Golgran';
-        else if (urlObj && urlObj.hostname) {
-          if (urlObj.hostname.includes('dentalspeed')) supplier = 'Dental Speed';
-          else if (urlObj.hostname.includes('dentalmachado')) supplier = 'Dental Machado';
-        }
-
-        // Unit determination
-        let unit: InventoryItem['unit'] = 'unidade';
-        if (category === 'Equipamentos') unit = 'peça';
-        else if (lowerName.includes('anestesico') || lowerName.includes('luva')) unit = 'caixa';
-
-        // Price estimation
-        let unitCost = '45.00';
-        if (lowerName.includes('broca') || lowerName.includes('burrs')) unitCost = '68.90';
-        else if (category === 'Equipamentos') unitCost = '3800.00';
-        else if (category === 'Anestésicos') unitCost = '88.00';
-        else if (category === 'Resinas & Adesivos') unitCost = '145.00';
-
-        return {
-          code: sku || '126332',
-          name,
-          category,
-          unit,
-          unitCost,
-          supplier,
-          minQty: '2'
-        };
-      } catch (err) {
-        console.error('Error parsing URL', err);
-      }
-    }
-
-    return null;
-  };
-
   // Handle Photo Add via Direct URL Link
   const handleAddPhotoFromUrl = () => {
     const trimmed = imageUrlInput.trim();
@@ -992,116 +764,27 @@ export const InventoryManager: React.FC = () => {
 
     // Automatic extraction of material registration data upon inserting photo link
     runBarcodeScannerLookup(trimmed);
-    setPhotoSuccessNotice('Dados e especificações do material extraídos com sucesso a partir do link!');
-    setTimeout(() => setPhotoSuccessNotice(null), 4000);
+
   };
 
   // Barcode Scanner & Catalog Lookup Engine
   const runBarcodeScannerLookup = (codeOrSearch?: string) => {
-    setIsScanningLens(true);
+    const input = (codeOrSearch || itemCode || '').trim();
+    const existing = inventory.find(item => item.itemCode && item.itemCode.trim().toLowerCase() === input.toLowerCase());
+    if (existing) {
+      alert(`Este código já está cadastrado em "${existing.name}". Abra o item existente para editar; não crie uma duplicata.`);
+      return;
+    }
+    setIsScanningLens(false);
     setLensScanSuccess(null);
-
-    setTimeout(() => {
-      setIsScanningLens(false);
-
-      // First try intelligent URL or code parser
-      const parsed = parseProductUrlOrCode(codeOrSearch);
-
-      type MatchedProduct = {
-        code: string;
-        name: string;
-        category: string;
-        unit: 'unidade' | 'caixa' | 'frasco' | 'pacote' | 'par' | 'kit' | 'peça' | 'tubete' | 'bisnaga' | 'seringa' | 'rolo';
-        unitCost: number;
-        supplier: string;
-        minQty: number;
-        requiresMaintenance: boolean;
-        freqDays?: number;
-        notes?: string;
-      };
-
-      let matched: MatchedProduct;
-
-      if (parsed) {
-        matched = {
-          code: parsed.code,
-          name: parsed.name,
-          category: parsed.category,
-          unit: parsed.unit as MatchedProduct['unit'],
-          unitCost: parseFloat(parsed.unitCost),
-          supplier: parsed.supplier,
-          minQty: parseInt(parsed.minQty, 10),
-          requiresMaintenance: false,
-          freqDays: undefined,
-          notes: undefined
-        };
-      } else {
-        const pool: MatchedProduct[] = [
-          {
-            code: codeOrSearch || '7891234567890',
-            name: 'Autoclave Cristófoli Vitale Class 12 Litros',
-            category: 'Equipamentos',
-            unit: 'peça',
-            unitCost: 4800,
-            supplier: 'Cristófoli Biossegurança',
-            minQty: 1,
-            requiresMaintenance: true,
-            freqDays: 180,
-            notes: 'Substituição do anel de vedação, teste biológico e aferição de temperatura e pressão.'
-          },
-          {
-            code: codeOrSearch || '7899876543210',
-            name: 'Anestésico Alphacaine Lidocaína 2% c/ Epinefrina',
-            category: 'Anestésicos',
-            unit: 'caixa',
-            unitCost: 88,
-            supplier: 'DFL Odontologia',
-            minQty: 5,
-            requiresMaintenance: false
-          },
-          {
-            code: codeOrSearch || '7894561239870',
-            name: 'Resina Composta Filtek Z350 XT A2 3M',
-            category: 'Resinas & Adesivos',
-            unit: 'unidade',
-            unitCost: 145,
-            supplier: '3M Oral Care',
-            minQty: 3,
-            requiresMaintenance: false
-          }
-        ];
-        matched = pool[Math.floor(Math.random() * pool.length)];
-      }
-
-      const existingItem = inventory.find(i => i.itemCode && i.itemCode.trim().toLowerCase() === matched.code.trim().toLowerCase());
-      if (existingItem) {
-        alert(`⚠️ ATENÇÃO: Já existe um item cadastrado com este código ("${matched.code}")!\n\nItem Existente: "${existingItem.name}" (${existingItem.category}).\n\nPor favor, verifique o que está acontecendo (possível duplicata ou divergência no inventário).`);
-      }
-
-      setItemCode(matched.code);
-      setName(matched.name);
-      setCategory(matched.category);
-      setUnit(matched.unit);
-      setUnitCost(matched.unitCost.toFixed(2));
-      setSupplier(matched.supplier);
-      setMinQuantity(matched.minQty.toString());
-
-      if (matched.requiresMaintenance) {
-        setRequiresMaintenance(true);
-        setMaintenanceFrequencyDays(matched.freqDays ? matched.freqDays.toString() : '180');
-        setMaintenanceNotes(matched.notes || '');
-      } else {
-        setRequiresMaintenance(false);
-      }
-
-      setLensScanSuccess(`Material extraído com sucesso: "${matched.name}" (${matched.category})`);
-      setIsLensModalOpen(false);
-      setIsAddItemModalOpen(true);
-    }, 600);
+    setIsLensModalOpen(false);
+    setIsAddItemModalOpen(true);
+    if (/^\d+$/.test(input)) setItemCode(input);
+    setPhotoSuccessNotice('Produto não identificado por catálogo verificado. Preencha e confira nome, apresentação, unidade, fabricante e custo na embalagem ou nota fiscal.');
   };
 
   // =========================================================================
-  // 3 MODOS DE CAPTURA PELA CÂMERA (GOOGLE LENS AI)
+  // 3 MODOS DE CAPTURA PELA CÂMERA (IDENTIFICAÇÃO VISUAL)
   // =========================================================================
 
   // MODO 1: Descartar foto (Descarta captura e reinicia câmera imediatamente)
@@ -1280,8 +963,7 @@ export const InventoryManager: React.FC = () => {
       return;
     }
 
-    // Toggle sterilization for valid materials / instrumentals
-    if (item.isSterilized) {
+    if (item.isSterilized && item.sterilizationCycleId) {
       updateInventoryItem(item.id, {
         isSterilized: false,
         lastUpdated: new Date().toISOString().split('T')[0]
@@ -1293,18 +975,16 @@ export const InventoryManager: React.FC = () => {
         type: 'info'
       });
     } else {
-      const today = new Date().toISOString().split('T')[0];
-      updateInventoryItem(item.id, {
-        isSterilized: true,
-        sterilizationDate: today,
-        lastUpdated: today
-      });
       setReadinessNotice({
         show: true,
-        title: 'Material Esterilizado & Pronto para Uso! 🟢',
-        message: `O item "${item.name}" foi registrado como ESTERILIZADO na autoclave em ${today}. O indicador de seleção verde está ativo para procedimentos.`,
-        type: 'success'
+        title: 'Liberação exige ciclo rastreável',
+        message: `O item "${item.name}" não pode ser liberado manualmente. Registre um ciclo, aguarde 48 horas e aprove os testes para liberar o material.`,
+        type: 'warning'
       });
+      setIsTotalItemsModalOpen(true);
+      setReportModalTab('autoclave');
+      setShowAddCycleForm(true);
+      setNewCycleSelectedItems([item.id]);
     }
   };
 
@@ -1359,6 +1039,8 @@ export const InventoryManager: React.FC = () => {
       setMinQuantity((item.minQuantity !== undefined && item.minQuantity !== null ? item.minQuantity : 5).toString());
       const itemUnit = item.unit || 'caixa';
       setUnit(itemUnit);
+      setConsumptionUnit(item.consumptionUnit || '');
+      setUnitsPerStockUnit(item.unitsPerStockUnit === undefined ? '' : String(item.unitsPerStockUnit));
       if (itemUnit && !unitsList.includes(itemUnit.toLowerCase())) {
         setUnitsList(prev => [...prev, itemUnit.toLowerCase()]);
       }
@@ -1371,9 +1053,9 @@ export const InventoryManager: React.FC = () => {
         : (item.photoUrl || item.imageUrl ? [item.photoUrl || item.imageUrl!] : []);
       setPhotoUrl(loadedPhotos[0] || '');
       setItemImages(loadedPhotos);
-      setRequiresSterilization(item.requiresSterilization !== undefined ? item.requiresSterilization : true);
-      setIsSterilized(item.isSterilized !== undefined ? item.isSterilized : true);
-      setSterilizationDate(item.sterilizationDate || new Date().toISOString().split('T')[0]);
+      setRequiresSterilization(item.requiresSterilization ?? (item.itemType === 'instrumental' || item.category === 'Instrumentais'));
+      setIsSterilized(item.isSterilized === true && Boolean(item.sterilizationCycleId));
+      setSterilizationDate(item.sterilizationDate || '');
       setSterilizedBy(item.sterilizedBy || 'Hugo Andres Iglesias Ricoy');
       setAutoclaveModel(item.autoclaveModel || 'Autoclave Cristófoli Vitale Class 12L');
       setAutoclaveWaterVolume(item.autoclaveWaterVolume || '150 ml de água destilada');
@@ -1400,15 +1082,17 @@ export const InventoryManager: React.FC = () => {
       setQuantity('10');
       setMinQuantity('5');
       setUnit('caixa');
+      setConsumptionUnit('');
+      setUnitsPerStockUnit('');
       setUnitCost('50.00');
       setManufacturingDate('');
       setExpirationDate('2027-12-31');
       setSupplier('Dental Cremer');
       setPhotoUrl('');
       setItemImages([]);
-      setRequiresSterilization(true);
-      setIsSterilized(true);
-      setSterilizationDate(new Date().toISOString().split('T')[0]);
+      setRequiresSterilization(false);
+      setIsSterilized(false);
+      setSterilizationDate('');
       setSterilizedBy('Hugo Andres Iglesias Ricoy');
       setAutoclaveModel('Autoclave Cristófoli Vitale Class 12L');
       setAutoclaveWaterVolume('150 ml de água destilada');
@@ -1503,9 +1187,9 @@ export const InventoryManager: React.FC = () => {
       unitCost: item.cost,
       supplier: item.supplier,
       notes: item.notes,
-      requiresSterilization: true,
-      isSterilized: true,
-      itemType: 'insumo' as const,
+      requiresSterilization: item.category === 'Instrumentais',
+      isSterilized: false,
+      itemType: item.category === 'Instrumentais' ? 'instrumental' as const : 'insumo' as const,
       ownerScope: 'compartilhado' as const
     }));
 
@@ -1522,10 +1206,36 @@ export const InventoryManager: React.FC = () => {
     const matchedClinic = clinics.find(c => c.id === itemClinicId);
     const matchedProf = professionals.find(p => p.id === itemProfessionalId);
 
-    const parsedQty = parseInt(quantity, 10);
-    const parsedMinQty = parseInt(minQuantity, 10);
+    const parsedQty = Number(quantity);
+    const parsedMinQty = Number(minQuantity);
     const parsedUnitCost = parseFloat(unitCost);
     const parsedMaintFreq = parseInt(maintenanceFrequencyDays, 10);
+    if (!quantity.trim() || !minQuantity.trim() || !Number.isFinite(parsedQty) || parsedQty < 0 ||
+        !Number.isFinite(parsedMinQty) || parsedMinQty < 0) {
+      window.alert('Informe saldo e estoque mínimo válidos, maiores ou iguais a zero.');
+      return;
+    }
+    const consumptionUnitValue = consumptionUnit.trim();
+    const packageSizeText = unitsPerStockUnit.trim();
+    const packageSize = Number(packageSizeText);
+    if (consumptionUnitValue || packageSizeText) {
+      if (!consumptionUnitValue || !packageSizeText || !Number.isFinite(packageSize) || packageSize <= 0 ||
+          normalizeStockUnit(consumptionUnitValue) === normalizeStockUnit(unit)) {
+        window.alert('Informe uma unidade de consumo diferente da unidade de estoque e uma quantidade por embalagem maior que zero. Para usar a mesma unidade, deixe os dois campos vazios.');
+        return;
+      }
+    }
+    const originalItem = editingItemId ? inventory.find(item => item.id === editingItemId) : undefined;
+    if (originalItem && normalizeStockUnit(originalItem.unit) !== normalizeStockUnit(unit)) {
+      window.alert('A unidade de um estoque existente não pode ser trocada neste formulário. Isso exigiria converter saldo, custos e comprovantes. Para fracionar a embalagem, mantenha a unidade e preencha a conversão.');
+      return;
+    }
+    const existingItem = editingItemId ? inventory.find(item => item.id === editingItemId) : undefined;
+    const releasedCycle = existingItem?.sterilizationCycleId
+      ? autoclaveLogs.find(log => log.id === existingItem.sterilizationCycleId && log.cycleStatus === 'released')
+      : undefined;
+    const sterilizationRequired = requiresSterilization || itemType === 'instrumental' || category === 'Instrumentais';
+    const hasReleasedCycle = Boolean(sterilizationRequired && existingItem?.isSterilized && releasedCycle);
 
     const itemPayload = {
       itemCode: itemCode.trim() || undefined,
@@ -1534,6 +1244,8 @@ export const InventoryManager: React.FC = () => {
       quantity: isNaN(parsedQty) ? 0 : parsedQty,
       minQuantity: isNaN(parsedMinQty) ? 0 : parsedMinQty,
       unit,
+      consumptionUnit: consumptionUnitValue || undefined,
+      unitsPerStockUnit: consumptionUnitValue ? packageSize : undefined,
       unitCost: isNaN(parsedUnitCost) ? 0 : parsedUnitCost,
       manufacturingDate: manufacturingDate || undefined,
       expirationDate,
@@ -1541,17 +1253,19 @@ export const InventoryManager: React.FC = () => {
       photoUrl: finalPhoto,
       imageUrl: finalPhoto,
       images: itemImages.length > 0 ? itemImages : (finalPhoto ? [finalPhoto] : []),
-      requiresSterilization,
-      isSterilized: requiresSterilization ? isSterilized : true,
-      sterilizationDate: (requiresSterilization && isSterilized) ? (sterilizationDate || new Date().toISOString().split('T')[0]) : undefined,
-      sterilizedBy: (requiresSterilization && isSterilized) ? (sterilizedBy || 'Hugo Andres Iglesias Ricoy') : undefined,
-      autoclaveModel: (requiresSterilization && isSterilized) ? (autoclaveModel || 'Autoclave Cristófoli Vitale Class 12L') : undefined,
-      autoclaveWaterVolume: (requiresSterilization && isSterilized) ? autoclaveWaterVolume : undefined,
-      autoclaveTemperature: (requiresSterilization && isSterilized) ? autoclaveTemperature : undefined,
-      autoclavePressure: (requiresSterilization && isSterilized) ? autoclavePressure : undefined,
-      autoclaveSterilizationTime: (requiresSterilization && isSterilized) ? autoclaveSterilizationTime : undefined,
-      autoclaveDryingMode: (requiresSterilization && isSterilized) ? autoclaveDryingMode : undefined,
-      autoclaveCycleType: (requiresSterilization && isSterilized) ? autoclaveCycleType : undefined,
+      requiresSterilization: sterilizationRequired,
+      isSterilized: !sterilizationRequired || hasReleasedCycle,
+      sterilizationCycleId: hasReleasedCycle ? existingItem?.sterilizationCycleId : undefined,
+      sterilizationReleasedAt: hasReleasedCycle ? existingItem?.sterilizationReleasedAt : undefined,
+      sterilizationDate: hasReleasedCycle ? existingItem?.sterilizationDate : undefined,
+      sterilizedBy: hasReleasedCycle ? existingItem?.sterilizedBy : undefined,
+      autoclaveModel: hasReleasedCycle ? existingItem?.autoclaveModel : undefined,
+      autoclaveWaterVolume: hasReleasedCycle ? existingItem?.autoclaveWaterVolume : undefined,
+      autoclaveTemperature: hasReleasedCycle ? existingItem?.autoclaveTemperature : undefined,
+      autoclavePressure: hasReleasedCycle ? existingItem?.autoclavePressure : undefined,
+      autoclaveSterilizationTime: hasReleasedCycle ? existingItem?.autoclaveSterilizationTime : undefined,
+      autoclaveDryingMode: hasReleasedCycle ? existingItem?.autoclaveDryingMode : undefined,
+      autoclaveCycleType: hasReleasedCycle ? existingItem?.autoclaveCycleType : undefined,
       itemType: itemType || ((category === 'Equipamentos' || requiresMaintenance) ? ('equipamento' as const) : category === 'Instrumentais' ? ('instrumental' as const) : ('insumo' as const)),
       serialNumber: serialNumber || undefined,
       requiresMaintenance,
@@ -1703,7 +1417,7 @@ export const InventoryManager: React.FC = () => {
             Controle de Estoque & Manutenção de Equipamentos
           </h1>
           <p className="text-xs opacity-75">
-            Gestão abrangente de materiais, equipamentos odontológicos, alertas de compra, manutenção preventiva e scanner com Google Lens.
+            Gestão abrangente de materiais, equipamentos odontológicos, alertas de compra, manutenção preventiva e scanner com identificação visual.
           </p>
         </div>
 
@@ -1760,9 +1474,9 @@ export const InventoryManager: React.FC = () => {
                             unitCost: parseFloat(cols[5]?.trim() || '20') || 20,
                             supplier: cols[6]?.trim() || 'Dental Cremer',
                             notes: cols[7]?.trim() || 'Importado via CSV',
-                            requiresSterilization: true,
-                            isSterilized: true,
-                            itemType: 'insumo',
+                            requiresSterilization: (cols[2]?.trim() || '') === 'Instrumentais',
+                            isSterilized: false,
+                            itemType: (cols[2]?.trim() || '') === 'Instrumentais' ? 'instrumental' : 'insumo',
                             ownerScope: 'compartilhado'
                           });
                           count++;
@@ -1806,7 +1520,7 @@ export const InventoryManager: React.FC = () => {
               }, 150);
             }}
             className="px-4 py-2.5 bg-[#1b281d] hover:bg-[#2c3e2e] text-white font-medium text-xs rounded-2xl flex items-center justify-center gap-2 border border-[#d4a373]/50 shadow-sm transition-all"
-            title="Escanear caixa, frasco, rótulo ou QR Code com Google Lens AI e câmera"
+            title="Escanear caixa, frasco, rótulo ou QR Code com Identificação visual e câmera"
           >
             <Scan className="w-4 h-4 text-amber-300 animate-pulse" />
             <span>Escanear Lens AI</span>
@@ -2085,9 +1799,9 @@ export const InventoryManager: React.FC = () => {
                               unitCost: parseFloat(cols[5]?.trim() || '20') || 20,
                               supplier: cols[6]?.trim() || 'Dental Cremer',
                               notes: cols[7]?.trim() || 'Importado via CSV',
-                              requiresSterilization: true,
-                              isSterilized: true,
-                              itemType: 'insumo',
+                              requiresSterilization: (cols[2]?.trim() || '') === 'Instrumentais',
+                              isSterilized: false,
+                              itemType: (cols[2]?.trim() || '') === 'Instrumentais' ? 'instrumental' : 'insumo',
                               ownerScope: 'compartilhado'
                             });
                             count++;
@@ -3205,8 +2919,8 @@ export const InventoryManager: React.FC = () => {
                           Materiais e Instrumentais Incluídos Neste Ciclo de Autoclave:
                         </label>
                         <div className="p-3 bg-white rounded-2xl border border-[#e5e5d1] max-h-36 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
-                          {inventory.filter(i => i.category !== 'Equipamentos' && i.itemType !== 'equipamento').sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')).map(item => {
-                            const isChecked = newCycleSelectedItems.includes(item.name);
+                          {inventory.filter(i => i.requiresSterilization || i.itemType === 'instrumental' || i.category === 'Instrumentais').sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')).map(item => {
+                            const isChecked = newCycleSelectedItems.includes(item.id);
                             return (
                               <label key={item.id} className="flex items-center gap-2 p-1 hover:bg-[#fbfbf9] rounded-lg cursor-pointer">
                                 <input
@@ -3214,9 +2928,9 @@ export const InventoryManager: React.FC = () => {
                                   checked={isChecked}
                                   onChange={(e) => {
                                     if (e.target.checked) {
-                                      setNewCycleSelectedItems(prev => [...prev, item.name]);
+                                      setNewCycleSelectedItems(prev => [...prev, item.id]);
                                     } else {
-                                      setNewCycleSelectedItems(prev => prev.filter(n => n !== item.name));
+                                      setNewCycleSelectedItems(prev => prev.filter(id => id !== item.id));
                                     }
                                   }}
                                   className="w-4 h-4 text-[#2c3e2e] accent-[#2c3e2e] rounded"
@@ -3279,13 +2993,15 @@ export const InventoryManager: React.FC = () => {
                             <th className="p-3">Parâmetros (Temp/Bar)</th>
                             <th className="p-3 text-center">Módulo Integrador</th>
                             <th className="p-3 text-center">Teste Biológico</th>
+                            <th className="p-3 text-center">Situação do Material</th>
                             <th className="p-3 text-center">Fotografias & Laudo</th>
                             <th className="p-3 text-right">Ação</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#e5e5d1]">
                           {autoclaveLogs.map((log) => (
-                            <tr key={log.id} className="hover:bg-[#fbfbf9]">
+                            <React.Fragment key={log.id}>
+                            <tr className="hover:bg-[#fbfbf9]">
                               <td className="p-3 font-mono font-bold text-[#2c3e2e] whitespace-nowrap">
                                 {formatBRDate(log.date.slice(0, 10))} {log.date.slice(11, 16)}
                               </td>
@@ -3298,7 +3014,7 @@ export const InventoryManager: React.FC = () => {
                                 {log.temperature}°C • {log.pressure} bar • {log.durationMinutes} min
                               </td>
                               <td className="p-3 text-center">
-                                <span className="px-2 py-1 bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-lg text-[10px] font-bold">
+                                <span className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${log.chemicalIntegratorResult === 'Aprovado (Cor Conforme)' ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-rose-100 text-rose-900 border-rose-300'}`}>
                                   {log.chemicalIntegratorResult}
                                 </span>
                               </td>
@@ -3310,6 +3026,20 @@ export const InventoryManager: React.FC = () => {
                                 }`}>
                                   {log.biologicalTestResult}
                                 </span>
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${
+                                  log.cycleStatus === 'released'
+                                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                    : log.cycleStatus === 'rejected'
+                                      ? 'bg-rose-100 text-rose-900 border-rose-300'
+                                      : 'bg-amber-100 text-amber-900 border-amber-300'
+                                }`}>
+                                  {log.cycleStatus === 'released' ? 'Liberado' : log.cycleStatus === 'rejected' ? 'Reprovado / Bloqueado' : log.itemsIncludedIds?.length ? 'Quarentena' : 'Legado sem vínculo'}
+                                </span>
+                                {log.cycleStatus === 'released' && log.releasedAt && (
+                                  <span className="block text-[9px] text-gray-500 mt-1">Liberado em {formatBRDate(log.releasedAt.slice(0, 10))}</span>
+                                )}
                               </td>
                               <td className="p-3 text-center">
                                 <div className="flex items-center justify-center gap-1.5">
@@ -3345,21 +3075,58 @@ export const InventoryManager: React.FC = () => {
                                   )}
                                 </div>
                               </td>
-                              <td className="p-3 text-right">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (confirm(`Deseja excluir o registro do ciclo ${log.cycleNumber}?`)) {
-                                      setAutoclaveLogs(prev => prev.filter(l => l.id !== log.id));
-                                    }
-                                  }}
-                                  className="p-1.5 text-gray-400 hover:text-rose-600 rounded-lg transition cursor-pointer"
-                                  title="Excluir do banco de dados"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
+                              <td className="p-3 text-right whitespace-nowrap">
+                                {log.cycleStatus === 'quarantined' && log.biologicalTestResult === 'Pendente' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setUpdatingCycleId(updatingCycleId === log.id ? null : log.id);
+                                      setUpdatedBiologicalResult('Aprovado (Negativo)');
+                                    }}
+                                    className="px-2.5 py-1.5 bg-blue-50 text-blue-800 border border-blue-200 rounded-lg text-[10px] font-bold"
+                                  >
+                                    Registrar resultado
+                                  </button>
+                                )}
+                                {log.cycleStatus === 'quarantined' && log.biologicalTestResult === 'Aprovado (Negativo)' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleReleaseAutoclaveCycle(log)}
+                                    className="px-2.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-[10px] font-bold"
+                                  >
+                                    Liberar materiais
+                                  </button>
+                                )}
+                                {(!log.itemsIncludedIds?.length || log.cycleStatus === 'released' || log.cycleStatus === 'rejected') && (
+                                  <span className="text-[10px] text-gray-400">Registro mantido</span>
+                                )}
                               </td>
                             </tr>
+                            {updatingCycleId === log.id && (
+                              <tr>
+                                <td colSpan={9} className="p-3 bg-blue-50 border-b border-blue-200">
+                                  <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <div>
+                                      <p className="text-xs font-bold text-blue-900">Resultado do teste biológico · {log.cycleNumber}</p>
+                                      <p className="text-[10px] text-blue-800">Reprovação bloqueia todo o conteúdo deste ciclo. Para reprocessar, registre outro ciclo.</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <select
+                                        value={updatedBiologicalResult}
+                                        onChange={event => setUpdatedBiologicalResult(event.target.value as typeof updatedBiologicalResult)}
+                                        className="bg-white border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs font-bold"
+                                      >
+                                        <option value="Aprovado (Negativo)">Aprovado (Negativo)</option>
+                                        <option value="Reprovado (Positivo)">Reprovado (Positivo)</option>
+                                      </select>
+                                      <button type="button" onClick={() => handleRecordBiologicalResult(log)} className="px-3 py-1.5 bg-blue-700 text-white rounded-lg text-xs font-bold">Salvar resultado</button>
+                                      <button type="button" onClick={() => setUpdatingCycleId(null)} className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-bold">Cancelar</button>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                            </React.Fragment>
                           ))}
                         </tbody>
                       </table>
@@ -3738,7 +3505,7 @@ export const InventoryManager: React.FC = () => {
                     {editingItemId ? 'Editar Material / Equipamento' : 'Novo Cadastro de Material / Equipamento'}
                   </h3>
                   <p className="text-[11px] text-gray-500">
-                    {editingItemId ? 'Altere dados do item, gerencie estoque ou adicione/remova fotos de identificação' : 'Adicione ao inventário com identificação visual via câmera/Google Lens'}
+                    {editingItemId ? 'Altere dados do item, gerencie estoque ou adicione/remova fotos de identificação' : 'Adicione ao inventário com identificação visual via câmera/identificação visual'}
                   </p>
                 </div>
               </div>
@@ -3762,7 +3529,7 @@ export const InventoryManager: React.FC = () => {
                 </div>
               )}
 
-              {/* Google Lens AI Notification Banner */}
+              {/* Identificação visual Notification Banner */}
               {lensScanSuccess && (
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-2.5 text-xs text-amber-900 font-medium animate-fadeIn">
                   <Sparkles className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
@@ -4053,12 +3820,12 @@ export const InventoryManager: React.FC = () => {
                   </div>
                 )}
 
-                {/* Google Lens AI Scanning Overlay Indicator */}
+                {/* Identificação visual Scanning Overlay Indicator */}
                 {isScanningLens && (
                   <div className="p-3 bg-amber-500/10 border border-amber-400/40 rounded-2xl flex items-center gap-3 text-amber-900 animate-pulse">
                     <Scan className="w-5 h-5 text-amber-600 animate-spin shrink-0" />
                     <div>
-                      <p className="text-xs font-bold">Google Lens AI Analisando Foto do Material...</p>
+                      <p className="text-xs font-bold">Identificação visual Analisando Foto do Material...</p>
                       <p className="text-[10px] text-amber-800">Identificando fabricante, categoria, modelo e preenchendo os campos do cadastro.</p>
                     </div>
                   </div>
@@ -4617,11 +4384,37 @@ export const InventoryManager: React.FC = () => {
                   <input
                     type="number"
                     required
+                    min="0"
+                    step="any"
                     value={quantity}
                     onChange={(e) => setQuantity(e.target.value)}
                     className="w-full bg-[#fbfbf9] border border-[#e5e5d1] rounded-2xl px-3.5 py-2.5 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40] font-mono"
                   />
                 </div>
+              </div>
+
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-3.5 space-y-3">
+                <div>
+                  <h4 className="text-xs font-bold text-emerald-900">Consumo por embalagem</h4>
+                  <p className="text-[11px] text-gray-600 mt-1">O saldo continua em {unit}. Informe o conteúdo de uma embalagem para descontar apenas o que foi utilizado. Exemplo: 100 unidades por caixa. Deixe os dois campos vazios se estoque e consumo usam a mesma unidade.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#5a5a40] mb-1" htmlFor="stock-consumption-unit">Unidade de consumo</label>
+                    <input id="stock-consumption-unit" type="text" value={consumptionUnit} placeholder="Ex.: unidade, tubete, ml"
+                      onChange={e => setConsumptionUnit(e.target.value)}
+                      className="w-full bg-white border border-[#e5e5d1] rounded-xl px-3 py-2 text-xs" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#5a5a40] mb-1" htmlFor="stock-package-size">Quantidade por {unit}</label>
+                    <input id="stock-package-size" type="number" min="0" step="any" value={unitsPerStockUnit} placeholder="Ex.: 100"
+                      onChange={e => setUnitsPerStockUnit(e.target.value)}
+                      className="w-full bg-white border border-[#e5e5d1] rounded-xl px-3 py-2 text-xs" />
+                  </div>
+                </div>
+                {consumptionUnit.trim() && Number(unitsPerStockUnit) > 0 && (
+                  <p className="text-xs text-emerald-900">1 {unit} = {unitsPerStockUnit} {consumptionUnit}. Cadastrar a conversão não multiplica nem repõe o saldo.</p>
+                )}
               </div>
 
               {/* COSTS & MIN QUANTITY */}
@@ -4648,6 +4441,8 @@ export const InventoryManager: React.FC = () => {
                   <input
                     type="number"
                     required
+                    min="0"
+                    step="any"
                     value={minQuantity}
                     onChange={(e) => setMinQuantity(e.target.value)}
                     className="w-full bg-[#fbfbf9] border border-[#e5e5d1] rounded-2xl px-3.5 py-2.5 text-xs text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40] font-mono"
@@ -4766,20 +4561,18 @@ export const InventoryManager: React.FC = () => {
                     </div>
 
                     {requiresSterilization ? (
-                      <div className="pl-2 space-y-2">
-                        <label className="flex items-center gap-2.5 text-xs font-bold text-[#2c2c2c] cursor-pointer">
+                      <fieldset className="pl-2 space-y-2" disabled>
+                        <legend className="text-xs font-bold text-[#2c2c2c]">
+                          Situação controlada exclusivamente pelo ciclo rastreável
+                        </legend>
+                        <label className="flex items-center gap-2.5 text-xs font-bold text-[#2c2c2c]">
                           <input
                             type="checkbox"
                             checked={isSterilized}
-                            onChange={(e) => {
-                              setIsSterilized(e.target.checked);
-                              if (e.target.checked && !sterilizationDate) {
-                                setSterilizationDate(new Date().toISOString().split('T')[0]);
-                              }
-                            }}
+                            readOnly
                             className="w-4 h-4 rounded text-[#2c3e2e] accent-[#2c3e2e]"
                           />
-                          <span>Material / Instrumental Esterilizado na Autoclave</span>
+                          <span>{isSterilized ? 'Ciclo aprovado e material liberado' : 'Em quarentena ou sem ciclo aprovado'}</span>
                         </label>
 
                         {isSterilized && (
@@ -4902,45 +4695,9 @@ export const InventoryManager: React.FC = () => {
                               <span className="text-[10px] text-gray-500 font-medium">(Acresce 6 meses automaticamente — Não Editável)</span>
                             </div>
 
-                            {/* SHORTCUT BUTTON TO AUTOCLAVE CONTROL REPORT */}
-                            <div className="pt-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setIsSterilized(true);
-                                  const todayStr = new Date().toISOString().split('T')[0];
-                                  setSterilizationDate(todayStr);
-
-                                  if (editingItemId) {
-                                    updateInventoryItem(editingItemId, {
-                                      isSterilized: true,
-                                      sterilizationDate: todayStr,
-                                      sterilizedBy,
-                                      autoclaveModel,
-                                      autoclaveWaterVolume,
-                                      autoclaveTemperature,
-                                      autoclavePressure,
-                                      autoclaveSterilizationTime,
-                                      autoclaveDryingMode,
-                                      autoclaveCycleType
-                                    });
-                                  }
-
-                                  setIsAddItemModalOpen(false);
-                                  setIsTotalItemsModalOpen(true);
-                                  setReportModalTab('autoclave');
-                                  setShowAddCycleForm(true);
-                                  setNewCycleSelectedItems(name ? [name] : ['Material em Edição']);
-                                }}
-                                className="w-full px-3.5 py-2 bg-[#2c3e2e] hover:bg-[#1b281d] text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 transition cursor-pointer"
-                              >
-                                <Sparkles className="w-4 h-4 text-amber-300" />
-                                <span>Atalho: Abrir Controle de Esterilização (Autoclave) com Este Material</span>
-                              </button>
-                            </div>
                           </div>
                         )}
-                      </div>
+                      </fieldset>
                     ) : (
                       <p className="text-[11px] text-emerald-800 bg-emerald-50/80 border border-emerald-200 rounded-xl p-2.5 flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -5185,7 +4942,7 @@ export const InventoryManager: React.FC = () => {
         </div>
       )}
       {/* ========================================================================= */}
-      {/* MODAL: GOOGLE LENS AI PHOTO SCANNER */}
+      {/* MODAL: IDENTIFICAÇÃO VISUAL PHOTO SCANNER */}
       {/* ========================================================================= */}
       {isLensModalOpen && (
         <div className="fixed inset-0 z-50 bg-[#2c2c2c]/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
@@ -5196,7 +4953,7 @@ export const InventoryManager: React.FC = () => {
                   <Scan className="w-5 h-5 animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-[#2c2c2c]">Adicionar por Foto (Google Lens AI)</h3>
+                  <h3 className="text-base font-bold text-[#2c2c2c]">Adicionar por Foto (Identificação visual)</h3>
                   <p className="text-[11px] text-gray-500">Capture a embalagem, frasco ou rótulo para identificação automática</p>
                 </div>
               </div>
@@ -5229,7 +4986,7 @@ export const InventoryManager: React.FC = () => {
             {isScanningLens ? (
               <div className="p-8 text-center bg-amber-500/10 border border-amber-400/40 rounded-2xl space-y-3 animate-pulse">
                 <Scan className="w-10 h-10 text-amber-600 animate-spin mx-auto" />
-                <h4 className="text-sm font-bold text-amber-900">Google Lens AI Analisando Imagem...</h4>
+                <h4 className="text-sm font-bold text-amber-900">Identificação visual Analisando Imagem...</h4>
                 <p className="text-xs text-amber-800 max-w-xs mx-auto">
                   Processando padrão visual, OCR de rótulo e comparando com catálogo de insumos odontológicos.
                 </p>
@@ -5326,7 +5083,7 @@ export const InventoryManager: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* PROMPT DE AÇÃO: 3 MODOS DE CAPTURA PELA CÂMERA (GOOGLE LENS AI) */}
+      {/* PROMPT DE AÇÃO: 3 MODOS DE CAPTURA PELA CÂMERA (IDENTIFICAÇÃO VISUAL) */}
       {/* ========================================================================= */}
       {showSavePhotoPrompt && (
         <div className="fixed inset-0 z-50 bg-[#2c2c2c]/80 backdrop-blur-xs flex items-center justify-center p-4">
@@ -5336,7 +5093,7 @@ export const InventoryManager: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-[#2c2c2c]">Foto Analisada pelo Google Lens AI</h3>
+              <h3 className="text-base font-bold text-[#2c2c2c]">Foto Analisada pelo Identificação visual</h3>
               <p className="text-xs text-gray-600 leading-relaxed">
                 Escolha uma das 3 opções para prosseguir com o cadastro deste material:
               </p>
@@ -5362,7 +5119,7 @@ export const InventoryManager: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-700 text-white shadow-2xs">
                     <Sparkles className="w-3 h-3 text-amber-300 animate-spin" />
-                    Identificado via Google Lens AI (98.6%)
+                    Identificado via sugestão local não verificada
                   </span>
                   <span className="text-xs font-bold text-emerald-900 font-mono">
                     R$ {lastRecognizedProduct.unitCost.toFixed(2)}
@@ -5380,7 +5137,7 @@ export const InventoryManager: React.FC = () => {
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-left space-y-1">
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-700 text-white">
                   <AlertCircle className="w-3 h-3" />
-                  Não identificado no Google Lens
+                  Não identificado no identificação visual
                 </span>
                 <p className="text-[11px] text-amber-900">
                   Não foi possível ler o rótulo da imagem. Você pode manter esta foto e preencher as informações manualmente.
@@ -5555,18 +5312,16 @@ export const InventoryManager: React.FC = () => {
       {/* Single Appointment Materials Report Modal */}
       {selectedAppointmentForReport && (
         <AppointmentMaterialsReportModal
-          appointment={selectedAppointmentForReport}
+          key={selectedAppointmentForReport.id}
+          appointment={appointments.find(item => item.id === selectedAppointmentForReport.id) || selectedAppointmentForReport}
           inventory={inventory}
           tussProcedures={tussProcedures}
           clinics={clinics}
           professionals={professionals}
           onClose={() => setSelectedAppointmentForReport(null)}
-          onDeductStock={(materialsToDeduct) => {
-            materialsToDeduct.forEach(item => {
-              adjustStockQuantity(item.inventoryItemId, -item.quantityToDeduct);
-            });
-            setSelectedAppointmentForReport(null);
-          }}
+          onDeductStock={(materialsToDeduct, expectedMaterials) =>
+            deductAppointmentStock(selectedAppointmentForReport.id, materialsToDeduct, expectedMaterials)
+          }
         />
       )}
 
@@ -5694,7 +5449,7 @@ export const InventoryManager: React.FC = () => {
           clinics={clinics}
           professionals={professionals}
           clinicName={clinicInfo?.name || 'Clínica MARV Odontologia & Gestão'}
-          technicalResponsible={clinicInfo?.technicalManager ? `${clinicInfo.technicalManager} — ${clinicInfo.croTechnicalManager || 'CRO'}` : 'Dr. Hugo Andres Iglesias Ricoy — CRO/CE 5925'}
+          technicalResponsible={clinicInfo?.technicalManager ? `${clinicInfo.technicalManager} — ${clinicInfo.croNumber || clinicInfo.cro || 'CRO'}` : 'Dr. Hugo Andres Iglesias Ricoy — CRO/CE 5925'}
           autoclaveModel="Autoclave Cristófoli Vitale Class 12L"
         />
       )}

@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { panelTitles, panelData, panelSummary, validateExamDate, persistClinicalSave } from '../utils/clinicalPanelArchive';
+import type { ClinicalPanel } from '../utils/clinicalPanelArchive';
+import { createClinicalPanelPdf } from '../utils/clinicalPanelPdf';
+import { STORAGE_KEYS } from '../utils/storageKeys';
+import { restoreDatabaseBackup } from '../utils/databaseBackup';
+import { APPOINTMENT_STOCK_LOCK } from '../utils/appointmentStockStore';
+import { useAppointmentStockStore } from './useAppointmentStockStore';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { 
   Patient, 
   Appointment, 
@@ -46,8 +53,10 @@ import { INITIAL_DOCUMENT_TEMPLATES } from '../data/documentTemplatesCatalog';
 import { DEFAULT_DR_HUGO_SIGNATURE, DEFAULT_DR_HUGO_STAMP, cleanSignatureText } from '../utils/formatters';
 
 export type ActiveTab = 'dashboard' | 'pacientes' | 'agendamento' | 'relatorios' | 'configuracoes' | 'exame_clinico' | 'odontograma' | 'estoque' | 'financeiro' | 'triagem' | 'documentos' | 'laudos';
+export type AIProvider = 'disabled' | 'deepseek' | 'copilot';
 
 export interface ClinicInfo {
+  aiProvider?: AIProvider;
   name: string;
   dentistName: string;
   cro: string;
@@ -87,7 +96,7 @@ export interface ClinicInfo {
   signatureAlignment?: 'right' | 'center' | 'left';
 }
 
-interface AppContextType {
+export interface AppContextType {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   
@@ -128,11 +137,14 @@ interface AppContextType {
   // Appointments
   appointments: Appointment[];
   addAppointment: (apt: Omit<Appointment, 'id'>) => Appointment;
+  materialTemplates: ReturnType<typeof useAppointmentStockStore>["materialTemplates"];
+  saveAppointmentMaterials: ReturnType<typeof useAppointmentStockStore>["saveAppointmentMaterials"];
   updateAppointmentStatus: (id: string, status: AppointmentStatus) => void;
   deleteAppointment: (id: string) => void;
   
   // Inventory
   inventory: InventoryItem[];
+  deductAppointmentStock: ReturnType<typeof useAppointmentStockStore>["deductAppointmentStock"];
   addInventoryItem: (item: Omit<InventoryItem, 'id' | 'lastUpdated'>) => void;
   importInventoryBatch: (items: Omit<InventoryItem, 'id' | 'lastUpdated'>[]) => void;
   updateInventoryItem: (id: string, item: Partial<InventoryItem>) => void;
@@ -177,6 +189,7 @@ interface AppContextType {
   // Clinical Exam (Extraoral & Intraoral & Odontogram Photos)
   clinicalExams: Record<string, ClinicalExam>;
   getClinicalExam: (patientId: string) => ClinicalExam;
+  saveClinicalPanel: (patientId: string, panel: ClinicalPanel, date: string, patch?: Partial<ClinicalExam> & Pick<Patient, "medicalVitalSigns">, source?: HTMLElement | null) => Promise<void>;
   updateClinicalExam: (patientId: string, examData: Partial<ClinicalExam>) => void;
   
   // TUSS Database & Price Tables & Treatment Plans
@@ -217,7 +230,7 @@ interface AppContextType {
   // Database Checkpoint & Backup Management
   createDatabaseCheckpoint: () => { timestamp: string; summary: string };
   exportDatabaseBackupJSON: () => void;
-  importDatabaseBackupJSON: (jsonString: string) => boolean;
+  importDatabaseBackupJSON: (jsonString: string) => Promise<void>;
   lastCheckpointTime: string | null;
 
   // WhatsApp Action Modal Helper
@@ -228,30 +241,7 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const STORAGE_KEYS = {
-  PATIENTS: 'dentispro_patients_v2',
-  APPOINTMENTS: 'dentispro_appointments_v2',
-  INVENTORY: 'dentispro_inventory_v2',
-  FINANCIAL: 'dentispro_financial_v2',
-  PRESCRIPTIONS: 'dentispro_prescriptions_v2',
-  ODONTOGRAMS: 'dentispro_odontograms_v2',
-  ODONTOGRAM_SNAPSHOTS: 'dentispro_odontogram_snapshots_v2',
-  EVOLUTIONS: 'dentispro_evolutions_v2',
-  CLINICAL_EXAMS: 'dentispro_clinical_exams_v2',
-  TREATMENT_PLANS: 'dentispro_treatment_plans_v2',
-  PATIENT_PAYMENTS: 'dentispro_patient_payments_v2',
-  TUSS_PROCEDURES: 'dentispro_tuss_procedures_v1',
-  PRICE_TABLES: 'dentispro_price_tables_v1',
-  CLINIC_INFO: 'dentispro_clinic_info_v1',
-  CLINICS: 'dentispro_clinics_v1',
-  PROFESSIONALS: 'dentispro_professionals_v1',
-  ACTIVE_CLINIC: 'dentispro_active_clinic_v1',
-  LAYOUT_THEME: 'dentispro_layout_theme_v1',
-  COMMISSIONS: 'dentispro_commissions_v2',
-  INSURANCE_GUIDES: 'dentispro_insurance_guides_v2',
-  SAVED_DOCUMENTS: 'dentispro_saved_documents_v2',
-  DOCUMENT_TEMPLATES: 'dentispro_document_templates_v1',
-};
+
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
@@ -317,115 +307,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [patients, setPatients] = useState<Patient[]>(() => {
     const list = loadInitial<Patient[]>(STORAGE_KEYS.PATIENTS, INITIAL_PATIENTS);
-    const existingIds = new Set(list.map(p => p.id));
-    const missing = INITIAL_PATIENTS.filter(p => !existingIds.has(p.id));
-    const merged = missing.length > 0 ? [...list, ...missing] : list;
-    return merged.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
+    return list.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
   });
-  const [appointments, setAppointments] = useState<Appointment[]>(() => {
-    const list = loadInitial<Appointment[]>(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS);
-    const existingIds = new Set(list.map(a => a.id));
-    const missing = INITIAL_APPOINTMENTS.filter(a => !existingIds.has(a.id));
-    const merged = missing.length > 0 ? [...list, ...missing] : list;
-    return merged.sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`));
-  });
-  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
-    const loaded = loadInitial<InventoryItem[]>(STORAGE_KEYS.INVENTORY, INITIAL_INVENTORY);
-    const seenNames = new Set<string>();
-    const seenCodes = new Set<string>();
-    const idsToRemove = new Set(['inv-76172', 'inv-puc-34']);
-    const clean: InventoryItem[] = [];
-
-    const cleanItem = (item: InventoryItem): InventoryItem => {
-      let id = item.id;
-      if (id && id.startsWith('inv-puc-')) {
-        id = id.replace('inv-puc-', 'inv-acd-');
-      }
-      let itemCode = item.itemCode || '';
-      if (itemCode.toUpperCase().startsWith('PUC-')) {
-        itemCode = itemCode.replace(/PUC-/i, 'ACD-');
-      }
-      let supplier = item.supplier || '';
-      if (supplier.toUpperCase().includes('PUC')) {
-        supplier = supplier.replace(/PUC\s*(Campinas|Academic)?/gi, 'Dental Cremer').trim();
-      }
-      let notes = item.notes || '';
-      if (notes.toUpperCase().includes('PUC')) {
-        notes = notes.replace(/PUC\s*(Campinas|Academic)?/gi, '').trim();
-      }
-      let name = item.name || '';
-      if (name.toUpperCase().includes('PUC')) {
-        name = name.replace(/PUC\s*(Campinas|Academic)?/gi, '').trim();
-      }
-      return {
-        ...item,
-        id,
-        itemCode,
-        supplier,
-        notes,
-        name
-      };
-    };
-
-    const initialMap = new Map<string, InventoryItem>();
-    INITIAL_INVENTORY.forEach(item => {
-      if (item.id) initialMap.set(item.id, item);
-      if (item.itemCode) initialMap.set(item.itemCode, item);
-    });
-
-    const processItem = (rawItem: InventoryItem) => {
-      if (!rawItem) return;
-      const item = cleanItem(rawItem);
-      if (idsToRemove.has(item.id) || idsToRemove.has(item.itemCode || '')) return;
-      if (item.id && item.id.startsWith('inv-off-')) return;
-
-      if (item.id && initialMap.has(item.id)) {
-        const initItem = initialMap.get(item.id)!;
-        if (initItem.quantity > 0) {
-          item.quantity = Math.max(item.quantity, initItem.quantity);
-        }
-      }
-
-      const normName = (item.name || '').trim().toLowerCase();
-      const normCode = (item.itemCode || '').trim().toLowerCase();
-
-      if (normName && seenNames.has(normName)) return;
-      if (normCode && seenCodes.has(normCode)) return;
-
-      if (normName) seenNames.add(normName);
-      if (normCode) seenCodes.add(normCode);
-      clean.push(item);
-    };
-
-    loaded.forEach(processItem);
-    INITIAL_INVENTORY.forEach(processItem);
-    return clean.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
-  });
+  const {
+    appointments, inventory, setAppointments, setInventory,
+    deductAppointmentStock, replaceStockData, materialTemplates, saveAppointmentMaterials
+  } = useAppointmentStockStore(INITIAL_APPOINTMENTS, INITIAL_INVENTORY);
   const [financials, setFinancials] = useState<FinancialTransaction[]>(() => {
     const list = loadInitial<FinancialTransaction[]>(STORAGE_KEYS.FINANCIAL, INITIAL_FINANCIAL);
-    const existingIds = new Set(list.map(f => f.id));
-    const missing = INITIAL_FINANCIAL.filter(f => !existingIds.has(f.id));
-    const merged = missing.length > 0 ? [...list, ...missing] : list;
-    return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   });
   const [prescriptions, setPrescriptions] = useState<Prescription[]>(() => {
     const list = loadInitial<Prescription[]>(STORAGE_KEYS.PRESCRIPTIONS, INITIAL_PRESCRIPTIONS);
-    const existingIds = new Set(list.map(p => p.id));
-    const missing = INITIAL_PRESCRIPTIONS.filter(p => !existingIds.has(p.id));
-    const merged = missing.length > 0 ? [...list, ...missing] : list;
-    return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   });
   const [odontograms, setOdontograms] = useState<Record<string, ToothCondition[]>>(() => {
     const loaded = loadInitial<Record<string, ToothCondition[]>>(STORAGE_KEYS.ODONTOGRAMS, INITIAL_ODONTOGRAM_DATA);
-    return { ...INITIAL_ODONTOGRAM_DATA, ...loaded };
+    return loaded;
   });
   const [odontogramSnapshots, setOdontogramSnapshots] = useState<Record<string, OdontogramSnapshot[]>>(() => loadInitial(STORAGE_KEYS.ODONTOGRAM_SNAPSHOTS, INITIAL_ODONTOGRAM_SNAPSHOTS));
   const [clinicalEvolutions, setClinicalEvolutions] = useState<ClinicalEvolutionEntry[]>(() => {
     const list = loadInitial<ClinicalEvolutionEntry[]>(STORAGE_KEYS.EVOLUTIONS, INITIAL_CLINICAL_EVOLUTION);
-    const existingIds = new Set(list.map(e => e.id));
-    const missing = INITIAL_CLINICAL_EVOLUTION.filter(e => !existingIds.has(e.id));
-    const merged = missing.length > 0 ? [...list, ...missing] : list;
-    return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   });
   const [clinicalExams, setClinicalExams] = useState<Record<string, ClinicalExam>>(() => loadInitial(STORAGE_KEYS.CLINICAL_EXAMS, {}));
   const [tussProcedures, setTussProcedures] = useState<TUSSProcedure[]>(() => {
@@ -478,17 +381,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [treatmentPlans, setTreatmentPlans] = useState<TreatmentPlan[]>(() => {
     const list = loadInitial<TreatmentPlan[]>(STORAGE_KEYS.TREATMENT_PLANS, INITIAL_TREATMENT_PLANS);
-    const existingIds = new Set(list.map(p => p.id));
-    const missing = INITIAL_TREATMENT_PLANS.filter(p => !existingIds.has(p.id));
-    const merged = missing.length > 0 ? [...list, ...missing] : list;
-    return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   });
   const [patientPayments, setPatientPayments] = useState<PatientPayment[]>(() => {
     const list = loadInitial<PatientPayment[]>(STORAGE_KEYS.PATIENT_PAYMENTS, INITIAL_PATIENT_PAYMENTS);
-    const existingIds = new Set(list.map(p => p.id));
-    const missing = INITIAL_PATIENT_PAYMENTS.filter(p => !existingIds.has(p.id));
-    const merged = missing.length > 0 ? [...list, ...missing] : list;
-    return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   });
   const [commissions, setCommissions] = useState<DentistCommissionRecord[]>(() => loadInitial(STORAGE_KEYS.COMMISSIONS, INITIAL_COMMISSIONS));
   const [insuranceGuides, setInsuranceGuides] = useState<InsuranceGuide[]>(() => loadInitial(STORAGE_KEYS.INSURANCE_GUIDES, INITIAL_INSURANCE_GUIDES));
@@ -500,6 +397,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [clinicInfo, setClinicInfo] = useState<ClinicInfo>(() => {
     const defaultObj: ClinicInfo = {
       name: 'DentisPro Odontologia Especializada',
+      aiProvider: 'disabled',
       dentistName: 'Hugo Andres Iglesias Ricoy',
       cro: 'CRO/CE 5925',
       cpf: '879.750.253-72',
@@ -527,6 +425,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const loaded = loadInitial<ClinicInfo>(STORAGE_KEYS.CLINIC_INFO, defaultObj);
     const withDefaults: ClinicInfo = {
       ...loaded,
+      aiProvider: loaded.aiProvider === 'deepseek' || loaded.aiProvider === 'copilot' ? loaded.aiProvider : 'disabled',
       headerSubtitle: cleanSignatureText(loaded.headerSubtitle) || defaultObj.headerSubtitle,
       signatureLabel: cleanSignatureText(loaded.signatureLabel) || defaultObj.signatureLabel,
       signatureImageUrl: loaded.signatureImageUrl !== undefined ? loaded.signatureImageUrl : '',
@@ -561,8 +460,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Sync to localStorage
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients)); }, [patients]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments)); }, [appointments]);
-  useEffect(() => { localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory)); }, [inventory]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.FINANCIAL, JSON.stringify(financials)); }, [financials]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.PRESCRIPTIONS, JSON.stringify(prescriptions)); }, [prescriptions]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.ODONTOGRAMS, JSON.stringify(odontograms)); }, [odontograms]);
@@ -958,10 +855,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateClinicalEvolution = (id: string, updatedData: Partial<ClinicalEvolutionEntry>) => {
+    if (patients.some(p => p.clinicalReports?.some(report => report.id === id))) return;
     setClinicalEvolutions(prev => prev.map(evo => evo.id === id ? { ...evo, ...updatedData } : evo).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };
 
   const deleteClinicalEvolution = (id: string) => {
+    if (patients.some(p => p.clinicalReports?.some(report => report.id === id))) return;
     setClinicalEvolutions(prev => prev.filter(evo => evo.id !== id));
   };
 
@@ -1149,6 +1048,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   };
 
+  const clinicalSaveRef = useRef(false);
+  const clinicalStateRef = useRef({ patients, clinicalExams, clinicalEvolutions, odontograms });
+  clinicalStateRef.current = { patients, clinicalExams, clinicalEvolutions, odontograms };
+  const saveClinicalPanel = async (pId: string, panel: ClinicalPanel, date: string, patch: Partial<ClinicalExam> & Pick<Patient, "medicalVitalSigns"> = {}, source?: HTMLElement | null) => {
+    if (clinicalSaveRef.current) throw Error('Aguarde o salvamento em andamento.');
+    validateExamDate(date);
+    clinicalSaveRef.current = true;
+    try {
+      const state = clinicalStateRef.current;
+      const patient = state.patients.find(p => p.id === pId);
+      if (!patient) throw Error('Paciente não encontrado.');
+      const current = getClinicalExam(pId);
+      const { medicalVitalSigns, ...examPatch } = patch;
+      const exam = { ...current, ...examPatch, updatedAt: new Date().toISOString() };
+      if (panel === 'odontogram') exam.odontogramDate = date;
+      else if (panel === 'pain' && exam.painExam) exam.painExam = { ...exam.painExam, examDate: date };
+      else if (panel === 'extraoral' || panel === 'intraoral') exam[panel] = { ...exam[panel], examDate: date };
+      const summary = panelSummary(panel === 'medical' ? { vitalSigns: medicalVitalSigns ?? patient.medicalVitalSigns } : panelData(panel, exam, state.odontograms[pId] || [])) || 'Sem achados registrados.';
+      const id = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
+      const title = panelTitles[panel];
+      const professionalName = activeProfessional?.name || clinicInfo.dentistName;
+      const pdf = await createClinicalPanelPdf({ title, patient:patient.name, birthDate:patient.birthDate, source, date, recordedAt:createdAt, summary, clinic:clinicInfo, professional:activeProfessional });
+      const latest = clinicalStateRef.current;
+      if (latest.patients !== state.patients || latest.clinicalExams !== state.clinicalExams || latest.clinicalEvolutions !== state.clinicalEvolutions || latest.odontograms !== state.odontograms) throw Error('Os dados mudaram durante a geração do PDF. Salve novamente para arquivar a versão atual.');
+      const nextPatients = state.patients.map(p=>p.id === pId ? {...p, ...(panel === 'medical' ? {medicalExamDate:date,medicalVitalSigns:medicalVitalSigns ?? p.medicalVitalSigns} : {}), clinicalReports:[{id,panel,title,examDate:date,createdAt,professionalName,pdf},...(p.clinicalReports || [])]} : p);
+      const nextExams = {...state.clinicalExams,[pId]:exam};
+      const nextEvolutions = [...state.clinicalEvolutions,{id,patientId:pId,date,dentistName:professionalName,clinicName:clinicInfo.name,procedure:title,description:summary,status:'concluido' as const}];
+      persistClinicalSave(localStorage, [[STORAGE_KEYS.PATIENTS,JSON.stringify(nextPatients)],[STORAGE_KEYS.CLINICAL_EXAMS,JSON.stringify(nextExams)],[STORAGE_KEYS.EVOLUTIONS,JSON.stringify(nextEvolutions)]]);
+      clinicalStateRef.current = {...state,patients:nextPatients,clinicalExams:nextExams,clinicalEvolutions:nextEvolutions};
+      setPatients(nextPatients);setClinicalExams(nextExams);setClinicalEvolutions(nextEvolutions);
+    } catch(error) { throw Error('Não foi possível arquivar o exame, a evolução e o PDF. '+(error instanceof Error?error.message:'')); }
+    finally { clinicalSaveRef.current=false; }
+  };
+
   const updateClinicalExam = (pId: string, examData: Partial<ClinicalExam>) => {
     const newImgs = examData.odontogramImages !== undefined 
       ? examData.odontogramImages 
@@ -1230,8 +1164,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setActiveClinicId('todas');
     setLayoutTheme('natural');
     setPatients([...INITIAL_PATIENTS].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })));
-    setAppointments([...INITIAL_APPOINTMENTS].sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`)));
-    setInventory([...INITIAL_INVENTORY].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
+    replaceStockData({ appointments: [...INITIAL_APPOINTMENTS], inventory: [...INITIAL_INVENTORY] });
     setFinancials([...INITIAL_FINANCIAL].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setPrescriptions([...INITIAL_PRESCRIPTIONS].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setOdontograms(INITIAL_ODONTOGRAM_DATA);
@@ -1280,6 +1213,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       patients,
       appointments,
       inventory,
+      materialTemplates,
       financials,
       prescriptions,
       odontograms,
@@ -1292,6 +1226,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       patientPayments,
       commissions,
       insuranceGuides,
+      documentTemplates,
+      savedClinicDocuments,
       layoutTheme
     };
 
@@ -1321,63 +1257,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Import JSON Backup File
-  const importDatabaseBackupJSON = (jsonString: string): boolean => {
-    try {
-      const data = JSON.parse(jsonString);
-      if (!data || typeof data !== 'object') return false;
-
-      if (data.patients && Array.isArray(data.patients)) {
-        setPatients([...data.patients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })));
-      }
-      if (data.appointments && Array.isArray(data.appointments)) {
-        setAppointments([...data.appointments].sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`)));
-      }
-      if (data.inventory && Array.isArray(data.inventory)) {
-        setInventory([...data.inventory].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
-      }
-      if (data.financials && Array.isArray(data.financials)) {
-        setFinancials([...data.financials].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      }
-      if (data.prescriptions && Array.isArray(data.prescriptions)) {
-        setPrescriptions([...data.prescriptions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      }
-      if (data.odontograms) setOdontograms(data.odontograms);
-      if (data.odontogramSnapshots) setOdontogramSnapshots(data.odontogramSnapshots);
-      if (data.clinicalEvolutions && Array.isArray(data.clinicalEvolutions)) {
-        setClinicalEvolutions([...data.clinicalEvolutions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      }
-      if (data.clinicalExams) setClinicalExams(data.clinicalExams);
-      if (data.treatmentPlans && Array.isArray(data.treatmentPlans)) {
-        setTreatmentPlans([...data.treatmentPlans].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      }
-      if (data.patientPayments && Array.isArray(data.patientPayments)) {
-        setPatientPayments([...data.patientPayments].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      }
-      if (data.clinicInfo) setClinicInfo(data.clinicInfo);
-      if (data.clinics && Array.isArray(data.clinics)) {
-        setClinics([...data.clinics].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
-      }
-      if (data.professionals && Array.isArray(data.professionals)) {
-        setProfessionals([...data.professionals].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
-      }
-      if (data.priceTables && Array.isArray(data.priceTables)) {
-        setPriceTables([...data.priceTables].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR')));
-      }
-      if (data.documentTemplates && Array.isArray(data.documentTemplates)) {
-        setDocumentTemplates([...data.documentTemplates].sort((a, b) => (a.title || '').localeCompare(b.title || '', 'pt-BR', { sensitivity: 'base' })));
-      }
-      if (data.savedClinicDocuments && Array.isArray(data.savedClinicDocuments)) {
-        setSavedClinicDocuments([...data.savedClinicDocuments].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
-      }
-
-      const now = new Date().toLocaleString('pt-BR');
-      setLastCheckpointTime(now);
-      localStorage.setItem('dentispro_last_checkpoint_timestamp', now);
-      return true;
-    } catch (e) {
-      console.error("Erro ao importar backup:", e);
-      return false;
-    }
+  const importDatabaseBackupJSON = async (jsonString: string): Promise<void> => {
+    if (!navigator.locks) throw new Error('Restaure o backup em localhost ou HTTPS, usando um navegador com bloqueio de gravação.');
+    await navigator.locks.request(APPOINTMENT_STOCK_LOCK, () => {
+      restoreDatabaseBackup(localStorage, jsonString);
+      // Reload immediately: mounted React state still contains the previous dataset.
+      window.location.reload();
+    });
   };
 
   return (
@@ -1416,12 +1302,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         appointments,
         addAppointment,
         updateAppointmentStatus,
+        materialTemplates,
+        saveAppointmentMaterials,
         deleteAppointment,
         inventory,
         addInventoryItem,
         importInventoryBatch,
         updateInventoryItem,
         adjustStockQuantity,
+        deductAppointmentStock,
         deleteInventoryItem,
         clearInventory,
         financials,
@@ -1455,6 +1344,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         clinicalExams,
         getClinicalExam,
         updateClinicalExam,
+        saveClinicalPanel,
         tussProcedures,
         addTussProcedure,
         updateTussProcedure,

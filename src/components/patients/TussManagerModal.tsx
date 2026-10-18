@@ -1625,11 +1625,11 @@ ORDER BY p.id ASC;`}</pre>
                 <AutocompleteInput
                   value={newDesc}
                   onChange={setNewDesc}
-                  suggestions={tussProcedures.map(p => ({
+                  suggestions={[...tussProcedures.map(p => ({
                     label: p.description,
                     subLabel: `TUSS: ${p.code} • ${p.specialty}`,
                     data: { code: p.code, specialty: p.specialty }
-                  })).concat([
+                  })),
                     { label: 'Consulta Inicial / Diagnóstico e Plano de Tratamento', subLabel: 'TUSS: 81000030 • Diagnóstico' },
                     { label: 'Profilaxia / Remoção de placa e tártaro', subLabel: 'TUSS: 81000188 • Periodontia' },
                     { label: 'Restauração em Resina Composta (1 face)', subLabel: 'TUSS: 85100030 • Dentística' },
@@ -1638,7 +1638,7 @@ ORDER BY p.id ASC;`}</pre>
                     { label: 'Exodontia Simples de Dente Permanente', subLabel: 'TUSS: 85300015 • Cirurgia' },
                     { label: 'Coroa Total em Porcelana / Zircônia', subLabel: 'TUSS: 85500019 • Prótese' },
                     { label: 'Clareamento Dental a Laser no Consultório', subLabel: 'TUSS: 85600011 • Estética' }
-                  ])}
+                  ]}
                   onSelectSuggestion={(s) => {
                     if (s && (s as any).code && !newCode) {
                       setNewCode((s as any).code);
@@ -1909,3 +1909,4 @@ ORDER BY p.id ASC;`}</pre>
     </div>
   );
 };
+// DentisPro: correcao-lint50-v1

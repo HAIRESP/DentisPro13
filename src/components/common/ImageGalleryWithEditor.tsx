@@ -77,7 +77,9 @@ export const ImageGalleryWithEditor: React.FC<ImageGalleryWithEditorProps> = ({
   }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const files: File[] = e.target.files
+      ? Array.from(e.target.files)
+      : [];
     e.target.value = '';
     if (!files.length || uploadPendingRef.current) return;
     uploadPendingRef.current = true;

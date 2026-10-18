@@ -1,3 +1,4 @@
+import type { ProcedureConsentContent } from '../utils/tclePlan';
 export type Gender = 'cisgenero' | 'transgenero' | 'nao_binario' | 'masculino' | 'feminino' | 'outro' | string;
 
 export interface ClinicUnit {
@@ -201,7 +202,14 @@ export interface PatientPayment {
   notes?: string;
 }
 
+export interface ClinicalPanelReport {
+  id: string; panel: string; title: string; examDate: string; createdAt: string; professionalName: string; pdf: string;
+}
+
 export interface Patient {
+  medicalExamDate?: string;
+  medicalVitalSigns?: ExamVitalSigns;
+  clinicalReports?: ClinicalPanelReport[];
   id: string;
   name: string;
   cpf: string;
@@ -238,6 +246,17 @@ export interface Patient {
 export type AppointmentStatus = 'agendado' | 'confirmado' | 'em_atendimento' | 'concluido' | 'cancelado' | 'faltou';
 
 export interface Appointment {
+    stockDeduction?: {
+    completedAt: string;
+    items: Array<{
+      itemId: string;
+      qty: number; // Quantidade descontada na unidade do estoque
+      stockUnit?: string;
+      unitsPerStockUnit?: number;
+      consumptionUnit?: string;
+      consumptions?: Array<{ quantity: number; unit: string }>;
+    }>;
+  };
   id: string;
   patientId: string;
   patientName: string;
@@ -352,6 +371,10 @@ export interface InventoryItem {
   quantity: number;
   minQuantity: number;
   unit: 'caixa' | 'unidade' | 'frasco' | 'pacote' | 'tubete' | 'kit' | 'peça' | 'conjunto' | string;
+  // Conteúdo de cada unidade de estoque (ex.: 100 unidades por caixa).
+  // Sem conversão automática por nome/observações; cadastro explícito.
+  consumptionUnit?: string;
+  unitsPerStockUnit?: number;
   unitCost: number;
   manufacturingDate?: string;
   expirationDate?: string;
@@ -364,6 +387,8 @@ export interface InventoryItem {
   serialNumber?: string;
   isSterilized?: boolean; // Se o material/instrumental está esterilizado e pronto para uso
   sterilizationDate?: string; // Data do último ciclo de autoclave / esterilização
+  sterilizationCycleId?: string; // Ciclo rastreável que liberou este item
+  sterilizationReleasedAt?: string; // Momento em que a quarentena foi encerrada
   requiresSterilization?: boolean; // Controle ativado/desativado se o material necessita de autoclave
   sterilizedBy?: string; // Nome da pessoa / profissional / atendente responsável que esterilizou e acompanhou o ciclo
   autoclaveModel?: string; // Modelo da autoclave utilizada (ex: Autoclave Cristófoli Vitale Class 12L)
@@ -494,6 +519,7 @@ export interface PriceTable {
 
 export interface ProcedureMaterialRequirement {
   id: string;
+  inventoryItemId?: string;
   materialName: string; // Ex: "Anestésico Lidocaína 2%", "Resina Composta Filtek", "Gaze Estéril", "Sugador Descartável"
   category?: string;
   quantityNeeded: number; // Ex: 1, 2, 0.5
@@ -501,7 +527,7 @@ export interface ProcedureMaterialRequirement {
   notes?: string;
 }
 
-export interface TUSSProcedure {
+export interface TUSSProcedure extends ProcedureConsentContent {
   id?: string | number; // Chave Primária SQL (Primary Key - id serial/inteiro autoincremental)
   code: string; // TUSS code e.g. "81000030" (Chave Única de Negócio ANS)
   tissCode?: string; // Código TISS correspondente
@@ -572,7 +598,7 @@ export interface CustomDocumentTemplate {
 
 export type TreatmentPlanStatus = 'proposto' | 'aprovado' | 'em_andamento' | 'concluido' | 'cancelado';
 
-export interface TreatmentPlanItem {
+export interface TreatmentPlanItem extends ProcedureConsentContent {
   id: string;
   tussCode?: string;
   procedureName: string;
@@ -638,7 +664,16 @@ export interface TreatmentPlan {
   };
 }
 
+export interface ExamVitalSigns {
+  temperature?: string;
+  bloodPressure?: string;
+  heartRate?: string;
+  oxygenSaturation?: string;
+}
+
 export interface ExtraoralExam {
+  vitalSigns?: ExamVitalSigns;
+  examDate?: string;
   faceSymmetry?: string;
   neckLymphNodes?: string;
   atmJoints?: string;
@@ -651,6 +686,8 @@ export interface ExtraoralExam {
 }
 
 export interface IntraoralExam {
+  vitalSigns?: ExamVitalSigns;
+  examDate?: string;
   buccalMucosa?: string;
   tongueAndFloor?: string;
   palateHardSoft?: string;
@@ -725,6 +762,7 @@ export interface ToothPainSummaryItem {
 }
 
 export interface PainEvaluationExam {
+  vitalSigns?: ExamVitalSigns;
   id?: string;
   patientId: string;
   examType: ExamCategoryType; // 'rotina' | 'urgencia'
@@ -743,6 +781,8 @@ export interface PainEvaluationExam {
 }
 
 export interface ClinicalExam {
+  odontogramVitalSigns?: ExamVitalSigns;
+  odontogramDate?: string;
   patientId: string;
   updatedAt: string;
   extraoral: ExtraoralExam;
@@ -758,7 +798,7 @@ export interface SavedClinicDocument {
   formattedDateStr: string;
   title: string;
   subtitle?: string;
-  category: 'atestado' | 'declaracao' | 'solicitacao' | 'receita' | 'outro';
+  category: 'atestado' | 'declaracao' | 'solicitacao' | 'receita' | 'termo' | 'prontuario' | 'outro';
   patientId?: string;
   patientName: string;
   professionalName: string;
@@ -768,5 +808,11 @@ export interface SavedClinicDocument {
   templateId?: string;
   templateData?: Record<string, any>;
   htmlSnapshot?: string;
+  // Metadados gravados pelo prontuário de anamnese; opcionais em documentos anteriores.
+  patientCpf?: string;
+  patientPhone?: string;
+  professionalCro?: string;
+  date?: string;
+  content?: string;
 }
-
+// DentisPro: correcao-lint50-v1

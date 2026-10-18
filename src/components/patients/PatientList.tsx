@@ -1,3 +1,8 @@
+import { validateExamDate } from '../../utils/clinicalPanelArchive';
+import type { ExamVitalSigns } from '../../types';
+import { ExamMeasurements } from './ExamMeasurements';
+import { localExamDate } from '../../utils/clinicalPanelArchive';
+import { ClinicalReportsGallery } from './ClinicalReportsGallery';
 import { getMedicalConditionAlerts } from '../../utils/medicalAlerts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -6,6 +11,7 @@ import { formatCPF, isValidEmail, isValidDateStr } from '../../utils/formatters'
 import { CameraModal } from '../common/CameraModal';
 import { printDocumentWithTitle } from '../../utils/printUtils';
 import { 
+  Save,
   Users, 
   Search, 
   Plus, 
@@ -59,7 +65,8 @@ export const PatientList: React.FC = () => {
     selectedPatientId, 
     setSelectedPatientId, 
     addPatient, 
-    updatePatient, 
+    updatePatient,
+    saveClinicalPanel, 
     appointments, 
     prescriptions, 
     savedClinicDocuments,
@@ -254,6 +261,26 @@ export const PatientList: React.FC = () => {
     .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
 
   const selectedPatient = patients.find(p => p.id === selectedPatientId);
+  const [medicalDraft, setMedicalDraft] = useState<{ patientId: string; date: string; values: ExamVitalSigns } | null>(null);
+  const medicalCaptureRef = React.useRef<HTMLDivElement>(null);
+  const [medicalSaving, setMedicalSaving] = useState(false);
+  const [medicalSaved, setMedicalSaved] = useState(false);
+  const medicalFields = medicalDraft?.patientId === selectedPatient?.id && medicalDraft
+    ? medicalDraft : { patientId: selectedPatient?.id || '', date: selectedPatient?.medicalExamDate ?? localExamDate(), values: selectedPatient?.medicalVitalSigns ?? {} };
+  React.useEffect(() => { setMedicalDraft(null); setMedicalSaved(false); }, [selectedPatientId]);
+  const saveMedicalFields = async () => {
+    if (!selectedPatient || medicalSaving) return;
+    setMedicalSaving(true);
+    try {
+      validateExamDate(medicalFields.date);
+      await saveClinicalPanel(selectedPatient.id, 'medical', medicalFields.date, { medicalVitalSigns: { ...medicalFields.values } }, medicalCaptureRef.current);
+      setMedicalDraft(null);
+      setMedicalSaved(true);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Não foi possível salvar os sinais vitais.');
+    } finally { setMedicalSaving(false); }
+  };
+
 
   const handleCreatePatient = (e: React.FormEvent) => {
     e.preventDefault();
@@ -443,7 +470,7 @@ export const PatientList: React.FC = () => {
                             gender: 'masculino',
                             healthInsurance: 'Particular',
                             address: { street: 'Rua', number: '100', neighborhood: 'Centro', city: 'São Paulo', state: 'SP', cep: '01000-000' },
-                            anamnesis: { hasAllergies: false, hasHeartDisease: false, hasDiabetes: false, hasHypertension: false, bleedingDisorder: false },
+                            anamnesis: { hasAllergies: false, hasHeartDisease: false, hasDiabetes: false, hasHypertension: false, bleedingDisorder: false, isPregnant: false },
                             status: 'ativo'
                           });
                           count++;
@@ -523,7 +550,7 @@ export const PatientList: React.FC = () => {
                     <div className="overflow-hidden">
                       <div className="flex items-center gap-1.5">
                         <h4 className={`font-bold text-xs truncate ${isSelected ? 'text-white' : t.headingText}`}>{p.name}</h4>
-                        {hasAlert && <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" title="Alerta em Anamnese!" />}
+                        {hasAlert && <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" aria-label="Alerta em Anamnese!"><title>Alerta em Anamnese!</title></AlertTriangle>}
                       </div>
                       <p className={`text-[11px] font-mono truncate ${isSelected ? 'opacity-90' : 'text-gray-500'}`}>
                         {p.phone} • {p.preferredClinicName || p.healthInsurance || 'Particular'}
@@ -750,7 +777,7 @@ export const PatientList: React.FC = () => {
 
                 {/* Tab Content 1: Ficha & Anamnese */}
                 {activeProfileTab === 'info' && (
-                  <div className="space-y-5 pt-2">
+                  <div ref={medicalCaptureRef} inert={medicalSaving} className="space-y-5 pt-2">
                     {/* Comprehensive Medical and Dental Anamnesis Box */}
                     <div className={`${t.cardBg} p-5 rounded-3xl border ${t.cardBorder} space-y-4 shadow-2xs`}>
                       <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b ${t.cardBorder} pb-3`}>
@@ -762,6 +789,11 @@ export const PatientList: React.FC = () => {
                           <p className="text-xs opacity-75">Estado de saúde geral, hábitos e queixas específicas do paciente.</p>
                         </div>
 
+                        <div data-pdf-ignore className="flex flex-wrap items-center gap-2">
+                          <button type="button" disabled={medicalSaving} onClick={saveMedicalFields}
+                            className={`px-4 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold rounded-2xl flex items-center gap-1.5 shadow-2xs transition cursor-pointer self-start sm:self-auto`}>
+                            <Save className="w-4 h-4" /> Salvar
+                          </button>
                         <button
                           onClick={() => setIsAnamnesisModalOpen(true)}
                           className={`px-4 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold rounded-2xl flex items-center gap-1.5 shadow-2xs transition cursor-pointer self-start sm:self-auto`}
@@ -769,6 +801,8 @@ export const PatientList: React.FC = () => {
                           <Stethoscope className="w-4 h-4" />
                           Preencher / Editar Prontuário Médico
                         </button>
+                          {medicalSaved && <span role="status" className="text-xs text-emerald-700">Salvo.</span>}
+                        </div>
                       </div>
                       
                       {/* Safety Alerts Summary */}
@@ -903,30 +937,12 @@ export const PatientList: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Contact & Personal Data */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                      <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-2`}>
-                        <span className="opacity-60 font-bold uppercase tracking-wider block text-[10px]">Contato</span>
-                        <p className={`flex items-center gap-2 ${t.cardText}`}><Phone className={`w-3.5 h-3.5 ${t.accentText}`} /> {formatPhoneWithDDI(selectedPatient.phone)}</p>
-                        <p className={`flex items-center gap-2 ${t.cardText}`}><Mail className={`w-3.5 h-3.5 ${t.accentText}`} /> {selectedPatient.email || 'Não informado'}</p>
-                      </div>
-
-                      <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-2`}>
-                        <span className="opacity-60 font-bold uppercase tracking-wider block text-[10px]">Endereço</span>
-                        <p className={t.cardText}>
-                          {selectedPatient.address?.street || 'Rua não informada'}, {selectedPatient.address?.number || 'S/N'} - {selectedPatient.address?.neighborhood || ''}
-                        </p>
-                        <p className="opacity-75">{selectedPatient.address?.city || 'Cidade não informada'} - {selectedPatient.address?.state || ''} ({selectedPatient.address?.cep || ''})</p>
-                      </div>
-
-                      <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-2`}>
-                        <span className="opacity-60 font-bold uppercase tracking-wider block text-[10px]">Plano & Convênio</span>
-                        <p className={`font-bold ${t.headingText}`}>{selectedPatient.healthInsurance || 'Particular'}</p>
-                        <p className="opacity-75">
-                          Carteirinha: <span className="font-mono">{(!selectedPatient.healthInsurance || selectedPatient.healthInsurance === 'Particular') ? 'Não aplicável (Particular)' : (selectedPatient.insuranceNumber || 'Não informada')}</span>
-                        </p>
-                      </div>
-                    </div>
+                    <ExamMeasurements
+                      date={medicalFields.date}
+                      onDateChange={date => { setMedicalDraft({ ...medicalFields, date }); setMedicalSaved(false); }}
+                      values={medicalFields.values}
+                      onChange={values => { setMedicalDraft({ ...medicalFields, values }); setMedicalSaved(false); }}
+                    />
                   </div>
                 )}
 
@@ -1137,9 +1153,10 @@ export const PatientList: React.FC = () => {
                 {/* Tab Content 7: Galeria Unificada de Fotos & Mídia do Prontuário */}
                 {activeProfileTab === 'galeria' && (
                   <div className="space-y-4 pt-2">
+                    <ClinicalReportsGallery reports={selectedPatient.clinicalReports} />
                     <ImageGalleryWithEditor
                       key={selectedPatient.id}
-                      title="Galeria Unificada do Prontuário"
+                      title="Galeria do Prontuário"
                       description="Banco de imagens centralizado deste paciente. Fotos de exames clínicos (extraoral, intraoral, odontograma), radiografias e procedimentos realizados são compartilhados e persistem neste prontuário."
                       images={selectedPatient.images || []}
                       onUpdateImages={(newImgs) => updatePatient(selectedPatient.id, { images: newImgs })}
@@ -1827,3 +1844,4 @@ export const PatientList: React.FC = () => {
     </div>
   );
 };
+// DentisPro: correcao-lint50-v1

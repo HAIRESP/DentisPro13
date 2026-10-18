@@ -1,3 +1,6 @@
+import { ClinicalSaveButton } from './ClinicalSaveButton';
+import { ExamMeasurements, ExamMeasurementsPrint } from './ExamMeasurements';
+import { localExamDate } from '../../utils/clinicalPanelArchive';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Odontogram } from './Odontogram';
@@ -36,12 +39,14 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
     setSelectedPatientId, 
     updatePatient, 
     getClinicalExam, 
-    updateClinicalExam, 
+    updateClinicalExam,
+    saveClinicalPanel, 
     clinicInfo,
     activeProfessional,
     layoutTheme 
   } = useApp();
 
+  const captureRef = React.useRef<HTMLDivElement>(null);
   const t = getThemeStyles(layoutTheme);
 
   const activePatientId = patientIdOverride || selectedPatientId || patients[0]?.id || '';
@@ -86,14 +91,18 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
     }
   }, [activePatientId]);
 
-  const handleSaveExam = () => {
-    updateClinicalExam(activePatientId, {
-      extraoral,
-      intraoral,
-      generalNotes
-    });
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+  const [savingExam, setSavingExam] = useState(false);
+  const handleSaveExam = async () => {
+    if (savingExam) return false;
+    if (activeSection !== 'extraoral' && activeSection !== 'intraoral') return true;
+    setSavingExam(true);
+    try {
+      const data = activeSection === 'extraoral' ? extraoral : intraoral;
+      await saveClinicalPanel(activePatientId, activeSection, data.examDate ?? localExamDate(), { [activeSection]:data, generalNotes }, captureRef.current);
+      setSavedSuccess(true);setTimeout(()=>setSavedSuccess(false),3000);
+      return true;
+    } catch(error) { alert(error instanceof Error ? error.message : 'Falha ao salvar exame.'); return false; }
+    finally { setSavingExam(false); }
   };
 
   // WhatsApp Message Generator
@@ -191,8 +200,8 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
     setTimeout(() => setCopiedSuccess(false), 2000);
   };
 
-  const handleNativePrint = () => {
-    handleSaveExam();
+  const handleNativePrint = async () => {
+    if (!await handleSaveExam()) return;
     setIsPrintModalOpen(true);
     setTimeout(() => {
       printDocumentWithTitle({
@@ -289,13 +298,14 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
       {/* SECTION: EXAME DE URGÊNCIA & DOR */}
       {activeSection === 'dor_urgencia' && (
         <div className="space-y-4">
-          <PainEvaluationExamView patientId={activePatientId} />
+          <PainEvaluationExamView key={activePatientId} patientId={activePatientId} />
         </div>
       )}
 
       {/* SECTION 1: EXAME EXTRAORAL */}
       {activeSection === 'extraoral' && (
-        <div className="bg-white border border-[#e5e5d1] rounded-[32px] p-6 shadow-xs space-y-6 print:hidden">
+        <div ref={captureRef} inert={savingExam} className="bg-white border border-[#e5e5d1] rounded-[32px] p-6 shadow-xs space-y-6 print:hidden">
+          <ExamMeasurements date={extraoral.examDate ?? localExamDate()} onDateChange={date=>setExtraoral({...extraoral,examDate:date})} values={extraoral.vitalSigns} onChange={vitalSigns=>setExtraoral({...extraoral,vitalSigns})} />
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#e5e5d1] pb-4">
             <div>
               <h2 className="text-lg font-serif italic text-[#5a5a40] flex items-center gap-2">
@@ -305,13 +315,7 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
               <p className="text-xs text-gray-500">Inspeção palpatória e anatômica da simetria facial, musculatura, linfonodos, ATM e fatores sistêmicos.</p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleSaveExam}
-              className={`px-5 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-xl shadow-2xs flex items-center gap-2 transition cursor-pointer`}
-            >
-              <Save className="w-4 h-4" /> Salvar Exame Extraoral
-            </button>
+
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
@@ -499,12 +503,16 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
             images={patientImages}
             onUpdateImages={handleUpdatePatientImages}
           />
+          <div className="flex justify-start pt-4 border-t border-[#e5e5d1] print:hidden">
+            <ClinicalSaveButton saving={savingExam} onSave={handleSaveExam} />
+          </div>
         </div>
       )}
 
       {/* SECTION 2: EXAME INTRAORAL */}
       {activeSection === 'intraoral' && (
-        <div className="bg-white border border-[#e5e5d1] rounded-[32px] p-6 shadow-xs space-y-6 print:hidden">
+        <div ref={captureRef} inert={savingExam} className="bg-white border border-[#e5e5d1] rounded-[32px] p-6 shadow-xs space-y-6 print:hidden">
+          <ExamMeasurements date={intraoral.examDate ?? localExamDate()} onDateChange={date=>setIntraoral({...intraoral,examDate:date})} values={intraoral.vitalSigns} onChange={vitalSigns=>setIntraoral({...intraoral,vitalSigns})} />
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#e5e5d1] pb-4">
             <div>
               <h2 className="text-lg font-serif italic text-[#5a5a40] flex items-center gap-2">
@@ -514,13 +522,7 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
               <p className="text-xs text-gray-500">Avaliação minuciosa da mucosa jugal, língua, assoalho bucal, palato, gengiva, rebordo alveolar e manifestações de tabagismo.</p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleSaveExam}
-              className={`px-5 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-xl shadow-2xs flex items-center gap-2 transition cursor-pointer`}
-            >
-              <Save className="w-4 h-4" /> Salvar Exame Intraoral
-            </button>
+
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
@@ -656,13 +658,16 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
             images={patientImages}
             onUpdateImages={handleUpdatePatientImages}
           />
+          <div className="flex justify-start pt-4 border-t border-[#e5e5d1] print:hidden">
+            <ClinicalSaveButton saving={savingExam} onSave={handleSaveExam} />
+          </div>
         </div>
       )}
 
       {/* SECTION 3: ODONTOGRAMA INTERATIVO */}
       {activeSection === 'odontogram' && (
         <div className="space-y-4 print:hidden">
-          <Odontogram patientId={activePatientId} />
+          <Odontogram key={activePatientId} patientId={activePatientId} />
         </div>
       )}
 
@@ -759,7 +764,7 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
           </div>
 
           <div className="text-right text-[11px] text-stone-700 space-y-1">
-            <p><strong>Data do Exame:</strong> {new Date().toLocaleDateString('pt-BR')}</p>
+            <p><strong>Data de emissão:</strong> {new Date().toLocaleDateString('pt-BR')}</p>
             {clinicInfo.phone && <p><strong>Tel:</strong> {clinicInfo.phone}</p>}
             {clinicInfo.email && <p><strong>Email:</strong> {clinicInfo.email}</p>}
           </div>
@@ -798,6 +803,8 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
         <div className="border border-stone-300 p-3 rounded-lg text-xs space-y-1">
           <h3 className="font-bold text-stone-900 uppercase text-[11px] border-b border-stone-200 pb-1">2. Achados do Exame Extraoral</h3>
           <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+            <div><strong>Data:</strong> {extraoral.examDate?.split('-').reverse().join('/') || 'Não registrada'}</div>
+            <ExamMeasurementsPrint values={extraoral.vitalSigns} />
             <div><strong>Simetria Facial:</strong> {extraoral.faceSymmetry || 'Normal'}</div>
             <div><strong>Linfonodos:</strong> {extraoral.neckLymphNodes || 'Impalpáveis'}</div>
             <div><strong>ATM:</strong> {extraoral.atmJoints || 'Sem estalidos'}</div>
@@ -812,6 +819,8 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
         <div className="border border-stone-300 p-3 rounded-lg text-xs space-y-1">
           <h3 className="font-bold text-stone-900 uppercase text-[11px] border-b border-stone-200 pb-1">3. Achados do Exame Intraoral</h3>
           <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+            <div><strong>Data:</strong> {intraoral.examDate?.split('-').reverse().join('/') || 'Não registrada'}</div>
+            <ExamMeasurementsPrint values={intraoral.vitalSigns} />
             <div><strong>Mucosa Jugal:</strong> {intraoral.buccalMucosa || 'Normocorada'}</div>
             <div><strong>Língua/Assoalho:</strong> {intraoral.tongueAndFloor || 'Sem lesões'}</div>
             <div><strong>Palato:</strong> {intraoral.palateHardSoft || 'Íntegro'}</div>

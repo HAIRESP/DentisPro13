@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp, type AIProvider } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
 import { Professional, ClinicUnit } from '../../types';
 import { formatCPF, formatCNPJ, formatEPAO, formatCRO, isDrHugoRicoy, DEFAULT_DR_HUGO_SIGNATURE, DEFAULT_DR_HUGO_STAMP, cleanSignatureText } from '../../utils/formatters';
@@ -49,7 +49,8 @@ import {
   AlertCircle,
   BadgeCheck,
   Bot,
-  MessageCircle
+  MessageCircle,
+  BrainCircuit
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { AddressFields, AddressData, formatFullAddress } from '../common/AddressFields';
@@ -57,7 +58,7 @@ import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
 import { SpecialtyInputSelector } from '../common/SpecialtyInputSelector';
 import { PhoneInputWithDDI } from '../common/PhoneInputWithDDI';
 import { UserManagementSection } from './UserManagementSection';
-import { CloudRunDeploySection } from './CloudRunDeploySection';
+import { ClinicalAccessReviewSection } from './ClinicalAccessReviewSection';
 import { DocumentTemplatesManager } from './DocumentTemplatesManager';
 import { ProcedureProtocolManager } from './ProcedureProtocolManager';
 
@@ -108,11 +109,10 @@ export const SettingsView: React.FC = () => {
   } = useApp();
 
   const t = getThemeStyles(layoutTheme);
-  const { updateUserPassword, allUsers } = useAuth();
 
   // Active settings tab selection
   const [activeSettingsTab, setActiveSettingsTab] = useState<
-    'cadastro' | 'whatsapp_api' | 'documentos' | 'procedimentos' | 'layout' | 'aparencia' | 'usuarios' | 'backup'
+    'cadastro' | 'whatsapp_api' | 'inteligencia' | 'documentos' | 'procedimentos' | 'layout' | 'aparencia' | 'usuarios' | 'backup'
   >('cadastro');
 
   // Subtab for synchronized cadastro: 'dentista' or 'clinica'
@@ -123,6 +123,9 @@ export const SettingsView: React.FC = () => {
   // Form buffering state for active clinic / professional
   const activeClinicObj = clinics.find(c => c.id === selectedClinicDropdownId) || clinics[0];
   const activeDentistObj = professionals.find(p => p.id === selectedDentistDropdownId) || professionals[0];
+  const availableClinicsForSelectedDentist = clinics.filter(clinic =>
+    activeDentistObj?.clinicIds?.includes(clinic.id)
+  );
 
   // Clinic fields
   const [clinicName, setClinicName] = useState(activeClinicObj?.name || clinicInfo.name || '');
@@ -150,8 +153,6 @@ export const SettingsView: React.FC = () => {
   const [dentistSpecialty, setDentistSpecialty] = useState(activeDentistObj?.specialty || clinicInfo.specialty || 'Clínica Geral');
   const [dentistPhone, setDentistPhone] = useState(activeDentistObj?.phone || clinicInfo.phone || '');
   const [dentistEmail, setDentistEmail] = useState(activeDentistObj?.email || clinicInfo.email || '');
-  const [dentistPassword, setDentistPassword] = useState<string>(activeDentistObj?.password || '123456');
-  const [showDentistPassword, setShowDentistPassword] = useState<boolean>(false);
   const [dentistPrimaryClinicId, setDentistPrimaryClinicId] = useState<string>(activeDentistObj?.primaryClinicId || activeClinicId || 'cli-aldeota');
   const [dentistClinicIds, setDentistClinicIds] = useState<string[]>(activeDentistObj?.clinicIds || ['cli-aldeota', 'cli-sul']);
   const [dentistAddressObj, setDentistAddressObj] = useState<AddressData>({
@@ -211,7 +212,6 @@ export const SettingsView: React.FC = () => {
   const [signatureAlignment, setSignatureAlignment] = useState<'right' | 'center' | 'left'>(clinicInfo.signatureAlignment || 'right');
 
   // Backup & Folder Explorer state
-  const [backupRestored, setBackupRestored] = useState(false);
   const [isFolderExplorerOpen, setIsFolderExplorerOpen] = useState(false);
   const [activeFolderTab, setActiveFolderTab] = useState<'banco' | 'prontuarios' | 'imagens' | 'backups'>('banco');
   const [copiedPath, setCopiedPath] = useState(false);
@@ -309,11 +309,14 @@ export const SettingsView: React.FC = () => {
       if (found.cpf) setDentistCpf(formatCPF(found.cpf));
       if (found.phone) setDentistPhone(found.phone);
       if (found.email) setDentistEmail(found.email);
-      if (found.password) setDentistPassword(found.password);
-      const primaryId = found.primaryClinicId || found.clinicIds?.[0] || clinics[0]?.id || '';
+      const linkedClinicIds = (found.clinicIds || []).filter(clinicId =>
+        clinics.some(clinic => clinic.id === clinicId)
+      );
+      const primaryId = linkedClinicIds.includes(found.primaryClinicId || '')
+        ? found.primaryClinicId || ''
+        : linkedClinicIds[0] || '';
       setDentistPrimaryClinicId(primaryId);
-      const linked = found.clinicIds && found.clinicIds.length > 0 ? found.clinicIds : (primaryId ? [primaryId] : []);
-      setDentistClinicIds(linked);
+      setDentistClinicIds(linkedClinicIds);
       if (primaryId) {
         setSelectedClinicDropdownId(primaryId);
         setActiveClinicId(primaryId);
@@ -347,7 +350,7 @@ export const SettingsView: React.FC = () => {
       }
 
       // Sincronizar automaticamente a Unidade/Consultório onde este profissional trabalha
-      const targetClinicId = found.primaryClinicId || (found.clinicIds && found.clinicIds.length > 0 ? found.clinicIds[0] : null);
+      const targetClinicId = primaryId || null;
       if (targetClinicId && targetClinicId !== 'todas') {
         setSelectedClinicDropdownId(targetClinicId);
         setActiveClinicId(targetClinicId);
@@ -402,21 +405,18 @@ export const SettingsView: React.FC = () => {
   };
 
   const handleToggleDentistClinic = (clinicId: string, isChecked: boolean) => {
-    let nextIds: string[];
-    if (isChecked) {
-      nextIds = Array.from(new Set([...dentistClinicIds, clinicId, dentistPrimaryClinicId].filter(Boolean)));
-    } else {
-      if (clinicId === dentistPrimaryClinicId) return;
-      nextIds = dentistClinicIds.filter(id => id !== clinicId);
-      if (dentistPrimaryClinicId && !nextIds.includes(dentistPrimaryClinicId)) {
-        nextIds.push(dentistPrimaryClinicId);
-      }
-    }
+    const nextIds = isChecked
+      ? Array.from(new Set([...dentistClinicIds, clinicId].filter(Boolean)))
+      : dentistClinicIds.filter(id => id !== clinicId);
+    const nextPrimaryClinicId = nextIds.includes(dentistPrimaryClinicId)
+      ? dentistPrimaryClinicId
+      : nextIds[0] || '';
     setDentistClinicIds(nextIds);
+    setDentistPrimaryClinicId(nextPrimaryClinicId);
     if (selectedDentistDropdownId) {
       updateProfessional(selectedDentistDropdownId, {
         clinicIds: nextIds,
-        primaryClinicId: dentistPrimaryClinicId
+        primaryClinicId: nextPrimaryClinicId
       });
     }
   };
@@ -510,19 +510,10 @@ export const SettingsView: React.FC = () => {
         croUf: croUf,
         primaryClinicId: dentistPrimaryClinicId || selectedClinicDropdownId,
         clinicIds: updatedClinicIds,
-        password: dentistPassword || '123456'
       });
       setActiveProfessionalId(selectedDentistDropdownId);
 
-      // Sincronizar senha no AuthContext para o usuário vinculado
-      const matchingUser = allUsers.find(u => 
-        u.professionalId === selectedDentistDropdownId || 
-        (u.email && dentistEmail && u.email.toLowerCase() === dentistEmail.toLowerCase()) ||
-        (u.name && dentistName && u.name.toLowerCase() === dentistName.toLowerCase())
-      );
-      if (matchingUser && dentistPassword) {
-        updateUserPassword(matchingUser.uid, dentistPassword);
-      }
+
     }
 
     setCadastroSaved(true);
@@ -536,7 +527,8 @@ export const SettingsView: React.FC = () => {
       name: newClinicNameInput.trim(),
       phone: newClinicPhoneInput.trim() || clinicPhone,
       email: clinicEmail,
-      address: 'Endereço a definir'
+      address: 'Endereço a definir',
+      city: ''
     });
     setSelectedClinicDropdownId(newC.id);
     setActiveClinicId(newC.id);
@@ -557,7 +549,8 @@ export const SettingsView: React.FC = () => {
     const newP = addProfessional({
       name: newDentistNameInput.trim(),
       cro: fullCro,
-      specialty: dentistSpecialty || 'Clínica Geral'
+      specialty: dentistSpecialty || 'Clínica Geral',
+      clinicIds: clinics.some(clinic => clinic.id === selectedClinicDropdownId) ? [selectedClinicDropdownId] : []
     });
     setSelectedDentistDropdownId(newP.id);
     setActiveProfessionalId(newP.id);
@@ -692,14 +685,14 @@ export const SettingsView: React.FC = () => {
   const handleExportProjectZip = async () => {
     try {
       const zip = new JSZip();
-      zip.file("README.md", `# Sistema Odontológico - Pen Drive USB\n\n1. Node.js instalado.\n2. Executar: npm install\n3. Executar: npm run dev\n4. Acesse http://localhost:3000`);
+      zip.file("README.md", `# Configuração da clínica\n\nEste ZIP contém somente clinicInfo. Não contém o software, prontuários ou contas. Use o backup JSON do DentisPro para os dados clínicos.`);
       zip.file("backup-clinica-dados.json", JSON.stringify({ clinicInfo, exportDate: new Date().toISOString() }, null, 2));
 
       const content = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `sistema-odontologico-usb-${new Date().toISOString().slice(0, 10)}.zip`;
+      a.download = `configuracao-clinica-${new Date().toISOString().slice(0, 10)}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -714,7 +707,7 @@ export const SettingsView: React.FC = () => {
     try {
       exportDatabaseBackupJSON();
     } catch (err) {
-      console.error("Erro backup:", err);
+      alert(err instanceof Error ? err.message : "Não foi possível exportar o backup.");
     }
   };
 
@@ -722,21 +715,16 @@ export const SettingsView: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
-        const backupData = JSON.parse(ev.target?.result as string);
-        if (window.confirm('Substituir os dados atuais pelo backup selecionado?')) {
-          Object.keys(backupData).forEach((key) => {
-            const val = backupData[key];
-            localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val));
-          });
-          setBackupRestored(true);
-          setTimeout(() => window.location.reload(), 1500);
+        if (window.confirm('Feche as outras abas do DentisPro antes de continuar. Substituir os dados atuais pelo backup selecionado?')) {
+          await importDatabaseBackupJSON(String(ev.target?.result ?? ''));
         }
       } catch (err) {
-        alert('Arquivo de backup inválido.');
+        alert(err instanceof Error ? err.message : 'Não foi possível restaurar o backup.');
       }
     };
+    reader.onerror = () => alert('Não foi possível ler o arquivo de backup.');
     reader.readAsText(file);
   };
 
@@ -797,6 +785,19 @@ export const SettingsView: React.FC = () => {
         >
           <Bot className="w-4 h-4 text-[#25d366]" />
           API WhatsApp & Conexão
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSettingsTab('inteligencia')}
+          className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
+            activeSettingsTab === 'inteligencia'
+              ? 'bg-[#5a5a40] text-white shadow-sm'
+              : 'text-[#5a5a40] hover:bg-white/70'
+          }`}
+        >
+          <BrainCircuit className="w-4 h-4 text-[#d4a373]" />
+          Inteligência Artificial
         </button>
 
         <button
@@ -1047,6 +1048,37 @@ export const SettingsView: React.FC = () => {
         </div>
       )}
 
+      {activeSettingsTab === 'inteligencia' && (
+        <section className="bg-white border border-[#e5e5d1] rounded-[28px] p-6 shadow-sm space-y-5">
+          <div className="border-b border-[#e5e5d1] pb-3">
+            <h2 className="text-base font-bold text-[#5a5a40] flex items-center gap-2">
+              <BrainCircuit className="w-5 h-5 text-[#d4a373]" />
+              Provedor de Inteligência Artificial
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">Escolha qual provedor será usado nas funções de IA do DentisPro.</p>
+          </div>
+
+          <div className="max-w-xl space-y-2">
+            <label htmlFor="ai-provider" className="block text-xs font-bold text-gray-700">Provedor ativo</label>
+            <select
+              id="ai-provider"
+              value={clinicInfo.aiProvider || 'disabled'}
+              onChange={(event) => updateClinicInfo({ aiProvider: event.target.value as AIProvider })}
+              className="w-full sm:max-w-sm bg-white border border-[#5a5a40]/30 rounded-xl px-3.5 py-2.5 text-sm font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
+            >
+              <option value="disabled">Desativada — sem envio a serviços externos</option>
+              <option value="deepseek">DeepSeek</option>
+              <option value="copilot">GitHub Copilot (CLI local)</option>
+            </select>
+            <p className="text-xs text-gray-500">A escolha é salva nas configurações e usada pelo OCR e comando de voz. Copilot usa a sessão autenticada localmente no GitHub Copilot CLI.</p>
+          </div>
+
+          <div className="max-w-2xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
+            DeepSeek precisa de sua chave no arquivo <strong>.env</strong>. Copilot usa autenticação local do CLI e não precisa de chave nesta tela. O runtime Copilot recebe zero ferramentas do sistema.
+          </div>
+        </section>
+      )}
+
       {/* TAB: MODELOS DE DOCUMENTOS E TAGS SQL */}
       {activeSettingsTab === 'documentos' && (
         <DocumentTemplatesManager />
@@ -1133,7 +1165,10 @@ export const SettingsView: React.FC = () => {
                 onChange={(e) => handleSelectClinicDropdown(e.target.value)}
                 className="w-full bg-white border border-[#5a5a40]/30 rounded-xl px-3 py-2 text-xs font-bold text-[#2c2c2c] transition focus:outline-none focus:border-[#5a5a40] ring-1 ring-[#5a5a40]/10"
               >
-                {clinics.map((c) => (
+                {availableClinicsForSelectedDentist.length === 0 && (
+                  <option value="">Nenhuma unidade vinculada ao profissional</option>
+                )}
+                {availableClinicsForSelectedDentist.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name} {c.city ? `(${c.city})` : ''}
                   </option>
@@ -1311,32 +1346,7 @@ export const SettingsView: React.FC = () => {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-[#5a5a40] mb-1 flex items-center justify-between">
-                    <span className="flex items-center gap-1">
-                      <Lock className="w-3.5 h-3.5 text-[#d4a373]" />
-                      Senha de Acesso / Troca de Perfil *
-                    </span>
-                    <span className="text-[10px] text-gray-400">Proteção de troca</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showDentistPassword ? 'text' : 'password'}
-                      value={dentistPassword}
-                      onChange={(e) => setDentistPassword(e.target.value)}
-                      placeholder="Senha do profissional"
-                      className="w-full bg-white border border-[#e5e5d1] rounded-2xl pl-3 pr-10 py-2 text-xs text-[#2c2c2c] font-mono focus:outline-none focus:border-[#5a5a40]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowDentistPassword(!showDentistPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
-                      title={showDentistPassword ? 'Ocultar senha' : 'Ver senha'}
-                    >
-                      {showDentistPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
+                <p className="text-xs text-stone-600">Para redefinir sua senha, abra Sessão → Gestão de Senhas. A troca de profissional usa a senha da conta conectada.</p>
 
                 <div>
                   <label className="block text-xs font-semibold text-[#5a5a40] mb-1">CPF do Cirurgião-Dentista *</label>
@@ -1423,8 +1433,7 @@ export const SettingsView: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
                   {clinics.map((c) => {
-                    const isPrimary = dentistPrimaryClinicId === c.id;
-                    const isChecked = dentistClinicIds.includes(c.id) || isPrimary;
+                    const isChecked = dentistClinicIds.includes(c.id);
                     return (
                       <label
                         key={c.id}
@@ -1437,18 +1446,12 @@ export const SettingsView: React.FC = () => {
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          disabled={isPrimary}
                           onChange={(e) => handleToggleDentistClinic(c.id, e.target.checked)}
                           className="mt-0.5 rounded text-[#5a5a40] focus:ring-[#5a5a40]"
                         />
                         <div className="flex-1 min-w-0">
                           <p className="font-bold truncate text-[11.5px]">{c.name}</p>
                           <p className="text-[10px] text-stone-400">{c.city || c.address || 'Consultório'}</p>
-                          {isPrimary && (
-                            <span className="inline-block mt-1 text-[9px] font-bold text-[#5a5a40] bg-[#e5e5d1]/50 px-1.5 py-0.5 rounded border border-[#5a5a40]/30">
-                              ★ Unidade Principal
-                            </span>
-                          )}
                         </div>
                       </label>
                     );
@@ -1906,7 +1909,10 @@ export const SettingsView: React.FC = () => {
                     }}
                     className="w-full bg-white border border-[#5a5a40]/30 rounded-xl px-2.5 py-1.5 text-xs font-bold text-[#2c2c2c] focus:outline-none focus:border-[#5a5a40]"
                   >
-                    {clinics.map((c) => (
+                    {availableClinicsForSelectedDentist.length === 0 && (
+                      <option value="">Nenhuma unidade vinculada ao profissional</option>
+                    )}
+                    {availableClinicsForSelectedDentist.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
@@ -2364,10 +2370,10 @@ export const SettingsView: React.FC = () => {
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2 text-xs">
           <div className="flex items-center gap-2 font-bold text-emerald-900">
             <HardDrive className="w-4 h-4 text-emerald-700" />
-            Como Baixar o Software para Pendrive USB (.zip)
+            Exportar configuração da clínica (.zip)
           </div>
           <p className="text-emerald-800 leading-relaxed">
-            Você pode baixar o projeto completo para ser executado diretamente em um pendrive USB ou servidor local.
+            Este arquivo contém apenas a configuração da clínica. Para pacientes, atendimentos e estoque, use o backup JSON abaixo.
           </p>
           <div className="pt-1">
             <button
@@ -2376,16 +2382,10 @@ export const SettingsView: React.FC = () => {
               className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-xs flex items-center gap-2 transition cursor-pointer"
             >
               <Download className="w-4 h-4" />
-              Baixar Projeto Completo (.zip)
+              Baixar configuração (.zip)
             </button>
           </div>
         </div>
-
-        {backupRestored && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center gap-2">
-            <Check className="w-4 h-4 text-emerald-600" /> Backup restaurado com sucesso! Recarregando...
-          </div>
-        )}
 
         {/* Functional Backup Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2569,14 +2569,16 @@ export const SettingsView: React.FC = () => {
         </div>
       )}
 
-      {/* SECTION 7: IMPLANTAÇÃO NO GOOGLE CLOUD RUN */}
-      <CloudRunDeploySection />
+
       </>
       )}
 
       {/* SECTION 6: GESTÃO DE USUÁRIOS E PERMISSÕES */}
       {activeSettingsTab === 'usuarios' && (
-        <UserManagementSection />
+        <div className="space-y-6">
+          <UserManagementSection />
+          <ClinicalAccessReviewSection />
+        </div>
       )}
 
       {/* QUICK ADD CLINIC MODAL */}
@@ -2785,3 +2787,4 @@ export const SettingsView: React.FC = () => {
     </div>
   );
 };
+// DentisPro: correcao-lint50-v1
