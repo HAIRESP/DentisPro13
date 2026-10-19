@@ -1,6 +1,7 @@
 import { TclePlanEditor } from './TclePlanEditor';
 import type { TcleProcedure } from '../../utils/tclePlan';
 import { escapeTcle, renderTcleProceduresBody, renderTclePatientSignature, type TcleProceduresData } from '../../utils/tcleProcedures';
+import { archivedAnamnesisInput, exportAnamnesisPdf } from '../../utils/anamnesisPdf';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
@@ -2161,6 +2162,7 @@ export const DentalDocumentManager: React.FC = () => {
     templateId?: string;
     templateData?: Record<string, any>;
     cidCode?: string;
+    content?: string;
   }) => {
     if (doc.templateId === 'tcle_procedimentos_odontologicos' && doc.templateData?.tcleProcedures) {
       const printWindow = window.open('', '_blank');
@@ -2168,6 +2170,15 @@ export const DentalDocumentManager: React.FC = () => {
       printWindow.document.open();
       printWindow.document.write(buildDocumentPrintHtml(doc));
       printWindow.document.close();
+      return;
+    }
+    if (doc.templateId === 'prontuario_medico_anamnese') {
+      try {
+        void exportAnamnesisPdf(archivedAnamnesisInput(doc as any, clinicInfo), 'preview')
+          .catch(error => window.alert(error instanceof Error ? error.message : 'Não foi possível abrir o prontuário arquivado.'));
+      } catch (error) {
+        window.alert(error instanceof Error ? error.message : 'Não foi possível abrir o prontuário arquivado.');
+      }
       return;
     }
     // 1. Localiza o modelo correspondente para carregar na folha A4 oficial

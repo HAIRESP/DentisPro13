@@ -1,6 +1,7 @@
 import { ClinicalSaveButton } from './ClinicalSaveButton';
 import { ExamMeasurements } from './ExamMeasurements';
 import { localExamDate } from '../../utils/clinicalPanelArchive';
+import { medicationSummary } from '../../utils/anamnesisData';
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
@@ -169,6 +170,9 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
 
   const [examState, setExamState] = useState<PainEvaluationExam>(initialPainExam);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [archiveBusy,setArchiveBusy]=useState(false);
+  const archiveBusyRef=useRef(false);
+  const [archiveError,setArchiveError]=useState('');
   const [showHistoryPreview, setShowHistoryPreview] = useState(true);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -204,6 +208,7 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
 
     setIsAutoSaving(true);
     const handler = setTimeout(() => {
+      if(archiveBusyRef.current)return;
       const updatedExam: PainEvaluationExam = {
         ...examState,
         patientId,
@@ -1401,7 +1406,7 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
                 <div className="p-2 rounded-xl bg-white border border-slate-200">
                   <span className="text-[10px] text-slate-500 block">Medicamentos em Uso:</span>
                   <span className="font-bold text-slate-800 truncate">
-                    {anamnesis.continuousMedication || 'Nenhum de uso contínuo'}
+                    {medicationSummary(anamnesis)}
                   </span>
                 </div>
               </div>
