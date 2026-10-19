@@ -82,11 +82,18 @@ export function ExamMeasurements({ date, onDateChange, values = {}, onChange, di
   const [systolic, diastolic] = splitBloodPressure(values.bloodPressure);
   const set = (key: keyof ExamVitalSigns, value: string) => onChange({ ...values, [key]: value });
   return <>
-    <div className="print:hidden flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-3 bg-white py-2 text-[13px] font-normal text-stone-900">
-      <label className="flex items-center gap-3">Data
-        <input aria-label="Data" type="date" required disabled={disabled} value={date}
-          onChange={e => onDateChange(e.target.value)} className="h-10 w-[142px] rounded-lg border border-stone-700 bg-white px-2 text-[13px] font-normal" />
-      </label>
+    <div className="print:hidden rounded-2xl border border-[#e5e5d1] bg-[#fbfbf9] p-4 text-xs text-[#5a5a40] space-y-4">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:gap-6">
+        <label className="flex flex-col gap-1 font-bold">Data
+          <input aria-label="Data" type="date" required disabled={disabled} value={date}
+            onChange={e => onDateChange(e.target.value)} className="h-9 w-[150px] rounded-lg border border-[#e5e5d1] bg-white px-2 font-normal text-[#5a5a40]" />
+        </label>
+        <label className="flex flex-col gap-1 font-bold">Hora
+          <input aria-label="Hora" type="time" disabled={disabled} value={values.examTime ?? ''}
+            onChange={e => set('examTime', e.target.value)} className="h-9 w-[126px] rounded-lg border border-[#e5e5d1] bg-white px-2 font-normal text-[#5a5a40]" />
+        </label>
+      </div>
+      <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-3 text-[13px] font-normal text-stone-900">
       <div className="flex items-center gap-2">
         <span className="text-center leading-5">Temperatura<br />corpórea (°C)</span>
         <MeasurementInput label="Temperatura corpórea (°C)" value={values.temperature ?? ''} options={temperatureOptions} suggested="36.5" decimal disabled={disabled} onChange={value => set('temperature', value)} />
@@ -107,9 +114,11 @@ export function ExamMeasurements({ date, onDateChange, values = {}, onChange, di
         <span>Oximetria (%)</span>
         <MeasurementInput label="Oximetria (%)" value={values.oxygenSaturation ?? ''} options={oxygenOptions} suggested="98" disabled={disabled} onChange={value => set('oxygenSaturation', value)} />
       </div>
+      </div>
     </div>
     <div className="hidden print:block space-y-2">
       <div><strong>Data:</strong> {date.split('-').reverse().join('/')}</div>
+      {values.examTime && <div><strong>Hora:</strong> {values.examTime}</div>}
       <ExamMeasurementsPrint values={values} />
     </div>
   </>;

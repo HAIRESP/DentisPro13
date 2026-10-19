@@ -613,7 +613,7 @@ export const LaudosView: React.FC = () => {
   // Print Action (Standard Window Print adhering to Rule 2 of AGENTS.md)
   const handlePrint = () => {
     printDocumentWithTitle({
-      docTitle: 'Laudo_Odontologico_Consolidado',
+      docTitle: `Relatorio_Odontologico_Consolidado_${String(new Date().getHours()).padStart(2,'0')}${String(new Date().getMinutes()).padStart(2,'0')}`, 
       patientName: activePatient?.name,
       date: new Date()
     });

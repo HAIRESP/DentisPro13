@@ -2,10 +2,11 @@ import { ClinicalSaveButton } from './ClinicalSaveButton';
 import { ExamMeasurements } from './ExamMeasurements';
 import {prepareLocalSpeech,speechErrorMessage} from '../../utils/localSpeech';
 import {localExamDate} from '../../utils/clinicalPanelRecord';
+const localExamTime=()=>{const d=new Date();return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
-import { ToothCondition, ToothConditionType, ToothSurface, OdontogramSnapshot } from '../../types';
+import { ToothCondition, ToothConditionType, ToothSurface, OdontogramSnapshot, type ExamVitalSigns } from '../../types';
 import { 
   CANONICAL_FACES, 
   getRestorationSuggestion,
@@ -145,13 +146,13 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   const [isSnapshotModalOpen, setIsSnapshotModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [snapshotDate, setSnapshotDate] = useState<string>(getClinicalExam(patientId).odontogramExamDate || localExamDate());
-  const [odontogramVitalSigns, setOdontogramVitalSigns] = useState(getClinicalExam(patientId).odontogramVitalSigns || {});
+  const [odontogramVitalSigns, setOdontogramVitalSigns] = useState<ExamVitalSigns>({...getClinicalExam(patientId).odontogramVitalSigns,examTime:getClinicalExam(patientId).odontogramVitalSigns?.examTime || localExamTime()});
   const [savingPanel,setSavingPanel] = useState(false);
   const savingPanelRef = useRef(false);
   useEffect(() => {
     const exam = getClinicalExam(patientId);
     setSnapshotDate(exam.odontogramExamDate || exam.odontogramDate || localExamDate());
-    setOdontogramVitalSigns(exam.odontogramVitalSigns || {});
+    setOdontogramVitalSigns({...exam.odontogramVitalSigns,examTime:exam.odontogramVitalSigns?.examTime || localExamTime()});
   }, [patientId]);
   const saveOdontogramPanel = async ():Promise<boolean> => {
     if (savingPanelRef.current || readOnly || activeSnapshotId !== 'current') return false;
@@ -783,7 +784,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     snapshotBusyRef.current=true;setSnapshotBusy(true);setSnapshotError('');
     try{
       const finalTitle=selectedMotivoOption==='Outro'?customSnapshotTitle.trim()||'Avaliação':selectedMotivoOption;
-      await saveOdontogramSnapshot(patientId,{date:snapshotDate,title:finalTitle,conditions:structuredClone(activePatientConditions),notes:snapshotNotes});
+      await saveOdontogramSnapshot(patientId,{date:snapshotDate,title:finalTitle,conditions:structuredClone(activePatientConditions),notes:snapshotNotes,vitalSigns:structuredClone(odontogramVitalSigns)});
       setIsSnapshotModalOpen(false);setCustomSnapshotTitle('');setSnapshotNotes('');
       setAddedSuccessMsg('Odontograma salvo no histórico de evoluções e PDF na Galeria do Prontuário.');
     }catch(error){setSnapshotError(error instanceof Error?error.message:'Não foi possível arquivar o odontograma.');}
@@ -1231,11 +1232,6 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
             </button>
           )}
         </div>
-      </div>
-
-      <div className="bg-[#fbfbf9] rounded-2xl border border-[#e5e5d1] p-4 text-xs space-y-1.5">
-        <label htmlFor="odontogram-exam-date" className="block font-bold text-[#5a5a40]">Data do exame:</label>
-        <input id="odontogram-exam-date" type="date" disabled={readOnly || activeSnapshotId!=='current'} value={selectedSnapshot?.date || snapshotDate} onChange={e=>setSnapshotDate(e.target.value)} className="bg-white border border-[#e5e5d1] rounded-lg px-2 py-0.5 text-xs font-bold text-[#5a5a40] focus:outline-none" />
       </div>
 
       {/* Success Notification Toast (Fixed position to prevent any odontogram jumping/layout shift) */}

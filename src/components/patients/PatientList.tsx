@@ -268,9 +268,10 @@ export const PatientList: React.FC = () => {
   const medicalCaptureRef = React.useRef<HTMLDivElement>(null);
   const [medicalSaving, setMedicalSaving] = useState(false);
   const [medicalSaved, setMedicalSaved] = useState(false);
+  const [newMedicalTime, setNewMedicalTime] = useState(() => { const now = new Date(); return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`; });
   const medicalFields = medicalDraft?.patientId === selectedPatient?.id && medicalDraft
-    ? medicalDraft : { patientId: selectedPatient?.id || '', date: selectedPatient?.medicalExamDate ?? localExamDate(), values: selectedPatient?.medicalVitalSigns ?? {} };
-  React.useEffect(() => { setMedicalDraft(null); setMedicalSaved(false); }, [selectedPatientId]);
+    ? medicalDraft : { patientId: selectedPatient?.id || '', date: selectedPatient?.medicalExamDate ?? localExamDate(), values: { ...(selectedPatient?.medicalVitalSigns ?? {}), examTime: selectedPatient?.medicalVitalSigns?.examTime || newMedicalTime } };
+  React.useEffect(() => { setMedicalDraft(null); setMedicalSaved(false); const now = new Date(); setNewMedicalTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`); }, [selectedPatientId]);
   const saveMedicalFields = async () => {
     if (!selectedPatient || medicalSaving) return;
     setMedicalSaving(true);
@@ -808,6 +809,13 @@ export const PatientList: React.FC = () => {
                         </div>
                       </div>
 
+                    <ExamMeasurements
+                      date={medicalFields.date}
+                      onDateChange={date => { setMedicalDraft({ ...medicalFields, date }); setMedicalSaved(false); }}
+                      values={medicalFields.values}
+                      onChange={values => { setMedicalDraft({ ...medicalFields, values }); setMedicalSaved(false); }}
+                    />
+
                       <p className="p-3 rounded-xl border text-sm">Medicação atual: <strong>{medicationSummary(selectedPatient.anamnesis)}</strong></p>
                       {/* Safety Alerts Summary */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
@@ -941,12 +949,7 @@ export const PatientList: React.FC = () => {
                       </div>
                     </div>
 
-                    <ExamMeasurements
-                      date={medicalFields.date}
-                      onDateChange={date => { setMedicalDraft({ ...medicalFields, date }); setMedicalSaved(false); }}
-                      values={medicalFields.values}
-                      onChange={values => { setMedicalDraft({ ...medicalFields, values }); setMedicalSaved(false); }}
-                    />
+
                   </div>
                 )}
 

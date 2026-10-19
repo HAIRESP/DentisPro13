@@ -3,6 +3,14 @@ import { ExamMeasurements } from './ExamMeasurements';
 import { localExamDate } from '../../utils/clinicalPanelArchive';
 import { medicationSummary } from '../../utils/anamnesisData';
 import React, { useState, useEffect, useRef } from 'react';
+
+// Horário sugerido para a avaliação aberta; só se torna clínico quando salvo.
+function horaLocalExame(): string {
+  const data = new Date();
+  return `${String(data.getHours()).padStart(2, '0')}:${String(data.getMinutes()).padStart(2, '0')}`;
+}
+
+
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
 import { printDocumentWithTitle } from '../../utils/printUtils';
@@ -168,7 +176,7 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
     tratamentoExecutado: ''
   };
 
-  const [examState, setExamState] = useState<PainEvaluationExam>(initialPainExam);
+  const [examState, setExamState] = useState<PainEvaluationExam>(() => ({ ...initialPainExam, vitalSigns: { ...initialPainExam.vitalSigns, examTime: initialPainExam.vitalSigns?.examTime || horaLocalExame() } }));
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [archiveBusy,setArchiveBusy]=useState(false);
   const archiveBusyRef=useRef(false);
@@ -185,10 +193,11 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
     currentPatientIdRef.current = patientId;
     const exam = getClinicalExam(patientId);
     if (exam.painExam) {
-      setExamState(exam.painExam);
+      setExamState({ ...exam.painExam, vitalSigns: { ...exam.painExam.vitalSigns, examTime: exam.painExam.vitalSigns?.examTime || horaLocalExame() } });
     } else {
       setExamState({
         ...initialPainExam,
+        vitalSigns: { ...initialPainExam.vitalSigns, examTime: initialPainExam.vitalSigns?.examTime || horaLocalExame() },
         patientId,
         chiefComplaint: currentPatient?.anamnesis?.chiefComplaint || ''
       });

@@ -2,6 +2,7 @@ import { panelTitles, panelData, panelSummary, validateExamDate, persistClinical
 import type { ClinicalPanel } from '../utils/clinicalPanelArchive';
 import { createClinicalPanelPdf, buildClinicalPanelPdf } from '../utils/clinicalPanelPdf';
 import { commitClinicalPanel, clinicalPanelRows, panelTitles as panelTitlesEstruturados, examDateValue } from '../utils/clinicalPanelRecord';
+import { documentFingerprint } from '../utils/documentFingerprint';
 import type { ClinicalPanelKind } from '../types';
 import { archivedAnamnesisInput, buildAnamnesisPdf } from '../utils/anamnesisPdf';
 import { commitAnamnesis } from '../utils/anamnesisStore';
@@ -181,7 +182,7 @@ export interface AppContextType {
   odontograms: Record<string, ToothCondition[]>;
   updateToothCondition: (patientId: string, condition: ToothCondition) => void;
   odontogramSnapshots: Record<string, OdontogramSnapshot[]>;
-  saveOdontogramSnapshot: (patientId: string, snapshotData: { date: string; title: string; conditions: ToothCondition[]; notes?: string }) => Promise<void>;
+  saveOdontogramSnapshot: (patientId: string, snapshotData: { date: string; title: string; conditions: ToothCondition[]; notes?: string; vitalSigns?: import('../types').ExamVitalSigns }) => Promise<void>;
   deleteOdontogramSnapshot: (patientId: string, snapshotId: string) => void;
   restoreOdontogramSnapshot: (patientId: string, snapshotId: string) => void;
 
@@ -825,10 +826,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const payload=structuredClone(data);
     await navigator.locks.request('dentispro-clinical-panels-save',async()=>{
       const patient=patients.find(p=>p.id===patientId);if(!patient)throw Error('Paciente não encontrado.');
+      const fingerprint=await documentFingerprint({patientId,panel,date,data:payload,professionalId:activeProfessional?.id || '',clinicId:activeClinicId});
+      const persisted=localStorage.getItem(STORAGE_KEYS.EVOLUTIONS);
+      const existing:ClinicalEvolutionEntry[]=persisted ? JSON.parse(persisted) : clinicalEvolutions;
+      // Repeated identical save: preserve the original historical PDF/evolution, do not create a duplicate.
+      if (existing.some(e=>e.patientId===patientId && e.sourcePanel===panel && e.date===date && e.documentFingerprint===fingerprint)) return;
       const savedAt=new Date().toISOString();const evolutionId=`evo-${crypto.randomUUID()}`;
       const {pdf,filename}=await buildClinicalPanelPdf({patient,panel,date,data:payload,clinic:{...clinicInfo},professional:activeProfessional});
       const file={id:`patient-file-${crypto.randomUUID()}`,name:filename,fileUrl:pdf.output('datauristring'),fileType:'pdf' as const,uploadedAt:savedAt,sourceDocumentId:evolutionId,sourceEvolutionId:evolutionId,examDate:date};
-      const evolution:ClinicalEvolutionEntry={id:evolutionId,patientId,date,sourcePanel:panel,pdfFileId:file.id,savedAt,dentistName:activeProfessional?.name || clinicInfo.dentistName,clinicName:clinicInfo.name,procedure:panelTitlesEstruturados[panel],description:clinicalPanelRows(panel,payload).map(r=>`${r.section} — ${r.label}: ${r.answer}`).join('\n'),status:'concluido'};
+      const evolution:ClinicalEvolutionEntry={id:evolutionId,patientId,date,sourcePanel:panel,pdfFileId:file.id,savedAt,documentFingerprint:fingerprint,dentistName:activeProfessional?.name || clinicInfo.dentistName,clinicName:clinicInfo.name,procedure:panelTitlesEstruturados[panel],description:clinicalPanelRows(panel,payload).map(r=>`${r.section} — ${r.label}: ${r.answer}`).join('\n'),status:'concluido'};
       const snapshot:OdontogramSnapshot|undefined=snapshotData?{...structuredClone(snapshotData),id:`snap-${crypto.randomUUID()}`,patientId,dentistName:evolution.dentistName,createdAt:savedAt}:undefined;
       const result=commitClinicalPanel(localStorage,{patients,exams:clinicalExams,evolutions:clinicalEvolutions,snapshots:odontogramSnapshots},{patientId,panel,date,data:payload,evolution,file,snapshot});
       setPatients(result.patients);setClinicalExams(result.exams);setClinicalEvolutions(result.evolutions);setOdontogramSnapshots(result.snapshots);
@@ -836,7 +842,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const saveOdontogramSnapshot:AppContextType['saveOdontogramSnapshot'] = async (patientId,snapshotData) => {
-    await saveClinicalPanelEstruturado(patientId,'odontogram',{title:snapshotData.title,conditions:snapshotData.conditions,notes:snapshotData.notes},snapshotData.date,snapshotData);
+    await saveClinicalPanelEstruturado(patientId,'odontogram',{title:snapshotData.title,conditions:snapshotData.conditions,notes:snapshotData.notes,vitalSigns:snapshotData.vitalSigns},snapshotData.date,snapshotData);
   };
 
   const deleteOdontogramSnapshot = (patientId: string, snapshotId: string) => {

@@ -2,6 +2,14 @@ import { ClinicalSaveButton } from './ClinicalSaveButton';
 import { ExamMeasurements, ExamMeasurementsPrint } from './ExamMeasurements';
 import { localExamDate } from '../../utils/clinicalPanelArchive';
 import React, { useState } from 'react';
+
+// Horário sugerido para a avaliação aberta; só se torna clínico quando salvo.
+function horaLocalExame(): string {
+  const data = new Date();
+  return `${String(data.getHours()).padStart(2, '0')}:${String(data.getMinutes()).padStart(2, '0')}`;
+}
+
+
 import { useApp } from '../../context/AppContext';
 import { Odontogram } from './Odontogram';
 import { PainEvaluationExamView } from './PainEvaluationExamView';
@@ -61,8 +69,8 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
   const exam = getClinicalExam(activePatientId);
 
   // Local draft state for extraoral, intraoral, and general exam notes
-  const [extraoral, setExtraoral] = useState(exam.extraoral || {});
-  const [intraoral, setIntraoral] = useState(exam.intraoral || {});
+  const [extraoral, setExtraoral] = useState<NonNullable<typeof exam.extraoral>>(() => ({ ...exam.extraoral, vitalSigns: { ...exam.extraoral?.vitalSigns, examTime: exam.extraoral?.vitalSigns?.examTime || horaLocalExame() } }));
+  const [intraoral, setIntraoral] = useState<NonNullable<typeof exam.intraoral>>(() => ({ ...exam.intraoral, vitalSigns: { ...exam.intraoral?.vitalSigns, examTime: exam.intraoral?.vitalSigns?.examTime || horaLocalExame() } }));
   const [generalNotes, setGeneralNotes] = useState(exam.generalNotes || '');
 
   const patientImages = currentPatient?.images || exam.odontogramImages || extraoral.images || intraoral.images || [];
@@ -85,8 +93,8 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
   React.useEffect(() => {
     if (activePatientId) {
       const e = getClinicalExam(activePatientId);
-      setExtraoral(e.extraoral || {});
-      setIntraoral(e.intraoral || {});
+      setExtraoral({ ...e.extraoral, vitalSigns: { ...e.extraoral?.vitalSigns, examTime: e.extraoral?.vitalSigns?.examTime || horaLocalExame() } });
+      setIntraoral({ ...e.intraoral, vitalSigns: { ...e.intraoral?.vitalSigns, examTime: e.intraoral?.vitalSigns?.examTime || horaLocalExame() } });
       setGeneralNotes(e.generalNotes || '');
     }
   }, [activePatientId]);

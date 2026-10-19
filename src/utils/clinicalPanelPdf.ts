@@ -1,4 +1,4 @@
-import { captureClinicalPanel, ageAtExam } from './clinicalPanelCapture';
+import { captureClinicalPanel, ageAtExam } from './clinicalPanelCapture.ts';
 import { jsPDF, GState } from 'jspdf';
 import type { ClinicInfo } from '../context/AppContext';
 import type { Professional } from '../types';

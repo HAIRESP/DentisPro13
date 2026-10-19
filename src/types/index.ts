@@ -360,6 +360,7 @@ export interface OdontogramSnapshot {
 }
 
 export interface ClinicalEvolutionEntry {
+  documentFingerprint?: string; // SHA-256 do conteúdo clínico e identidade do exame.
   sourcePanel?: ClinicalPanelKind;
   pdfFileId?: string;
   savedAt?: string;
@@ -685,6 +686,7 @@ export interface TreatmentPlan {
 }
 
 export interface ExamVitalSigns {
+  examTime?: string; // HH:MM informado para este exame
   temperature?: string;
   bloodPressure?: string;
   heartRate?: string;
