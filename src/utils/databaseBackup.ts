@@ -8,6 +8,7 @@ const lists: Record<string, string> = {
   tussProcedures: K.TUSS_PROCEDURES, priceTables: K.PRICE_TABLES, treatmentPlans: K.TREATMENT_PLANS,
   patientPayments: K.PATIENT_PAYMENTS, commissions: K.COMMISSIONS, insuranceGuides: K.INSURANCE_GUIDES,
   documentTemplates: K.DOCUMENT_TEMPLATES, savedClinicDocuments: K.SAVED_DOCUMENTS,
+  activityAudit:'dentispro_activity_audit_v1', documentTrash:'dentispro_document_trash_v1',
   clinics: K.CLINICS, professionals: K.PROFESSIONALS
 };
 const maps: Record<string, string> = {

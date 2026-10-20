@@ -1,3 +1,6 @@
+import { openClinicOdontogramStore } from './server/clinicOdontogramStore.mjs';
+import { openClinicalOdontogramStore } from './server/clinicalOdontogramStore.mjs';
+import { odontogramRoutes } from './server/odontogramRoutes';
 import { apiAccess } from './server/apiAccess';
 import { createLocalAuthStore } from './server/localAuthStore';
 import { localAuthRoutes } from './server/localAuthRoutes';
@@ -109,7 +112,19 @@ async function startServer() {
     if(origin && origin!==allowed && !(host==='127.0.0.1' && origin==='http://127.0.0.1:3000')) {res.status(403).json({error:'Origem não autorizada.'});return;}
     next();
   });
+  const odontogramReviewMode = process.env.DENTISPRO_ODONTOGRAM_MODE === 'review';
+  app.get('/api/odontogram-mode', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    try {
+      const token = /^Bearer ([^\s]+)$/i.exec(req.headers.authorization || '')?.[1] || '';
+      const actor = authStore.session(token);
+      res.json({enabled: !odontogramReviewMode || Boolean(process.env.DENTISPRO_ODONTOGRAM_DB), source: odontogramReviewMode ? 'review' : 'clinic', actor: {uid:actor.uid, professionalId:actor.professionalId || actor.uid, name:actor.name, cro:actor.cro || ''}});
+    } catch { res.status(401).json({error:'Sessão inválida. Entre novamente.'}); }
+  });
   app.use('/api/auth', localAuthRoutes(authStore,setupCode));
+  if (odontogramReviewMode && process.env.DENTISPRO_ODONTOGRAM_DB && !process.env.DENTISPRO_CLINICAL_REVIEW_DB) {
+    throw Error('Odontograma SQLite exige banco de conferência para validar autorização por paciente.');
+  }
   // Opt-in review database only. Existing application screens remain on their current data source.
   if (process.env.DENTISPRO_CLINICAL_REVIEW_DB) {
     const clinicalReview = openClinicalReviewStore(path.resolve(process.env.DENTISPRO_CLINICAL_REVIEW_DB), {
@@ -117,6 +132,15 @@ async function startServer() {
       resolveAccount: (token, uid) => authStore.listUsers(token).find(profile => profile.uid === uid),
     });
     app.use('/api/clinical-review', clinicalReviewRoutes(clinicalReview, authStore));
+    if (odontogramReviewMode && process.env.DENTISPRO_ODONTOGRAM_DB) {
+      const odontogram = openClinicalOdontogramStore(path.resolve(process.env.DENTISPRO_ODONTOGRAM_DB), authStore, clinicalReview);
+      app.use('/api/odontogram', odontogramRoutes(odontogram));
+    }
+  }
+  if (!odontogramReviewMode) {
+    const filename = path.resolve(process.env.DENTISPRO_ODONTOGRAM_CLINIC_DB || path.join(dataDir,'odontogram.sqlite'));
+    const odontogram = openClinicOdontogramStore(filename, authStore);
+    app.use('/api/odontogram', odontogramRoutes(odontogram));
   }
   app.use('/api', apiAccess(async token => authStore.session(token)));
   app.use('/auth/action', (_req, res, next) => {

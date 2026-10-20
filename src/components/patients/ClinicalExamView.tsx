@@ -1,6 +1,8 @@
 import { ClinicalSaveButton } from './ClinicalSaveButton';
 import { ExamMeasurements, ExamMeasurementsPrint } from './ExamMeasurements';
 import { localExamDate } from '../../utils/clinicalPanelArchive';
+import { clinicalPatient } from '../../utils/clinicalPatient';
+import { resetMeasurementDraft } from '../../utils/measurementSession';
 import React, { useState } from 'react';
 
 // Horário sugerido para a avaliação aberta; só se torna clínico quando salvo.
@@ -40,7 +42,7 @@ import {
 
 import { getThemeStyles } from '../../utils/themeUtils';
 
-export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ patientIdOverride }) => {
+export const ClinicalExamView: React.FC<{ patientIdOverride: string }> = ({ patientIdOverride }) => {
   const { 
     patients, 
     selectedPatientId, 
@@ -57,8 +59,8 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
   const captureRef = React.useRef<HTMLDivElement>(null);
   const t = getThemeStyles(layoutTheme);
 
-  const activePatientId = patientIdOverride || selectedPatientId || patients[0]?.id || '';
-  const currentPatient = patients.find(p => p.id === activePatientId) || patients[0];
+  const activePatientId = patientIdOverride;
+  const currentPatient = clinicalPatient(patients,activePatientId);
 
   const [activeSection, setActiveSection] = useState<'odontogram' | 'dor_urgencia' | 'extraoral' | 'intraoral'>('odontogram');
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -69,8 +71,8 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
   const exam = getClinicalExam(activePatientId);
 
   // Local draft state for extraoral, intraoral, and general exam notes
-  const [extraoral, setExtraoral] = useState<NonNullable<typeof exam.extraoral>>(() => ({ ...exam.extraoral, vitalSigns: { ...exam.extraoral?.vitalSigns, examTime: exam.extraoral?.vitalSigns?.examTime || horaLocalExame() } }));
-  const [intraoral, setIntraoral] = useState<NonNullable<typeof exam.intraoral>>(() => ({ ...exam.intraoral, vitalSigns: { ...exam.intraoral?.vitalSigns, examTime: exam.intraoral?.vitalSigns?.examTime || horaLocalExame() } }));
+  const [extraoral, setExtraoral] = useState<NonNullable<typeof exam.extraoral>>(() => resetMeasurementDraft(exam.extraoral));
+  const [intraoral, setIntraoral] = useState<NonNullable<typeof exam.intraoral>>(() => resetMeasurementDraft(exam.intraoral));
   const [generalNotes, setGeneralNotes] = useState(exam.generalNotes || '');
 
   const patientImages = currentPatient?.images || exam.odontogramImages || extraoral.images || intraoral.images || [];
@@ -83,8 +85,8 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
     updatePatient(activePatientId, { images: newImgs });
     updateClinicalExam(activePatientId, {
       odontogramImages: newImgs,
-      extraoral: updatedExtraoral,
-      intraoral: updatedIntraoral,
+      extraoral: {...getClinicalExam(activePatientId).extraoral,images:newImgs},
+      intraoral: {...getClinicalExam(activePatientId).intraoral,images:newImgs},
       generalNotes
     });
   };
@@ -93,20 +95,22 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
   React.useEffect(() => {
     if (activePatientId) {
       const e = getClinicalExam(activePatientId);
-      setExtraoral({ ...e.extraoral, vitalSigns: { ...e.extraoral?.vitalSigns, examTime: e.extraoral?.vitalSigns?.examTime || horaLocalExame() } });
-      setIntraoral({ ...e.intraoral, vitalSigns: { ...e.intraoral?.vitalSigns, examTime: e.intraoral?.vitalSigns?.examTime || horaLocalExame() } });
+      setExtraoral(resetMeasurementDraft(e.extraoral));
+      setIntraoral(resetMeasurementDraft(e.intraoral));
       setGeneralNotes(e.generalNotes || '');
     }
   }, [activePatientId]);
 
   const [savingExam, setSavingExam] = useState(false);
-  const handleSaveExam = async () => {
+  const handleSaveExam = async (resetAfterSave=true) => {
+    if(!currentPatient)return false;
     if (savingExam) return false;
     if (activeSection !== 'extraoral' && activeSection !== 'intraoral') return true;
     setSavingExam(true);
     try {
       const data = activeSection === 'extraoral' ? extraoral : intraoral;
       await saveClinicalPanel(activePatientId, activeSection, data.examDate ?? localExamDate(), { [activeSection]:data, generalNotes }, captureRef.current);
+      if(resetAfterSave){if(activeSection==='extraoral')setExtraoral(prev=>resetMeasurementDraft(prev));else setIntraoral(prev=>resetMeasurementDraft(prev));}
       setSavedSuccess(true);setTimeout(()=>setSavedSuccess(false),3000);
       return true;
     } catch(error) { alert(error instanceof Error ? error.message : 'Falha ao salvar exame.'); return false; }
@@ -209,7 +213,9 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
   };
 
   const handleNativePrint = async () => {
-    if (!await handleSaveExam()) return;
+    if (!await handleSaveExam(false)) return;
+    const section=activeSection;
+    window.addEventListener('afterprint',()=>{if(section==='extraoral')setExtraoral(prev=>resetMeasurementDraft(prev));if(section==='intraoral')setIntraoral(prev=>resetMeasurementDraft(prev));},{once:true});
     setIsPrintModalOpen(true);
     setTimeout(() => {
       printDocumentWithTitle({
@@ -224,8 +230,8 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
     return (
       <div className={`${t.cardBg} border ${t.cardBorder} rounded-[32px] p-12 text-center text-gray-400 space-y-3 shadow-sm`}>
         <Stethoscope className={`w-10 h-10 mx-auto ${t.accentText}`} />
-        <h3 className={`text-base font-bold ${t.headingText}`}>Nenhum paciente cadastrado</h3>
-        <p className="text-xs opacity-75">Cadastre um paciente primeiro para realizar o Exame Clínico e Odontograma.</p>
+        <h3 className={`text-base font-bold ${t.headingText}`}>Selecione um paciente válido</h3>
+        <p className="text-xs opacity-75">Abra o Exame Clínico pelas abas do paciente para continuar.</p>
       </div>
     );
   }
@@ -248,7 +254,7 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
       {savedSuccess && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 print:hidden shadow-xs">
           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          Exame Clínico e Odontograma salvos no prontuário do paciente com sucesso!
+          Exame, evolução e PDF arquivados. Sinais vitais reiniciados para uma nova medição.
         </div>
       )}
 
@@ -313,7 +319,7 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
       {/* SECTION 1: EXAME EXTRAORAL */}
       {activeSection === 'extraoral' && (
         <div ref={captureRef} inert={savingExam} className="bg-white border border-[#e5e5d1] rounded-[32px] p-6 shadow-xs space-y-6 print:hidden">
-          <ExamMeasurements date={extraoral.examDate ?? localExamDate()} onDateChange={date=>setExtraoral({...extraoral,examDate:date})} values={extraoral.vitalSigns} onChange={vitalSigns=>setExtraoral({...extraoral,vitalSigns})} />
+          <ExamMeasurements disabled={savingExam} onReset={()=>setExtraoral(prev=>resetMeasurementDraft(prev))} date={extraoral.examDate ?? localExamDate()} onDateChange={date=>setExtraoral({...extraoral,examDate:date})} values={extraoral.vitalSigns} onChange={vitalSigns=>setExtraoral({...extraoral,vitalSigns})} />
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#e5e5d1] pb-4">
             <div>
               <h2 className="text-lg font-serif italic text-[#5a5a40] flex items-center gap-2">
@@ -520,7 +526,7 @@ export const ClinicalExamView: React.FC<{ patientIdOverride?: string }> = ({ pat
       {/* SECTION 2: EXAME INTRAORAL */}
       {activeSection === 'intraoral' && (
         <div ref={captureRef} inert={savingExam} className="bg-white border border-[#e5e5d1] rounded-[32px] p-6 shadow-xs space-y-6 print:hidden">
-          <ExamMeasurements date={intraoral.examDate ?? localExamDate()} onDateChange={date=>setIntraoral({...intraoral,examDate:date})} values={intraoral.vitalSigns} onChange={vitalSigns=>setIntraoral({...intraoral,vitalSigns})} />
+          <ExamMeasurements disabled={savingExam} onReset={()=>setIntraoral(prev=>resetMeasurementDraft(prev))} date={intraoral.examDate ?? localExamDate()} onDateChange={date=>setIntraoral({...intraoral,examDate:date})} values={intraoral.vitalSigns} onChange={vitalSigns=>setIntraoral({...intraoral,vitalSigns})} />
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#e5e5d1] pb-4">
             <div>
               <h2 className="text-lg font-serif italic text-[#5a5a40] flex items-center gap-2">

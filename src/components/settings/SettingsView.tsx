@@ -1,3 +1,5 @@
+import { DataReferenceTables } from './DataReferenceTables';
+import { LocalActivityHistory } from './LocalActivityHistory';
 import React, { useState, useRef } from 'react';
 import { useApp, type AIProvider } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
@@ -112,7 +114,7 @@ export const SettingsView: React.FC = () => {
 
   // Active settings tab selection
   const [activeSettingsTab, setActiveSettingsTab] = useState<
-    'cadastro' | 'whatsapp_api' | 'inteligencia' | 'documentos' | 'procedimentos' | 'layout' | 'aparencia' | 'usuarios' | 'backup'
+    'cadastro' | 'whatsapp_api' | 'inteligencia' | 'documentos' | 'procedimentos' | 'layout' | 'aparencia' | 'usuarios' | 'backup' | 'referencias'
   >('cadastro');
 
   // Subtab for synchronized cadastro: 'dentista' or 'clinica'
@@ -737,6 +739,7 @@ export const SettingsView: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12">
+      <LocalActivityHistory />
       {/* Header Bar */}
       <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${t.cardBg} p-6 rounded-[28px] border ${t.cardBorder} shadow-2xs`}>
         <div className="space-y-1">
@@ -810,7 +813,7 @@ export const SettingsView: React.FC = () => {
           }`}
         >
           <FileText className="w-4 h-4 text-[#d4a373]" />
-          Modelos de Documentos & Tags
+          Modelos de Documentos
         </button>
 
         <button
@@ -826,6 +829,7 @@ export const SettingsView: React.FC = () => {
           Protocolos & Materiais
         </button>
 
+        <button type="button" onClick={()=>setActiveSettingsTab('referencias')} className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition ${activeSettingsTab==='referencias'?'bg-[#5a5a40] text-white':'text-[#5a5a40] hover:bg-white/70'}`}>Tabelas de referência</button>
         <button
           type="button"
           onClick={() => setActiveSettingsTab('layout')}
@@ -1085,8 +1089,9 @@ export const SettingsView: React.FC = () => {
       )}
 
       {/* TAB: PROTOCOLOS DE PROCEDIMENTOS E MATERIAIS */}
+      {activeSettingsTab === 'referencias' && <DataReferenceTables />}
       {activeSettingsTab === 'procedimentos' && (
-        <ProcedureProtocolManager />
+        <ProcedureProtocolManager onOpenReference={()=>setActiveSettingsTab('referencias')} />
       )}
 
       {/* SECTION 1: CADASTRO DE CLÍNICAS E PROFISSIONAIS */}

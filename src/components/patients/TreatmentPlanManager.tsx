@@ -1,3 +1,4 @@
+import { PROCEDURE_PARAMETERS } from '../../data/procedureParameters';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getPatientAgeAndBirthDate } from '../../utils/patientUtils';
@@ -2219,6 +2220,13 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
             />
           </div>
 
+          {items.length>0 && <details className="bg-white border border-[#e5e5d1] rounded-2xl p-4">
+            <summary className="text-sm font-bold text-[#5a5a40] cursor-pointer">Registros individuais dos procedimentos</summary>
+            {items.map(item=><div key={item.id} className="mt-3 border-t border-[#e5e5d1] pt-3 space-y-2">
+              <p className="text-xs font-bold">{item.procedureName} {item.toothNumber ? `— Dente ${item.toothNumber}` : ''}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{PROCEDURE_PARAMETERS.filter(f=>f.patientOnly).map(field=><label key={field.key} className="text-xs text-[#5a5a40]">{field.label}<textarea rows={2} className="block w-full mt-1 border border-[#e5e5d1] rounded-xl p-2 bg-[#fbfbf9]" value={item.encounterParameters?.[field.key] || ''} onChange={e=>handleUpdateItem(item.id,{encounterParameters:{...item.encounterParameters,[field.key]:e.target.value}})} /></label>)}</div>
+            </div>)}
+          </details>}
           {/* Form Actions */}
           <div className="flex items-center justify-between pt-3 border-t border-[#e5e5d1]">
             <div className="text-xs">

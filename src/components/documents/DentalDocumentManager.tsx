@@ -2,6 +2,8 @@ import { TclePlanEditor } from './TclePlanEditor';
 import type { TcleProcedure } from '../../utils/tclePlan';
 import { escapeTcle, renderTcleProceduresBody, renderTclePatientSignature, type TcleProceduresData } from '../../utils/tcleProcedures';
 import { archivedAnamnesisInput, exportAnamnesisPdf } from '../../utils/anamnesisPdf';
+import { documentCategoryLabel } from '../../utils/documentCategory';
+import { useAuth } from '../../context/AuthContext';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { DocumentSignatureFooter } from '../common/DocumentSignatureFooter';
@@ -76,7 +78,7 @@ export type DocumentCategory = 'receituario' | 'atestado' | 'declaracao' | 'term
 
 export interface DocumentTemplate {
   id: string;
-  category: 'receituario' | 'atestado' | 'declaracao' | 'termo' | 'solicitacao';
+  category: 'receituario' | 'atestado' | 'declaracao' | 'termo' | 'solicitacao' | 'outro';
   title: string;
   subtitle: string;
   icon: React.FC<{ className?: string }>;
@@ -594,12 +596,15 @@ export const isInsuranceValid = (insurance?: string): boolean => {
 };
 
 export const DentalDocumentManager: React.FC = () => {
+  const {currentUser}=useAuth();
+  const [customDocumentText,setCustomDocumentText]=useState('');
   const { 
     patients, 
     clinicInfo, 
     activeProfessional, 
     activeClinic,
-    savedClinicDocuments, 
+    savedClinicDocuments,
+    documentTemplates,
     addSavedClinicDocument, 
     deleteSavedClinicDocument, 
     selectedPatientId: globalSelectedPatientId,
@@ -637,7 +642,7 @@ export const DentalDocumentManager: React.FC = () => {
     }
   }, [activeProfessional?.id]);
 
-  const documentProf = selectedDocumentProfessionalId
+  const documentProf = currentUser?.role === 'dentist' ? activeProfessional : selectedDocumentProfessionalId
     ? professionals.find(p => p.id === selectedDocumentProfessionalId)
     : undefined;
 
@@ -649,7 +654,7 @@ export const DentalDocumentManager: React.FC = () => {
 
   // Validação estrita da existência da assinatura e carimbo do profissional no banco de dados
   const currentProfVerification = verifyProfessionalSignatureAndStamp(
-    selectedDocumentProfessionalId ? documentProf : undefined,
+    currentUser?.role === 'dentist' ? activeProfessional : selectedDocumentProfessionalId ? documentProf : undefined,
     professionals,
     clinicInfo,
     autoInsertSignatureAndStamp
@@ -1019,6 +1024,10 @@ export const DentalDocumentManager: React.FC = () => {
     `;
 
     // 1. RECEITUÁRIO DE CONTROLE ESPECIAL (PROTECTED MODEL - RULE 1 OF AGENTS.MD)
+    if(templateId.startsWith('custom-')) {
+      const escape=(value:string)=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
+      return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escape(doc.title)}</title><style>${baseCss}</style></head><body>${standardHeaderHtml}<div class="title-box"><div class="title">${escape(doc.title)}</div></div><div class="patient-card">Paciente: ${escape(doc.patientName)} — ${escape(docDateStr)}</div><div class="section-card" style="white-space:pre-wrap;line-height:1.8">${escape(doc.summary || '')}</div><div class="footer">${signatureBlockHtml}</div></body></html>`;
+    }
     if (isSpecialPrescription) {
       const prescriptionText = (doc.summary && !doc.summary.includes('gerado para o(a) paciente'))
         ? doc.summary
@@ -2164,7 +2173,7 @@ export const DentalDocumentManager: React.FC = () => {
     cidCode?: string;
     content?: string;
   }) => {
-    if (doc.templateId === 'tcle_procedimentos_odontologicos' && doc.templateData?.tcleProcedures) {
+    if (doc.templateId?.startsWith('custom-') || (doc.templateId === 'tcle_procedimentos_odontologicos' && doc.templateData?.tcleProcedures)) {
       const printWindow = window.open('', '_blank');
       if (!printWindow) { alert('Permita a abertura da janela de impressão.'); return; }
       printWindow.document.open();
@@ -3323,7 +3332,8 @@ export const DentalDocumentManager: React.FC = () => {
 
   const patientAge = formattedAgeDisplay();
 
-  const filteredTemplates = DENTAL_DOCUMENT_TEMPLATES.filter(t => {
+  const availableTemplates:DocumentTemplate[]=[...DENTAL_DOCUMENT_TEMPLATES,...documentTemplates.filter(t=>t.id.startsWith('custom-')).map(t=>({id:t.id,title:t.title,subtitle:t.subtitle,description:t.description,category:t.category==='receita'?'receituario' as const:t.category,icon:FileText}))];
+  const filteredTemplates = availableTemplates.filter(t => {
     const matchesCategory = selectedCategory === 'todos' || t.category === selectedCategory;
     const matchesSearch = t.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -3333,6 +3343,7 @@ export const DentalDocumentManager: React.FC = () => {
 
   const handleOpenParametersModal = (template: DocumentTemplate) => {
     setActiveTemplate(template);
+    if(template.id.startsWith('custom-'))setCustomDocumentText(documentTemplates.find(t=>t.id===template.id)?.templateText || '');
     setIsRenderModalOpen(false);
   };
 
@@ -3390,6 +3401,22 @@ export const DentalDocumentManager: React.FC = () => {
   };
 
   const handleGenerateDocument = () => {
+    if(activeTemplate?.id.startsWith('custom-')) {
+      if(!selectedPatientId || !customDocumentText.trim()){window.alert('Selecione o paciente e preencha o texto do documento.');return;}
+      const values:Record<string,string>={
+        NOME_PACIENTE:selectedPatient?.name || '',CPF_PACIENTE:selectedPatient?.cpf || '',RG_PACIENTE:selectedPatient?.rg || '',
+        DATA_NASCIMENTO_PACIENTE:selectedPatient?.birthDate || '',IDADE_PACIENTE:patientAge,
+        ENDERECO_PACIENTE:typeof selectedPatient?.address === 'string' ? selectedPatient.address : selectedPatient?.address ? Object.values(selectedPatient.address).filter(Boolean).join(', ') : '',CONVENIO_PACIENTE:selectedPatient?.healthInsurance || '',CARTEIRA_CONVENIO:selectedPatient?.insuranceNumber || '',
+        NOME_DENTISTA:effectiveDentistName,CRO_DENTISTA:effectiveDentistCro,ESPECIALIDADE_DENTISTA:effectiveDentistSpecialty,
+        NOME_CLINICA:effectiveClinicName,CNPJ_CLINICA:clinicInfo.cnpj || '',EPAO_CLINICA:(clinicInfo as any).epao || '',ENDERECO_CLINICA:effectiveClinicAddress,TELEFONE_CLINICA:effectiveClinicPhone,
+        CID_CODIGO_E_DESCRICAO:isManualCid ? customCid : cidCode,DIAS_AFASTAMENTO:String(afastamentoDias),DATA_ATUAL:formattedFormattedDate
+      };
+      const content=customDocumentText.replace(/\{\{([A-Z_]+)\}\}/g,(tag,key)=>values[key] ?? tag);
+      if(/\{\{[^}]+\}\}/.test(content)){window.alert('Há tags sem informação disponível. Substitua-as pelo conteúdo deste atendimento antes de gerar.');return;}
+      const doc=addSavedClinicDocument({title:activeTemplate.title,category:activeTemplate.category==='receituario'?'receita':activeTemplate.category,patientId:selectedPatientId,patientName:patientDisplayName,professionalName:effectiveDentistName,summary:content,content,templateId:activeTemplate.id});
+      handlePrintSystemWindow(doc);setActiveTemplate(null);return;
+    }
+
     if(activeTemplate?.id === 'tcle_procedimentos_odontologicos') {
       const data=currentTcleProcedures();
       if(!selectedPatientId || !data.planId || !data.procedures?.length) {window.alert('Selecione o plano e ao menos um procedimento deste paciente.');return;}
@@ -3722,7 +3749,7 @@ export const DentalDocumentManager: React.FC = () => {
             }`}
           >
             <Pill className="w-4 h-4 text-purple-500" />
-            Receituários ({DENTAL_DOCUMENT_TEMPLATES.filter(t => t.category === 'receituario').length})
+            Receituários ({availableTemplates.filter(t => t.category === 'receituario').length})
           </button>
 
           <button
@@ -3735,7 +3762,7 @@ export const DentalDocumentManager: React.FC = () => {
             }`}
           >
             <FileText className="w-4 h-4 text-amber-500" />
-            Atestados ({DENTAL_DOCUMENT_TEMPLATES.filter(t => t.category === 'atestado').length})
+            Atestados ({availableTemplates.filter(t => t.category === 'atestado').length})
           </button>
 
           <button
@@ -3748,7 +3775,7 @@ export const DentalDocumentManager: React.FC = () => {
             }`}
           >
             <FileCheck className="w-4 h-4 text-emerald-500" />
-            Declarações ({DENTAL_DOCUMENT_TEMPLATES.filter(t => t.category === 'declaracao').length})
+            Declarações ({availableTemplates.filter(t => t.category === 'declaracao').length})
           </button>
 
           <button
@@ -3761,7 +3788,7 @@ export const DentalDocumentManager: React.FC = () => {
             }`}
           >
             <ShieldCheck className="w-4 h-4 text-indigo-500" />
-            Termos & TCLE ({DENTAL_DOCUMENT_TEMPLATES.filter(t => t.category === 'termo').length})
+            Termos & TCLE ({availableTemplates.filter(t => t.category === 'termo').length})
           </button>
 
           <button
@@ -3774,7 +3801,7 @@ export const DentalDocumentManager: React.FC = () => {
             }`}
           >
             <FilePlus className="w-4 h-4 text-sky-500" />
-            Solicitações ({DENTAL_DOCUMENT_TEMPLATES.filter(t => t.category === 'solicitacao').length})
+            Solicitações ({availableTemplates.filter(t => t.category === 'solicitacao').length})
           </button>
         </div>
       </div>
@@ -4187,7 +4214,7 @@ export const DentalDocumentManager: React.FC = () => {
                                     doc.category === 'declaracao' ? 'bg-emerald-100 text-emerald-800' :
                                     'bg-sky-100 text-sky-800'
                                   }`}>
-                                    {doc.category === 'atestado' ? 'Atestado' : doc.category === 'declaracao' ? 'Declaração' : doc.category === 'receita' ? 'Receituário' : 'Solicitação'}
+                                    {documentCategoryLabel(doc.category)}
                                   </span>
                                   <span className="text-[11px] opacity-60">
                                     {doc.formattedDateStr}
@@ -4214,6 +4241,7 @@ export const DentalDocumentManager: React.FC = () => {
                               {doc.summary}
                             </p>
 
+                            {doc.createdBy && <p className="text-[11px] text-stone-500">Criado por {doc.createdBy.professionalName} em {new Date(doc.createdBy.at).toLocaleString('pt-BR')}</p>}
                             {/* Action buttons inside document card */}
                             <div
                               className={`flex items-center gap-2 pt-2 border-t ${t.cardBorder} flex-wrap`}
@@ -4310,17 +4338,17 @@ export const DentalDocumentManager: React.FC = () => {
                                   'bg-sky-100 text-sky-800'
                                 }`}
                               >
-                                {cat === 'atestado' ? 'Atestado' : cat === 'declaracao' ? 'Declaração' : cat === 'receita' ? 'Receituário' : 'Solicitação'}
+                                {documentCategoryLabel(cat)}
                               </span>
                             ))}
                           </div>
 
-                          <div className={`p-2 rounded-xl border ${t.cardBorder} bg-stone-50/60 flex items-center justify-between text-xs`}>
+                          <button type="button" onClick={(e)=>{e.stopPropagation();setSelectedRecentPatient({id:pCard.patientId,name:pCard.patientName});}} className={`w-full p-2 rounded-xl border ${t.cardBorder} bg-stone-50/60 flex items-center justify-between text-xs cursor-pointer hover:bg-stone-100`}>
                             <span className="font-semibold text-stone-600">Papéis do Expediente:</span>
                             <span className={`font-bold ${t.accentText} text-xs bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200`}>
                               {pCard.docs.length} doc(s)
                             </span>
-                          </div>
+                          </button>
                         </div>
 
                         {/* Interactive Action Shortcuts for this patient */}
@@ -4387,6 +4415,10 @@ export const DentalDocumentManager: React.FC = () => {
         )}
       </div>
 
+      <details className={`${t.cardBg} border ${t.cardBorder} rounded-2xl p-4 text-xs print:hidden`}>
+        <summary className="font-bold cursor-pointer flex items-center gap-2"><Trash2 className="w-4 h-4" />Lixeira de documentos</summary>
+        {(()=>{try{const trash=JSON.parse(localStorage.getItem('dentispro_document_trash_v1') || '[]');return Array.isArray(trash) && trash.length ? trash.slice().reverse().map((doc:any)=><p key={doc.id} className="mt-2 border-t border-stone-200 pt-2">{doc.title} — {doc.patientName}<br/>Removido por {doc.removedBy?.professionalName} em {new Date(doc.removedBy?.at).toLocaleString('pt-BR')}</p>) : <p className="mt-2">Nenhum documento removido.</p>;}catch{return <p>Não foi possível ler a lixeira.</p>;}})()}
+      </details>
       {/* Templates Grid - Touch-Screen Friendly & Fully Interactive */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredTemplates.map((template) => {
@@ -4412,7 +4444,7 @@ export const DentalDocumentManager: React.FC = () => {
                     template.category === 'declaracao' ? 'bg-emerald-100 text-emerald-800' :
                     'bg-sky-100 text-sky-800'
                   }`}>
-                    {template.category === 'atestado' ? 'Atestado' : template.category === 'declaracao' ? 'Declaração' : 'Solicitação'}
+                    {documentCategoryLabel(template.category)}
                   </span>
                 </div>
 
@@ -4463,6 +4495,7 @@ export const DentalDocumentManager: React.FC = () => {
 
             {/* Modal Scrollable Content - Form Parameters */}
             <div className="p-4 md:p-6 space-y-5 overflow-y-auto flex-1 font-sans text-xs">
+              {activeTemplate.id.startsWith('custom-') && <label className="block font-bold text-[#5a5a40]">Texto do documento<textarea rows={10} className="block w-full mt-2 border border-[#e5e5d1] rounded-xl p-3 bg-white font-normal" value={customDocumentText} onChange={e=>setCustomDocumentText(e.target.value)} /><span className="block text-xs font-normal mt-1">Revise o texto e selecione o paciente antes de gerar. As tags disponíveis serão preenchidas com os dados cadastrados.</span></label>}
               {/* 0. IDENTIDADE VISUAL E LAYOUT DO DOCUMENTO (CONFIGURAÇÕES) */}
               <div className={`${t.cardBg} p-3.5 rounded-2xl border ${t.cardBorder} space-y-2.5 shadow-2xs`}>
                 <div className="flex items-center justify-between">
@@ -4524,7 +4557,8 @@ export const DentalDocumentManager: React.FC = () => {
                       Profissional Emitente do Documento:
                     </label>
                     <select
-                      value={selectedDocumentProfessionalId}
+                      disabled={currentUser?.role === 'dentist'}
+                      value={currentUser?.role === 'dentist' ? activeProfessional?.id || '' : selectedDocumentProfessionalId}
                       onChange={(e) => {
                         const val = e.target.value;
                         setSelectedDocumentProfessionalId(val);

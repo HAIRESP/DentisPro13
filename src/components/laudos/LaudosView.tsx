@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import { reportVitalSigns } from '../../utils/reportVitalSigns';
 import { getRecordedExamReport } from '../../utils/clinicalReportData';
 import { 
   FileCheck2, 
@@ -1511,6 +1512,14 @@ export const LaudosView: React.FC = () => {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <h4 className="font-bold text-xs text-blue-950">Sinais vitais registrados</h4>
+                {reportVitalSigns(activePatient,patientExam).length === 0 && <p className="text-xs text-stone-500">Sem sinais vitais registrados.</p>}
+                {reportVitalSigns(activePatient,patientExam).map(group=><div key={group.source} className="bg-white p-3 rounded-xl border border-blue-100 text-xs space-y-2">
+                  <p className="font-semibold">{group.source} — {group.date ? group.date.split('-').reverse().join('/') : 'Data não registrada'} {group.time}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{group.readings.map(r=><div key={r.label}><span className="text-stone-500">{r.label}</span><p>{r.value ? `${r.value} ${r.unit}` : 'Não informado'}</p></div>)}</div>
+                </div>)}
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 {/* Tecidos Moles */}
                 <div className="bg-white p-3 rounded-xl border border-blue-100 space-y-1">

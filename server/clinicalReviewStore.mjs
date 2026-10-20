@@ -82,11 +82,13 @@ export function openClinicalReviewStore(filename, { resolveSession, resolveAccou
       throw error;
     }
   }
-  function requireClinical(actor, patientId) {
+  function requireClinical(actor, patientId, permission = 'read') {
+    if (!['read', 'write'].includes(permission)) invalid();
     if (actor.role !== 'dentist' || !validId(actor.professionalId)) denied();
     const grant = db.prepare('SELECT * FROM patient_access WHERE patient_id=? AND account_uid=?').get(patientId, actor.uid);
     if (!grant || grant.professional_id !== actor.professionalId || grant.expires_at <= now() ||
-        grant.expires_at == null || !['read', 'write'].includes(grant.permission)) denied();
+        grant.expires_at == null || !['read', 'write'].includes(grant.permission) ||
+        (permission === 'write' && grant.permission !== 'write')) denied();
   }
   const readRecord = patientId => {
     const row = db.prepare('SELECT record_json FROM patient_records WHERE patient_id=?').get(patientId);
@@ -99,6 +101,11 @@ export function openClinicalReviewStore(filename, { resolveSession, resolveAccou
   }
   return {
     close: () => db.close(),
+    authorizeOdontogram: (token, patientId, permission) => audited(token, 'odontogram-access-' + permission, patientId, actor => {
+      requireClinical(actor, patientId, permission);
+      if (!db.prepare('SELECT 1 FROM patient_records WHERE patient_id=?').get(patientId)) denied();
+      return { value: true };
+    }),
     status: token => audited(token, 'review-status', null, () => ({ value: { mode: 'review_only', schemaVersion: 2 } })),
     deniedMutation: (token, patientId) => {
       const actor = identity(token);

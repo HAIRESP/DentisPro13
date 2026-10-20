@@ -2,6 +2,7 @@ import { ClinicalSaveButton } from './ClinicalSaveButton';
 import { ExamMeasurements } from './ExamMeasurements';
 import { localExamDate } from '../../utils/clinicalPanelArchive';
 import { medicationSummary } from '../../utils/anamnesisData';
+import { resetMeasurementDraft } from '../../utils/measurementSession';
 import React, { useState, useEffect, useRef } from 'react';
 
 // Horário sugerido para a avaliação aberta; só se torna clínico quando salvo.
@@ -176,77 +177,48 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
     tratamentoExecutado: ''
   };
 
-  const [examState, setExamState] = useState<PainEvaluationExam>(() => ({ ...initialPainExam, vitalSigns: { ...initialPainExam.vitalSigns, examTime: initialPainExam.vitalSigns?.examTime || horaLocalExame() } }));
+  const [examState, setExamState] = useState<PainEvaluationExam>(() => resetMeasurementDraft(initialPainExam));
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [archiveBusy,setArchiveBusy]=useState(false);
   const archiveBusyRef=useRef(false);
   const [archiveError,setArchiveError]=useState('');
   const [showHistoryPreview, setShowHistoryPreview] = useState(true);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
-  const [isAutoSaving, setIsAutoSaving] = useState(false);
-  const isLoadedRef = useRef(false);
-  const currentPatientIdRef = useRef(patientId);
+  const isAutoSaving = false;
+
 
   // Sync state if patient changes
   useEffect(() => {
-    isLoadedRef.current = false;
-    currentPatientIdRef.current = patientId;
     const exam = getClinicalExam(patientId);
     if (exam.painExam) {
-      setExamState({ ...exam.painExam, vitalSigns: { ...exam.painExam.vitalSigns, examTime: exam.painExam.vitalSigns?.examTime || horaLocalExame() } });
+      setExamState(resetMeasurementDraft(exam.painExam));
     } else {
       setExamState({
-        ...initialPainExam,
-        vitalSigns: { ...initialPainExam.vitalSigns, examTime: initialPainExam.vitalSigns?.examTime || horaLocalExame() },
+        ...resetMeasurementDraft(initialPainExam),
         patientId,
         chiefComplaint: currentPatient?.anamnesis?.chiefComplaint || ''
       });
     }
-    // Allow auto-save after initial load is done
-    const t = setTimeout(() => {
-      isLoadedRef.current = true;
-    }, 150);
-    return () => clearTimeout(t);
   }, [patientId]);
 
-  // Debounced Auto-save
-  useEffect(() => {
-    if (!isLoadedRef.current || currentPatientIdRef.current !== patientId) {
-      return;
-    }
-
-    setIsAutoSaving(true);
-    const handler = setTimeout(() => {
-      if(archiveBusyRef.current)return;
-      const updatedExam: PainEvaluationExam = {
-        ...examState,
-        patientId,
-        updatedAt: new Date().toISOString()
-      };
-      updateClinicalExam(patientId, {
-        painExam: updatedExam
-      });
-      setIsAutoSaving(false);
-      setLastSavedTime(new Date().toLocaleTimeString('pt-BR'));
-    }, 500);
-
-    return () => clearTimeout(handler);
-  }, [examState, patientId]);
-
+  // Draft measurements are persisted only with the confirmed PDF archive.
   const [savingExam, setSavingExam] = useState(false);
   const captureRef = React.useRef<HTMLDivElement>(null);
-  const handleSave = async () => {
+  const handleSave = async (resetAfterSave=true) => {
+    if(!currentPatient)return false;
     if (savingExam) return false;
     setSavingExam(true);
     try {
       await saveClinicalPanel(patientId, 'pain', examState.examDate, { painExam:{...examState,patientId,updatedAt:new Date().toISOString()} }, captureRef.current);
+      if(resetAfterSave)setExamState(prev=>resetMeasurementDraft(prev));
       setLastSavedTime(new Date().toLocaleTimeString('pt-BR'));setSaveSuccess(true);
       setTimeout(()=>setSaveSuccess(false),3000);return true;
     } catch(error) { alert(error instanceof Error?error.message:'Falha ao salvar exame.');return false; }
     finally { setSavingExam(false); }
   };
   const handlePrint = async () => {
-    if (!await handleSave()) return;
+    if (!await handleSave(false)) return;
+    window.addEventListener('afterprint',()=>setExamState(prev=>resetMeasurementDraft(prev)),{once:true});
     printDocumentWithTitle({docTitle:'Ficha_Avaliacao_Dor_Endodontica',patientName:currentPatient?.name,date:new Date(examState.examDate+'T12:00:00')});
   };
 
@@ -535,7 +507,7 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
           </div>
         </div>
 
-        <ExamMeasurements date={examState.examDate} onDateChange={date=>setExamState(prev=>({...prev,examDate:date}))} values={examState.vitalSigns} onChange={vitalSigns=>setExamState(prev=>({...prev,vitalSigns}))} />
+        <ExamMeasurements disabled={savingExam} onReset={()=>setExamState(prev=>resetMeasurementDraft(prev))} date={examState.examDate} onDateChange={date=>setExamState(prev=>({...prev,examDate:date}))} values={examState.vitalSigns} onChange={vitalSigns=>setExamState(prev=>({...prev,vitalSigns}))} />
 
         {/* HISTÓRIA CLÍNICA */}
         <div className="space-y-4 pt-2">
@@ -1439,7 +1411,7 @@ export const PainEvaluationExamView: React.FC<PainEvaluationExamViewProps> = ({ 
                 <>
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                   <span className="text-slate-600">
-                    Rascunho salvo {lastSavedTime ? `às ${lastSavedTime}` : 'automaticamente'}
+                    {lastSavedTime ? `Exame arquivado às ${lastSavedTime}` : 'Rascunho — use Salvar para arquivar o exame e PDF'}
                   </span>
                 </>
               )}

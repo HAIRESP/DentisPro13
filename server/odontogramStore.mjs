@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { randomUUID, createHash } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 
 export class OdontogramStoreError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -26,11 +26,30 @@ const validateConditions = conditions => {
 /** ISOLATED TEST-ONLY storage. Caller supplies independently verified session and per-patient access.
  * Does NOT mount routes, touch accounts, or open any existing clinical database.
  */
-export function openOdontogramStore(filename, { resolveSession, authorizePatient, now = Date.now }) {
-  if (!filename || filename === ':memory:' || existsSync(filename)) throw Error('Use um caminho NOVO para um banco temporário de teste.');
+export function openOdontogramStore(filename, { resolveSession, authorizePatient, now = Date.now, allowExisting = false }) {
+  if (!filename || filename === ':memory:' || (existsSync(filename) && !allowExisting)) throw Error('Use um caminho NOVO para um banco temporário de teste.');
+  // Validate only this module's databases in read-only mode before reopening them.
+  if (existsSync(filename) && allowExisting) {
+    if (!statSync(filename).isFile()) throw Error('Caminho de banco inválido.');
+    const check = new DatabaseSync(filename, { readOnly: true });
+    try {
+      const required = ['odontogram_current','odontogram_history','odontogram_documents',
+        'odontogram_evolutions','odontogram_requests','odontogram_events'];
+      const tables = new Set(check.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(row => row.name));
+      const triggers = new Set(check.prepare("SELECT name FROM sqlite_master WHERE type='trigger'").all().map(row => row.name));
+      if (required.some(name => !tables.has(name)) ||
+          ['documents_no_update','documents_no_delete','evolutions_no_update','evolutions_no_delete',
+           'history_no_update','history_no_delete','audit_no_update','audit_no_delete'].some(name => !triggers.has(name)) ||
+          check.prepare('PRAGMA integrity_check').get().integrity_check !== 'ok') {
+        throw Error('Banco não é um repositório íntegro e compatível de odontograma.');
+      }
+    } finally { check.close(); }
+  }
+  const reopening = existsSync(filename);
   if (typeof resolveSession !== 'function' || typeof authorizePatient !== 'function') throw Error('Verificadores obrigatórios.');
   const db = new DatabaseSync(filename);
-  db.exec(`PRAGMA foreign_keys=ON; PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL;
+  db.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL;');
+  if (!reopening) db.exec(`
     CREATE TABLE odontogram_current(patient_id TEXT PRIMARY KEY,version INTEGER NOT NULL CHECK(version>=1),conditions_json TEXT NOT NULL CHECK(json_valid(conditions_json)),updated_at INTEGER NOT NULL,updated_by TEXT NOT NULL);
     CREATE TABLE odontogram_history(id TEXT PRIMARY KEY,patient_id TEXT NOT NULL,version INTEGER NOT NULL,exam_date TEXT NOT NULL,title TEXT NOT NULL,conditions_json TEXT NOT NULL CHECK(json_valid(conditions_json)),created_at INTEGER NOT NULL,created_by TEXT NOT NULL);
     CREATE TABLE odontogram_documents(id TEXT PRIMARY KEY,patient_id TEXT NOT NULL,archive_id TEXT NOT NULL UNIQUE,filename TEXT NOT NULL,pdf BLOB NOT NULL CHECK(length(pdf)>30),created_at INTEGER NOT NULL);
@@ -45,12 +64,26 @@ export function openOdontogramStore(filename, { resolveSession, authorizePatient
     CREATE TRIGGER history_no_delete BEFORE DELETE ON odontogram_history BEGIN SELECT RAISE(ABORT,'Immutable history'); END;
     CREATE TRIGGER audit_no_update BEFORE UPDATE ON odontogram_events BEGIN SELECT RAISE(ABORT,'Immutable audit'); END;
     CREATE TRIGGER audit_no_delete BEFORE DELETE ON odontogram_events BEGIN SELECT RAISE(ABORT,'Immutable audit'); END;`);
+  // Additive metadata migration; existing clinical rows and PDFs remain untouched.
+  try {
+    db.exec(`BEGIN IMMEDIATE;
+      CREATE TABLE IF NOT EXISTS odontogram_authors(archive_id TEXT PRIMARY KEY REFERENCES odontogram_history(id), uid TEXT NOT NULL, name TEXT NOT NULL, professional_id TEXT NOT NULL);
+      CREATE TRIGGER IF NOT EXISTS authors_no_update BEFORE UPDATE ON odontogram_authors BEGIN SELECT RAISE(ABORT,'Immutable author'); END;
+      CREATE TRIGGER IF NOT EXISTS authors_no_delete BEFORE DELETE ON odontogram_authors BEGIN SELECT RAISE(ABORT,'Immutable author'); END;
+      CREATE TABLE IF NOT EXISTS odontogram_evaluation_details(
+        archive_id TEXT PRIMARY KEY REFERENCES odontogram_history(id),
+        details_json TEXT NOT NULL CHECK(json_valid(details_json))
+      );
+      CREATE TRIGGER IF NOT EXISTS details_no_update BEFORE UPDATE ON odontogram_evaluation_details BEGIN SELECT RAISE(ABORT,'Immutable evaluation details'); END;
+      CREATE TRIGGER IF NOT EXISTS details_no_delete BEFORE DELETE ON odontogram_evaluation_details BEGIN SELECT RAISE(ABORT,'Immutable evaluation details'); END;
+      COMMIT;`);
+  } catch (error) { try { db.exec('ROLLBACK'); } catch {} db.close(); throw error; }
   function authorize(token,patientId,permission) {
     if (!validId(patientId)) invalid();
     let actor;
     try { actor = resolveSession(token); } catch { throw new OdontogramStoreError(401,'Sessão inválida.'); }
     if (!actor || actor.role !== 'dentist' || !validId(actor.uid) || !validId(actor.professionalId) ||
-        authorizePatient(actor,patientId,permission) !== true) deny();
+        authorizePatient(actor,patientId,permission,token) !== true) deny();
     return actor;
   }
   function log(patientId, uid, operation, outcome) {
@@ -67,7 +100,10 @@ export function openOdontogramStore(filename, { resolveSession, authorizePatient
   return {
     close: () => db.close(),
     read: (token,id) => run(token,id,'read','read',() => {
-      const row = currentRow(id); return row ? {version:row.version,conditions:JSON.parse(row.conditions_json)} : {version:0,conditions:[]};
+      const row = currentRow(id);
+      if (!row) return {version:0,conditions:[]};
+      const latest = db.prepare('SELECT h.exam_date AS date,h.title,d.details_json FROM odontogram_history h LEFT JOIN odontogram_evaluation_details d ON d.archive_id=h.id WHERE h.patient_id=? AND h.version=? ORDER BY h.created_at DESC,h.id DESC LIMIT 1').get(id,row.version);
+      return {version:row.version,conditions:JSON.parse(row.conditions_json),...(latest ? {date:latest.date,title:latest.title,details:JSON.parse(latest.details_json || '{}')} : {})};
     }),
     save: (token,id,{expectedVersion,conditions}) => run(token,id,'write','save',actor => {
       if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 0) invalid();
@@ -103,20 +139,33 @@ export function openOdontogramStore(filename, { resolveSession, authorizePatient
           typeof filename!=='string' || !/^[\w.\- ]{1,160}\.pdf$/i.test(filename) ||
           typeof pdfBase64!=='string' || pdfBase64.length>3_000_000 || pdfBase64.length<40 ||
           !/^[A-Za-z0-9+/]+={0,2}$/.test(pdfBase64)) invalid();
+      const details = input.details;
+      if (details !== undefined && (!details || typeof details !== 'object' || Array.isArray(details) ||
+          Object.keys(details).some(k => !['notes','vitalSigns'].includes(k)) ||
+          (details.notes !== undefined && (typeof details.notes !== 'string' || details.notes.length > 20000)) ||
+          (details.vitalSigns !== undefined && (!details.vitalSigns || typeof details.vitalSigns !== 'object' || Array.isArray(details.vitalSigns))) ||
+          JSON.stringify(details).length > 30000)) invalid();
       const json=validateConditions(conditions);
       const pdf=Buffer.from(pdfBase64,'base64');
       if (pdf.length<40 || pdf.length>2_000_000 || pdf.subarray(0,5).toString()!=='%PDF-' ||
           !pdf.subarray(-2048).toString('latin1').includes('%%EOF')) invalid();
-      const payloadHash=createHash('sha256').update(JSON.stringify({conditions,date,title,description,pdfBase64,filename})).digest('hex');
+      const payloadHash=createHash('sha256').update(JSON.stringify({conditions,date,title,description,pdfBase64,filename,...(details === undefined ? {} : {details})})).digest('hex');
       const prior=db.prepare('SELECT archive_id,version,payload_hash FROM odontogram_requests WHERE patient_id=? AND request_id=?').get(id,requestId);
       if (prior && prior.payload_hash!==payloadHash) throw new OdontogramStoreError(409,'Identificador de operação reutilizado com dados diferentes.');
-      if (prior) return {id:prior.archive_id,version:prior.version,alreadySaved:true};
+      if (prior) {
+        const document = db.prepare('SELECT id FROM odontogram_documents WHERE patient_id=? AND archive_id=?').get(id,prior.archive_id);
+        const evolution = db.prepare('SELECT id FROM odontogram_evolutions WHERE patient_id=? AND archive_id=?').get(id,prior.archive_id);
+        if (!document || !evolution) throw new OdontogramStoreError(500,'Arquivo clínico incompleto. Solicite conferência.');
+        return {id:prior.archive_id,documentId:document.id,evolutionId:evolution.id,version:prior.version,alreadySaved:true};
+      }
       const row=currentRow(id);
       if ((row?.version??0)!==expectedVersion) throw new OdontogramStoreError(409,'Odontograma alterado em outra sessão. Recarregue antes de salvar.');
       const version=expectedVersion+1, at=now(), archiveId=randomUUID(), documentId=randomUUID(), evolutionId=randomUUID();
       if(row) db.prepare('UPDATE odontogram_current SET version=?,conditions_json=?,updated_at=?,updated_by=? WHERE patient_id=?').run(version,json,at,actor.uid,id);
       else db.prepare('INSERT INTO odontogram_current VALUES(?,?,?,?,?)').run(id,version,json,at,actor.uid);
       db.prepare('INSERT INTO odontogram_history VALUES(?,?,?,?,?,?,?,?)').run(archiveId,id,version,date,title.trim(),json,at,actor.uid);
+      db.prepare('INSERT INTO odontogram_authors VALUES(?,?,?,?)').run(archiveId,actor.uid,actor.name || actor.uid,actor.professionalId);
+      db.prepare('INSERT INTO odontogram_evaluation_details VALUES(?,?)').run(archiveId,JSON.stringify(details || {}));
       db.prepare('INSERT INTO odontogram_documents VALUES(?,?,?,?,?,?)').run(documentId,id,archiveId,filename,pdf,at);
       db.prepare('INSERT INTO odontogram_evolutions VALUES(?,?,?,?,?,?,?)').run(evolutionId,id,archiveId,description,date,at,actor.uid);
       db.prepare('INSERT INTO odontogram_requests VALUES(?,?,?,?,?)').run(id,requestId,archiveId,version,payloadHash);
@@ -134,6 +183,6 @@ export function openOdontogramStore(filename, { resolveSession, authorizePatient
       if(!row) throw new OdontogramStoreError(404,'Evolução não encontrada.');
       return row;
     }),
-    history: (token,id) => run(token,id,'read','history',() => db.prepare('SELECT id,version,exam_date AS date,title,conditions_json AS data FROM odontogram_history WHERE patient_id=? ORDER BY created_at DESC,id DESC LIMIT 100').all(id).map(r=>({...r,conditions:JSON.parse(r.data),data:undefined}))),
+    history: (token,id) => run(token,id,'read','history',() => db.prepare('SELECT h.id,h.version,h.exam_date AS date,h.title,h.created_at AS createdAt,h.created_by AS dentistUid,a.name AS dentistName,h.conditions_json AS data,d.details_json FROM odontogram_history h LEFT JOIN odontogram_evaluation_details d ON d.archive_id=h.id LEFT JOIN odontogram_authors a ON a.archive_id=h.id WHERE h.patient_id=? ORDER BY h.created_at DESC,h.id DESC LIMIT 100').all(id).map(r=>({...r,conditions:JSON.parse(r.data),details:JSON.parse(r.details_json || '{}'),data:undefined,details_json:undefined}))),
   };
 }

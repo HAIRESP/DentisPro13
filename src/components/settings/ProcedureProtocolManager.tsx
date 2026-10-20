@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { PROCEDURE_REFERENCE } from '../../data/procedureReference';
 import { TUSSProcedure, ProcedureMaterialRequirement } from '../../types';
 import { REGION_LEGENDS, TOOTH_DICTIONARY, getRegionByCode } from '../../data/regionData';
 import { parseCsvProcedures, parsePdfProcedures, ImportedProcedureRow } from '../../utils/procedureImportUtils';
@@ -44,7 +45,7 @@ import {
   FileUp
 } from 'lucide-react';
 
-export const ProcedureProtocolManager: React.FC = () => {
+export const ProcedureProtocolManager: React.FC<{onOpenReference?:()=>void}> = ({onOpenReference}) => {
   const { 
     tussProcedures, 
     addTussProcedure, 
@@ -60,7 +61,7 @@ export const ProcedureProtocolManager: React.FC = () => {
   const [selectedCode, setSelectedCode] = useState<string>(tussProcedures[0]?.code || '84000010');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedSpecialtyFilter, setSelectedSpecialtyFilter] = useState<string>('todas');
-  const [activeTab, setActiveTab] = useState<'materiais' | 'regioes' | 'geral' | 'profissional' | 'paciente'>('regioes');
+  const [activeTab, setActiveTab] = useState<'materiais' | 'regioes' | 'geral' | 'profissional' | 'paciente' | 'parametros'>('regioes');
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
 
   // Convênio / Price Table Management State
@@ -109,6 +110,8 @@ export const ProcedureProtocolManager: React.FC = () => {
   const [patientInstructions, setPatientInstructions] = useState<string>(activeProcedure?.patientInstructions || '');
   const [materialsList, setMaterialsList] = useState<ProcedureMaterialRequirement[]>(activeProcedure?.requiredMaterials || []);
 
+  const [descriptiveParameters,setDescriptiveParameters]=useState<Record<string,string>>(activeProcedure?.descriptiveParameters || {});
+
   // Technical TUSS guidelines state
   const [requiresToothNumber, setRequiresToothNumber] = useState<boolean>(activeProcedure?.requiresToothNumber ?? true);
   const [toothFacesCount, setToothFacesCount] = useState<'1_face' | '2_faces' | '3_faces' | '4_ou_mais_faces' | 'nao_aplica'>(activeProcedure?.toothFacesCount || '1_face');
@@ -138,6 +141,7 @@ export const ProcedureProtocolManager: React.FC = () => {
   // Sync state when selecting procedure
   const handleSelectProcedure = (proc: TUSSProcedure) => {
     setSelectedCode(proc.code);
+    setDescriptiveParameters(proc.descriptiveParameters || {});
     setCode(proc.code);
     setTissCode(proc.tissCode || '');
     setDescription(proc.description);
@@ -193,6 +197,7 @@ export const ProcedureProtocolManager: React.FC = () => {
       auditNotes,
       professionalGuidance,
       patientInstructions,
+      descriptiveParameters,
       requiredMaterials: materialsList
     };
 
@@ -846,6 +851,26 @@ export const ProcedureProtocolManager: React.FC = () => {
           </div>
 
           {/* MODULE 1: REGRAS DE APLICAÇÃO E MAPEAMENTO DE REGIÕES */}
+          <div className="bg-white border border-[#e5e5d1] rounded-2xl p-4 mb-3 flex flex-wrap justify-between items-center gap-2"><span className="text-sm font-bold text-[#5a5a40]">Parâmetros do procedimento selecionado</span><button type="button" onClick={onOpenReference} className="rounded-xl px-3 py-2 bg-[#5a5a40] text-white text-xs">Abrir tabelas de referência</button></div>
+          <details open className="bg-white border border-[#e5e5d1] rounded-2xl p-4 mb-4">
+            <summary className="font-bold text-sm text-[#5a5a40] cursor-pointer">Tabela descritiva do procedimento — 22 parâmetros</summary>
+            <p className="text-xs text-gray-500 my-3">Configure os parâmetros deste procedimento e use Salvar. Informações do atendimento são preenchidas no plano do paciente.</p>
+            <div className="overflow-x-auto"><table className="w-full text-xs text-left"><thead><tr><th className="p-2">Categoria / parâmetro</th><th className="p-2">Descrição</th><th className="p-2">Conteúdo</th></tr></thead><tbody>
+              {PROCEDURE_REFERENCE.map(field=>{
+                const linked:Record<string,{value:string;set?:(v:string)=>void}>={
+                  code:{value:code,set:setCode},description:{value:description,set:setDescription},region:{value:defaultRegion,set:setDefaultRegion},
+                  price:{value:String(suggestedCost),set:v=>setSuggestedCost(v===''?0:Number(v))},
+                  materials:{value:materialsList.map(m=>`${m.materialName}: ${m.quantityNeeded} ${m.unit}`).join('\n')},
+                  recurrence:{value:String(recurrenceLimitMonths),set:v=>setRecurrenceLimitMonths(v===''?0:Number(v))},
+                  technique:{value:fullDescription,set:setFullDescription},postCare:{value:patientInstructions,set:setPatientInstructions}
+                };
+                const item=linked[field.key];
+                return <tr key={field.key} className="border-t border-[#e5e5d1]"><td className="p-2 align-top"><span className="block text-gray-500 mb-1">{field.category}</span><strong>{field.label}</strong></td><td className="p-2 align-top text-gray-600">{field.description}</td><td className="p-2 min-w-[240px]">
+                  {field.patientOnly ? <span className="text-gray-500">Registro individual no plano do paciente.</span> : <textarea aria-label={field.label} rows={3}  className="w-full p-2 rounded-xl border border-[#e5e5d1] bg-[#fbfbf9]" value={item?.value ?? descriptiveParameters[field.key] ?? ''} onChange={e=>{if(item?.set){if(['price','recurrence'].includes(field.key) && (isNaN(Number(e.target.value)) || Number(e.target.value)<0))return;item.set(e.target.value);}else setDescriptiveParameters(prev=>({...prev,[field.key]:e.target.value}));}} />}
+                </td></tr>;
+              })}
+            </tbody></table></div>
+          </details>
           {activeTab === 'regioes' && (
             <div className="bg-white border border-[#e5e5d1] rounded-[24px] p-5 shadow-sm space-y-5">
               <div className="border-b border-[#e5e5d1] pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

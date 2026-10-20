@@ -2,8 +2,8 @@ import express from 'express';
 import { OdontogramStoreError } from './odontogramStore.mjs';
 import type { openOdontogramStore } from './odontogramStore.mjs';
 
-/** Isolated routes; deliberately NOT mounted in server.ts. Requires verified store callbacks. */
-export function odontogramRoutes(store: ReturnType<typeof openOdontogramStore>) {
+/** Mounted only with explicit SQLite configuration and verified per-patient access. */
+export function odontogramRoutes(store: ReturnType<typeof openOdontogramStore> & {patient?: (token:string,id:string)=>unknown;registerPatient?: (token:string,id:string,data:unknown)=>unknown}) {
   const router = express.Router();
   router.use((_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
@@ -15,6 +15,8 @@ export function odontogramRoutes(store: ReturnType<typeof openOdontogramStore>) 
   const respond = (fn: (req: express.Request) => unknown): express.RequestHandler => (req, res, next) => {
     try { res.json(fn(req)); } catch (error) { next(error); }
   };
+  if (store.patient) router.get('/patients/:patientId/record', respond(req => store.patient!(token(req),req.params.patientId)));
+  if (store.registerPatient) router.post('/patients/:patientId/record', respond(req => store.registerPatient!(token(req),req.params.patientId,req.body)));
   router.get('/patients/:patientId/current', respond(req => store.read(token(req), req.params.patientId)));
   router.put('/patients/:patientId/current', respond(req => store.save(token(req), req.params.patientId, req.body)));
   router.post('/patients/:patientId/evaluations', respond(req => store.completeEvaluation(token(req), req.params.patientId, req.body)));

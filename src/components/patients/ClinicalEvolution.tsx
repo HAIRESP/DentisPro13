@@ -916,6 +916,7 @@ export const ClinicalEvolution: React.FC<ClinicalEvolutionProps> = ({ patientId,
                     <div className="flex items-center gap-3 text-xs text-gray-500">
                       <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-[#d4a373]" /> {evo.date}</span>
                       <span className="flex items-center gap-1"><User className="w-3.5 h-3.5 text-[#d4a373]" /> {evo.dentistName}</span>
+                      {evo.modifiedBy && <span className="text-[10px] text-stone-500">Alterado por {evo.modifiedBy.professionalName} em {new Date(evo.modifiedBy.at).toLocaleString('pt-BR')}</span>}
 
                       <button
                         type="button"

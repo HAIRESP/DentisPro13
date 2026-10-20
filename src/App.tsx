@@ -85,8 +85,8 @@ const MainContent: React.FC = () => {
         {activeTab === 'triagem' && <WhatsAppBotView />}
         {activeTab === 'relatorios' && <ReportsView />}
         {activeTab === 'configuracoes' && <SettingsView />}
-        {activeTab === 'exame_clinico' && <ClinicalExamView />}
-        {activeTab === 'odontograma' && <ClinicalExamView />}
+        {activeTab === 'exame_clinico' && <PatientList initialProfileTab="exame_clinico" />}
+        {activeTab === 'odontograma' && <PatientList initialProfileTab="exame_clinico" />}
         {activeTab === 'estoque' && <InventoryManager />}
         {activeTab === 'financeiro' && <FinancialReports />}
         {activeTab === 'documentos' && <DentalDocumentManager />}

@@ -1,3 +1,4 @@
+import { freshMeasurementSession } from '../../utils/measurementSession';
 import { validateExamDate } from '../../utils/clinicalPanelArchive';
 import type { ExamVitalSigns } from '../../types';
 import { ExamMeasurements } from './ExamMeasurements';
@@ -6,6 +7,8 @@ import { ClinicalReportsGallery } from './ClinicalReportsGallery';
 import { medicationSummary } from '../../utils/anamnesisData';
 import { openStoredPatientPdf, archivedAnamnesisInput, exportAnamnesisPdf } from '../../utils/anamnesisPdf';
 import { getMedicalConditionAlerts } from '../../utils/medicalAlerts';
+import { useAuth } from '../../context/AuthContext';
+import { authorship, appendLocalAudit } from '../../utils/localAuthorship';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Patient, Gender } from '../../types';
@@ -14,6 +17,7 @@ import { CameraModal } from '../common/CameraModal';
 import { printDocumentWithTitle } from '../../utils/printUtils';
 import {
   Save,
+  Trash2,
   Users,
   Search,
   Plus,
@@ -59,7 +63,9 @@ import { PhoneInputWithDDI, formatPhoneWithDDI } from '../common/PhoneInputWithD
 import { DateInputWithPicker } from '../common/DateInputWithPicker';
 import { getThemeStyles } from '../../utils/themeUtils';
 
-export const PatientList: React.FC = () => {
+export const PatientList: React.FC<{initialProfileTab?: 'info'|'exame_clinico'}> = ({initialProfileTab='info'}) => {
+  const {currentUser}=useAuth();
+  const [auditError,setAuditError]=useState('');
   const {
     patients,
     clinics,
@@ -73,6 +79,7 @@ export const PatientList: React.FC = () => {
     appointments,
     prescriptions,
     savedClinicDocuments,
+    deleteSavedClinicDocument,
     clinicInfo,
     openWhatsAppForAppointment,
     setActiveTab,
@@ -88,7 +95,7 @@ export const PatientList: React.FC = () => {
   const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
   const [isAnamnesisModalOpen, setIsAnamnesisModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [activeProfileTab, setActiveProfileTab] = useState<'info' | 'exame_clinico' | 'plano' | 'evolucao' | 'financeiro' | 'consultas' | 'documentos' | 'galeria'>('info');
+  const [activeProfileTab, setActiveProfileTab] = useState<'info' | 'exame_clinico' | 'plano' | 'evolucao' | 'financeiro' | 'consultas' | 'documentos' | 'galeria'>(initialProfileTab);
 
   // Form state for new patient
   const [isPatientCameraOpen, setIsPatientCameraOpen] = useState(false);
@@ -264,13 +271,18 @@ export const PatientList: React.FC = () => {
     .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
 
   const selectedPatient = patients.find(p => p.id === selectedPatientId);
+  React.useEffect(()=>{
+    if(!currentUser || !selectedPatientId)return;
+    try{appendLocalAudit(localStorage,authorship(currentUser),`consulta-${activeProfileTab}`,selectedPatientId);setAuditError('');}
+    catch{setAuditError('Não foi possível registrar esta consulta no histórico de atividades.');}
+  },[currentUser?.uid,selectedPatientId,activeProfileTab]);
   const [medicalDraft, setMedicalDraft] = useState<{ patientId: string; date: string; values: ExamVitalSigns } | null>(null);
   const medicalCaptureRef = React.useRef<HTMLDivElement>(null);
   const [medicalSaving, setMedicalSaving] = useState(false);
   const [medicalSaved, setMedicalSaved] = useState(false);
   const [newMedicalTime, setNewMedicalTime] = useState(() => { const now = new Date(); return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`; });
   const medicalFields = medicalDraft?.patientId === selectedPatient?.id && medicalDraft
-    ? medicalDraft : { patientId: selectedPatient?.id || '', date: selectedPatient?.medicalExamDate ?? localExamDate(), values: { ...(selectedPatient?.medicalVitalSigns ?? {}), examTime: selectedPatient?.medicalVitalSigns?.examTime || newMedicalTime } };
+    ? medicalDraft : { patientId: selectedPatient?.id || '', date: localExamDate(), values: {examTime:newMedicalTime} };
   React.useEffect(() => { setMedicalDraft(null); setMedicalSaved(false); const now = new Date(); setNewMedicalTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`); }, [selectedPatientId]);
   const saveMedicalFields = async () => {
     if (!selectedPatient || medicalSaving) return;
@@ -278,7 +290,8 @@ export const PatientList: React.FC = () => {
     try {
       validateExamDate(medicalFields.date);
       await saveClinicalPanel(selectedPatient.id, 'medical', medicalFields.date, { medicalVitalSigns: { ...medicalFields.values } }, medicalCaptureRef.current);
-      setMedicalDraft(null);
+      const fresh=freshMeasurementSession();
+      setMedicalDraft({patientId:selectedPatient.id,date:fresh.date,values:fresh.values});
       setMedicalSaved(true);
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Não foi possível salvar os sinais vitais.');
@@ -616,6 +629,8 @@ export const PatientList: React.FC = () => {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Nome Completo:</span>
                         <h2 className={`text-lg font-bold ${t.headingText}`}>{selectedPatient.name}</h2>
+                        {selectedPatient.modifiedBy && <span className="text-[10px] text-stone-500">Última alteração por {selectedPatient.modifiedBy.professionalName} em {new Date(selectedPatient.modifiedBy.at).toLocaleString('pt-BR')}</span>}
+                        {auditError && <span role="status" className="text-xs text-amber-700">{auditError}</span>}
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${t.btnSecondaryBg} ${t.btnSecondaryText} border ${t.cardBorder}`}>
                           {selectedPatient.status}
                         </span>
@@ -809,7 +824,7 @@ export const PatientList: React.FC = () => {
                         </div>
                       </div>
 
-                    <ExamMeasurements
+                    <ExamMeasurements disabled={medicalSaving} onReset={()=>{const fresh=freshMeasurementSession();setMedicalDraft({patientId:selectedPatient.id,date:fresh.date,values:fresh.values});setMedicalSaved(false);}}
                       date={medicalFields.date}
                       onDateChange={date => { setMedicalDraft({ ...medicalFields, date }); setMedicalSaved(false); }}
                       values={medicalFields.values}
@@ -955,7 +970,7 @@ export const PatientList: React.FC = () => {
 
                 {/* Tab Content 1.2: Exame Clínico */}
                 {activeProfileTab === 'exame_clinico' && (
-                  <ClinicalExamView patientIdOverride={selectedPatient.id} />
+                  <ClinicalExamView key={selectedPatient.id} patientIdOverride={selectedPatient.id} />
                 )}
 
                 {/* Tab Content 1.5: Plano de Tratamento */}
@@ -1153,6 +1168,7 @@ export const PatientList: React.FC = () => {
                                   <Send className="w-3.5 h-3.5 text-white" />
                                   <span>WhatsApp</span>
                                 </button>
+                                <button type="button" onClick={e=>{e.stopPropagation();deleteSavedClinicDocument(doc.id);}} className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl cursor-pointer" title="Mover documento para a lixeira"><Trash2 className="w-4 h-4" /></button>
                               </div>
                             </div>
                           </div>

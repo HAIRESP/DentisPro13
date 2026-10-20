@@ -1,3 +1,4 @@
+import { freshMeasurementSession } from '../../utils/measurementSession';
 import { createPortal } from 'react-dom';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import type { ExamVitalSigns } from '../../types';
@@ -75,14 +76,15 @@ function MeasurementInput({ label, value, options, onChange, disabled, suggested
   </div>;
 }
 
-export function ExamMeasurements({ date, onDateChange, values = {}, onChange, disabled = false }: {
+export function ExamMeasurements({ date, onDateChange, values = {}, onChange, disabled = false, onReset }: {
   date: string; onDateChange: (date: string) => void;
-  values?: ExamVitalSigns; onChange: (values: ExamVitalSigns) => void; disabled?: boolean;
+  values?: ExamVitalSigns; onChange: (values: ExamVitalSigns) => void; disabled?: boolean; onReset?:()=>void;
 }) {
   const [systolic, diastolic] = splitBloodPressure(values.bloodPressure);
   const set = (key: keyof ExamVitalSigns, value: string) => onChange({ ...values, [key]: value });
   return <>
     <div className="print:hidden rounded-2xl border border-[#e5e5d1] bg-[#fbfbf9] p-4 text-xs text-[#5a5a40] space-y-4">
+      <div className="flex items-center justify-between gap-3"><span className="font-bold">Sinais vitais desta sessão</span><button data-pdf-ignore type="button" disabled={disabled} onClick={()=>{if(onReset)onReset();else onChange(freshMeasurementSession().values);}} className="rounded-xl border border-[#e5e5d1] px-3 py-1.5 bg-white hover:bg-stone-50 disabled:opacity-50">Nova medição</button></div>
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:gap-6">
         <label className="flex flex-col gap-1 font-bold">Data
           <input aria-label="Data" type="date" required disabled={disabled} value={date}

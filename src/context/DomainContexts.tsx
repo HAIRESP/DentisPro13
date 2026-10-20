@@ -3,7 +3,7 @@ import { useApp, AppContextType } from './AppContext';
 
 type DocumentDomain = Pick<
   AppContextType,
-  'documentTemplates' | 'updateDocumentTemplate' | 'resetDocumentTemplates'
+  'documentTemplates' | 'updateDocumentTemplate' | 'resetDocumentTemplates' | 'addDocumentTemplate' | 'updateDocumentTemplateDetails' | 'deleteDocumentTemplate'
 >;
 
 type ClinicDomain = Pick<
@@ -117,9 +117,12 @@ export const DomainProviders: React.FC<{ children: React.ReactNode }> = ({ child
 
   const documentDomain = useMemo<DocumentDomain>(() => ({
     documentTemplates: app.documentTemplates,
+    addDocumentTemplate: app.addDocumentTemplate,
+    updateDocumentTemplateDetails: app.updateDocumentTemplateDetails,
+    deleteDocumentTemplate: app.deleteDocumentTemplate,
     updateDocumentTemplate: app.updateDocumentTemplate,
     resetDocumentTemplates: app.resetDocumentTemplates
-  }), [app.documentTemplates]);
+  }), [app.documentTemplates,app.addDocumentTemplate,app.updateDocumentTemplateDetails,app.deleteDocumentTemplate,app.updateDocumentTemplate,app.resetDocumentTemplates]);
 
   const clinicDomain = useMemo<ClinicDomain>(() => ({
     clinicInfo: app.clinicInfo,

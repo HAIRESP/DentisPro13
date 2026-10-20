@@ -223,6 +223,7 @@ export interface PatientFile {
 }
 
 export interface Patient {
+  modifiedBy?: {accountUid:string;professionalId:string;professionalName:string;at:string};
   medicalExamDate?: string;
   medicalVitalSigns?: ExamVitalSigns;
   clinicalReports?: ClinicalPanelReport[];
@@ -338,6 +339,7 @@ export interface CorrelationRule {
 }
 
 export interface ToothCondition {
+  modifiedBy?: {accountUid:string;professionalId:string;professionalName:string;at:string};
   toothNumber: number; // e.g. 18 to 48 or 55 to 85
   surfaces?: Partial<Record<ToothSurface, ToothConditionType>>;
   wholeToothCondition?: ToothConditionType;
@@ -360,6 +362,7 @@ export interface OdontogramSnapshot {
 }
 
 export interface ClinicalEvolutionEntry {
+  modifiedBy?: {accountUid:string;professionalId:string;professionalName:string;at:string};
   documentFingerprint?: string; // SHA-256 do conteúdo clínico e identidade do exame.
   sourcePanel?: ClinicalPanelKind;
   pdfFileId?: string;
@@ -549,6 +552,7 @@ export interface ProcedureMaterialRequirement {
 }
 
 export interface TUSSProcedure extends ProcedureConsentContent {
+  descriptiveParameters?: Record<string,string>;
   id?: string | number; // Chave Primária SQL (Primary Key - id serial/inteiro autoincremental)
   code: string; // TUSS code e.g. "81000030" (Chave Única de Negócio ANS)
   tissCode?: string; // Código TISS correspondente
@@ -608,7 +612,7 @@ export interface DocumentVariableDefinition {
 
 export interface CustomDocumentTemplate {
   id: string; // e.g. 'atestado_medico', 'declaracao_comparecimento'
-  category: 'declaracao' | 'atestado' | 'solicitacao' | 'receita' | 'outro';
+  category: 'declaracao' | 'atestado' | 'solicitacao' | 'receita' | 'termo' | 'outro';
   title: string;
   subtitle: string;
   description: string;
@@ -620,6 +624,7 @@ export interface CustomDocumentTemplate {
 export type TreatmentPlanStatus = 'proposto' | 'aprovado' | 'em_andamento' | 'concluido' | 'cancelado';
 
 export interface TreatmentPlanItem extends ProcedureConsentContent {
+  encounterParameters?: Record<string,string>;
   id: string;
   tussCode?: string;
   procedureName: string;
@@ -650,6 +655,7 @@ export interface TreatmentConsentAttachment {
 }
 
 export interface TreatmentPlan {
+  modifiedBy?: {accountUid:string;professionalId:string;professionalName:string;at:string};
   id: string;
   patientId: string;
   patientName: string;
@@ -809,6 +815,7 @@ export interface PainEvaluationExam {
 }
 
 export interface ClinicalExam {
+  modifiedBy?: {accountUid:string;professionalId:string;professionalName:string;at:string};
   odontogramVitalSigns?: ExamVitalSigns;
   odontogramDate?: string;
   odontogramExamDate?: string;
@@ -822,6 +829,7 @@ export interface ClinicalExam {
 }
 
 export interface SavedClinicDocument {
+  createdBy?: {accountUid:string;professionalId:string;professionalName:string;at:string};
   id: string;
   createdAt: string; // ISO date string
   formattedDateStr: string;

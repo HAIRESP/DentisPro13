@@ -1,4 +1,4 @@
-﻿const PARTICULAS_NOME = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
+const PARTICULAS_NOME = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
 
 function limparTexto(texto: string): string {
   return texto.normalize('NFD')

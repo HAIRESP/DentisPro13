@@ -1,0 +1,6 @@
+import React,{useState} from 'react';
+export function LocalActivityHistory(){
+ const [entries,setEntries]=useState<any[]>([]);const [error,setError]=useState('');
+ const refresh=()=>{try{const data=JSON.parse(localStorage.getItem('dentispro_activity_audit_v1') || '[]');if(!Array.isArray(data))throw Error();setEntries(data.slice().reverse());setError('');}catch{setError('Não foi possível ler o histórico de atividades.');}};
+ return <details className="bg-white border border-[#e5e5d1] rounded-2xl p-4 text-xs" onToggle={e=>{if(e.currentTarget.open)refresh();}}><summary className="font-bold text-[#5a5a40] cursor-pointer">Histórico de atividades deste navegador</summary><button type="button" onClick={refresh} className="my-3 rounded-xl px-3 py-2 bg-[#5a5a40] text-white">Atualizar</button>{error && <p role="alert">{error}</p>}<div className="max-h-80 overflow-auto"><table className="w-full text-left"><thead><tr><th>Data</th><th>Conta</th><th>Ação</th><th>Registro</th></tr></thead><tbody>{entries.map(e=><tr key={e.id} className="border-t border-[#e5e5d1]"><td className="p-2">{new Date(e.at).toLocaleString('pt-BR')}</td><td>{e.professionalName}</td><td>{e.action}</td><td>{e.targetId}</td></tr>)}</tbody></table></div></details>;
+}

@@ -1,3 +1,4 @@
+import { OdontogramStorageBoundary } from './OdontogramSqliteWorkspace';
 import { ClinicalSaveButton } from './ClinicalSaveButton';
 import { ExamMeasurements } from './ExamMeasurements';
 import {prepareLocalSpeech,speechErrorMessage} from '../../utils/localSpeech';
@@ -6,6 +7,7 @@ const localExamTime=()=>{const d=new Date();return `${String(d.getHours()).padSt
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
+import { freshMeasurementSession } from '../../utils/measurementSession';
 import { ToothCondition, ToothConditionType, ToothSurface, OdontogramSnapshot, type ExamVitalSigns } from '../../types';
 import { 
   CANONICAL_FACES, 
@@ -52,9 +54,12 @@ import {
   VoiceOdontogramResult 
 } from '../../utils/voiceOdontogramParser';
 
-interface OdontogramProps {
+export interface OdontogramProps {
   patientId: string;
   readOnly?: boolean;
+  serverMode?: boolean;
+  initialNotes?: string;
+  dataSource?: Partial<ReturnType<typeof useApp>>;
 }
 
 const CONDITION_CONFIG: Record<ToothConditionType, { label: string; color: string; bg: string; text: string; textDark?: boolean }> = {
@@ -114,7 +119,10 @@ const MOTIVO_SUGGESTIONS = [
   'Outro'
 ];
 
-export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = false }) => {
+export const Odontogram: React.FC<OdontogramProps> = props => <OdontogramStorageBoundary {...props} />;
+
+export const OdontogramCanvas: React.FC<OdontogramProps> = ({ patientId, readOnly = false, serverMode = false, initialNotes = '', dataSource }) => {
+  const localApp = useApp();
   const { 
     odontograms, 
     updateToothCondition, 
@@ -126,7 +134,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     updatePatient,
     layoutTheme,
     clinicInfo
-  } = useApp();
+  } = { ...localApp, ...dataSource };
 
   const t = getThemeStyles(layoutTheme);
   
@@ -145,21 +153,22 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   const [activeSnapshotId, setActiveSnapshotId] = useState<string>('current');
   const [isSnapshotModalOpen, setIsSnapshotModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-  const [snapshotDate, setSnapshotDate] = useState<string>(getClinicalExam(patientId).odontogramExamDate || localExamDate());
-  const [odontogramVitalSigns, setOdontogramVitalSigns] = useState<ExamVitalSigns>({...getClinicalExam(patientId).odontogramVitalSigns,examTime:getClinicalExam(patientId).odontogramVitalSigns?.examTime || localExamTime()});
+  const [snapshotDate, setSnapshotDate] = useState<string>(()=>freshMeasurementSession().date);
+  const [odontogramVitalSigns, setOdontogramVitalSigns] = useState<ExamVitalSigns>(()=>freshMeasurementSession().values);
   const [savingPanel,setSavingPanel] = useState(false);
   const savingPanelRef = useRef(false);
   useEffect(() => {
     const exam = getClinicalExam(patientId);
-    setSnapshotDate(exam.odontogramExamDate || exam.odontogramDate || localExamDate());
-    setOdontogramVitalSigns({...exam.odontogramVitalSigns,examTime:exam.odontogramVitalSigns?.examTime || localExamTime()});
+    const fresh=freshMeasurementSession();
+    setSnapshotDate(fresh.date);setOdontogramVitalSigns(fresh.values);
   }, [patientId]);
   const saveOdontogramPanel = async ():Promise<boolean> => {
     if (savingPanelRef.current || readOnly || activeSnapshotId !== 'current') return false;
     savingPanelRef.current = true;setSavingPanel(true);
     try {
-      updateClinicalExam(patientId, {odontogramExamDate:snapshotDate,odontogramVitalSigns});
-      setAddedSuccessMsg('Data e sinais vitais registrados neste navegador. Para arquivar uma avaliação com evolução e PDF, use a Cronologia do odontograma.');
+      await saveOdontogramSnapshot(patientId,{date:snapshotDate,title:'Avaliação',conditions:structuredClone(activePatientConditions),notes:snapshotNotes,vitalSigns:structuredClone(odontogramVitalSigns)});
+      const fresh=freshMeasurementSession();setSnapshotDate(fresh.date);setOdontogramVitalSigns(fresh.values);
+      setAddedSuccessMsg('Avaliação, PDF e evolução salvos. Sinais vitais reiniciados para uma nova medição.');
       return true;
     } catch (error) {
       setAddedSuccessMsg(error instanceof Error ? error.message : 'Falha ao registrar os dados do exame.');
@@ -168,7 +177,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   };
   const [selectedMotivoOption, setSelectedMotivoOption] = useState<string>('Avaliação');
   const [customSnapshotTitle, setCustomSnapshotTitle] = useState<string>('');
-  const [snapshotNotes, setSnapshotNotes] = useState<string>('');
+  const [snapshotNotes, setSnapshotNotes] = useState<string>(initialNotes);
   const snapshotBusyRef=useRef(false);
   const [snapshotBusy,setSnapshotBusy]=useState(false);
   const [snapshotError,setSnapshotError]=useState('');
@@ -258,7 +267,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     return `${selectedTeeth.length} dentes selecionados (${selectedTeeth.sort((a,b)=>a-b).join(', ')}) • Faces válidas: ${validFaces.map(f => f.code).join(', ')}`;
   }, [selectedTeeth, validFaces]);
 
-  useEffect(() => {setSelectedTeeth([]);setSelectedSurfaces([]);setToothNote('');setActiveSnapshotId('current');setSnapshotDate(getClinicalExam(patientId).odontogramExamDate || localExamDate());},[patientId]);
+  useEffect(() => {setSelectedTeeth([]);setSelectedSurfaces([]);setToothNote('');setActiveSnapshotId('current');setSnapshotDate(freshMeasurementSession().date);},[patientId]);
 
   // Keep selected surfaces clean when tooth selection changes
   useEffect(() => {
@@ -785,8 +794,9 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
     try{
       const finalTitle=selectedMotivoOption==='Outro'?customSnapshotTitle.trim()||'Avaliação':selectedMotivoOption;
       await saveOdontogramSnapshot(patientId,{date:snapshotDate,title:finalTitle,conditions:structuredClone(activePatientConditions),notes:snapshotNotes,vitalSigns:structuredClone(odontogramVitalSigns)});
+      const fresh=freshMeasurementSession();setSnapshotDate(fresh.date);setOdontogramVitalSigns(fresh.values);
       setIsSnapshotModalOpen(false);setCustomSnapshotTitle('');setSnapshotNotes('');
-      setAddedSuccessMsg('Odontograma salvo no histórico de evoluções e PDF na Galeria do Prontuário.');
+      setAddedSuccessMsg(serverMode ? 'Avaliação, PDF e evolução confirmados no servidor. Consulte os arquivos abaixo.' : 'Odontograma salvo no histórico de evoluções e PDF na Galeria do Prontuário.');
     }catch(error){setSnapshotError(error instanceof Error?error.message:'Não foi possível arquivar o odontograma.');}
     finally{snapshotBusyRef.current=false;setSnapshotBusy(false);}
   };
@@ -1175,7 +1185,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
   return (
     <div className="bg-white border border-[#e5e5d1] rounded-[32px] p-3 sm:p-6 shadow-sm space-y-5">
       <div className="flex flex-col gap-2">
-        <ExamMeasurements date={snapshotDate} onDateChange={setSnapshotDate} values={odontogramVitalSigns} onChange={setOdontogramVitalSigns} disabled={readOnly || activeSnapshotId !== 'current' || savingPanel} />
+        <ExamMeasurements onReset={()=>{const fresh=freshMeasurementSession();setSnapshotDate(fresh.date);setOdontogramVitalSigns(fresh.values);}} date={snapshotDate} onDateChange={setSnapshotDate} values={odontogramVitalSigns} onChange={setOdontogramVitalSigns} disabled={readOnly || activeSnapshotId !== 'current' || savingPanel} />
       </div>
       {/* Header & Main Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#e5e5d1] pb-4">
@@ -1937,7 +1947,7 @@ export const Odontogram: React.FC<OdontogramProps> = ({ patientId, readOnly = fa
           updatePatient(patientId, { images: newImgs });
           updateClinicalExam(patientId, { odontogramImages: newImgs });
         }}
-        readOnly={readOnly}
+        readOnly={readOnly || serverMode}
       />
 
       {!readOnly && activeSnapshotId === 'current' && (
