@@ -38,6 +38,7 @@ interface ClinicalEvolutionProps {
 
 export const ClinicalEvolution: React.FC<ClinicalEvolutionProps> = ({ patientId, onOpenReport }) => {
   const { 
+    patients,
     clinicalEvolutions, 
     addClinicalEvolution, 
     deleteClinicalEvolution,
@@ -915,12 +916,14 @@ export const ClinicalEvolution: React.FC<ClinicalEvolutionProps> = ({ patientId,
                     <div className="flex items-center gap-3 text-xs text-gray-500">
                       <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-[#d4a373]" /> {evo.date}</span>
                       <span className="flex items-center gap-1"><User className="w-3.5 h-3.5 text-[#d4a373]" /> {evo.dentistName}</span>
+                      {evo.modifiedBy && <span className="text-[10px] text-stone-500">Alterado por {evo.modifiedBy.professionalName} em {new Date(evo.modifiedBy.at).toLocaleString('pt-BR')}</span>}
 
                       <button
                         type="button"
+                        disabled={patients.some(p => p.clinicalReports?.some(report => report.id === evo.id))}
                         onClick={() => deleteClinicalEvolution(evo.id)}
                         className="p-1 hover:bg-rose-50 rounded-lg text-gray-400 hover:text-rose-600 transition cursor-pointer"
-                        title="Excluir Registro"
+                        title={patients.some(p => p.clinicalReports?.some(report => report.id === evo.id)) ? "Registro de exame arquivado: salve uma nova versão para corrigir" : "Excluir Registro"}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

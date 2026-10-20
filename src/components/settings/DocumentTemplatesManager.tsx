@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
-import { RELATIONAL_DOCUMENT_VARIABLES } from '../../data/documentTemplatesCatalog';
+import { useDocumentDomain } from '../../context/DomainContexts';
+import { RELATIONAL_DOCUMENT_VARIABLES, INITIAL_DOCUMENT_TEMPLATES } from '../../data/documentTemplatesCatalog';
 import { CustomDocumentTemplate } from '../../types';
 import { 
   FileText, 
@@ -17,15 +17,18 @@ import {
   FileCheck2,
   Tag,
   Code,
-  Plus
+  Plus,
+  Trash2
 } from 'lucide-react';
 
-export const DocumentTemplatesManager: React.FC = () => {
-  const { documentTemplates, updateDocumentTemplate, resetDocumentTemplates } = useApp();
+export const DocumentTemplatesManager: React.FC = React.memo(() => {
+  const { documentTemplates, updateDocumentTemplate, resetDocumentTemplates, addDocumentTemplate, updateDocumentTemplateDetails, deleteDocumentTemplate } = useDocumentDomain();
   
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(documentTemplates[0]?.id || 'atestado_medico');
   const activeTemplate = documentTemplates.find(t => t.id === selectedTemplateId) || documentTemplates[0];
 
+  const metadataOf=(tpl:CustomDocumentTemplate)=>({title:tpl?.title || '',subtitle:tpl?.subtitle || '',description:tpl?.description || '',category:tpl?.category || 'outro' as CustomDocumentTemplate['category']});
+  const [metadata,setMetadata]=useState(()=>metadataOf(activeTemplate));
   const [templateText, setTemplateText] = useState<string>(activeTemplate?.templateText || '');
   const [copiedTag, setCopiedTag] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
@@ -38,9 +41,17 @@ export const DocumentTemplatesManager: React.FC = () => {
     const tpl = documentTemplates.find(t => t.id === id);
     if (tpl) {
       setTemplateText(tpl.templateText);
+      setMetadata(metadataOf(tpl));
     }
   };
 
+  const handleCreate = () => {
+    const title=window.prompt('Nome do novo documento:')?.trim();
+    if(!title)return;
+    const id=`custom-${crypto.randomUUID()}`;
+    addDocumentTemplate({id,title,category:'outro',subtitle:'Documento personalizado',description:'',templateText:'',updatedAt:new Date().toISOString()});
+    setSelectedTemplateId(id);setTemplateText('');setMetadata({title,subtitle:'Documento personalizado',description:'',category:'outro'});setActiveTab('editor');
+  };
   // Insert variable tag into editor
   const handleInsertTag = (placeholder: string) => {
     setTemplateText(prev => prev + ' ' + placeholder + ' ');
@@ -56,6 +67,8 @@ export const DocumentTemplatesManager: React.FC = () => {
   // Save changes
   const handleSave = () => {
     if (!activeTemplate) return;
+    if(!metadata.title.trim()){window.alert('Informe o nome do modelo.');return;}
+    if(activeTemplate.id.startsWith('custom-'))updateDocumentTemplateDetails(activeTemplate.id,metadata);
     updateDocumentTemplate(activeTemplate.id, templateText);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);
@@ -65,8 +78,10 @@ export const DocumentTemplatesManager: React.FC = () => {
   const handleReset = () => {
     if (window.confirm('Deseja restaurar todos os modelos de documentos para os textos padrões iniciais do sistema?')) {
       resetDocumentTemplates();
-      const first = documentTemplates[0];
+      const first = INITIAL_DOCUMENT_TEMPLATES[0];
       if (first) {
+        setSelectedTemplateId(first.id);
+        setMetadata(metadataOf(first));
         setTemplateText(first.templateText);
       }
     }
@@ -104,7 +119,8 @@ export const DocumentTemplatesManager: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <button type="button" onClick={handleCreate} className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer border border-white/20"><Plus className="w-4 h-4" />Novo documento</button>
           <button
             type="button"
             onClick={handleReset}
@@ -243,6 +259,13 @@ export const DocumentTemplatesManager: React.FC = () => {
                 </span>
               </div>
 
+              {activeTemplate.id.startsWith('custom-') && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <label className="font-semibold text-[#5a5a40]">Nome do documento<input className="block w-full mt-1 border border-[#e5e5d1] rounded-xl p-2 font-normal" value={metadata.title} onChange={e=>setMetadata({...metadata,title:e.target.value})} /></label>
+                <label className="font-semibold text-[#5a5a40]">Tipo do documento<select className="block w-full mt-1 border border-[#e5e5d1] rounded-xl p-2 font-normal" value={metadata.category} onChange={e=>setMetadata({...metadata,category:e.target.value as CustomDocumentTemplate['category']})}><option value="atestado">Atestado</option><option value="receita">Receita</option><option value="solicitacao">Solicitação</option><option value="declaracao">Declaração</option><option value="termo">Termo</option><option value="outro">Outro</option></select></label>
+                <label className="font-semibold text-[#5a5a40]">Subtítulo<input className="block w-full mt-1 border border-[#e5e5d1] rounded-xl p-2 font-normal" value={metadata.subtitle} onChange={e=>setMetadata({...metadata,subtitle:e.target.value})} /></label>
+                <label className="font-semibold text-[#5a5a40]">Descrição<textarea className="block w-full mt-1 border border-[#e5e5d1] rounded-xl p-2 font-normal" value={metadata.description} onChange={e=>setMetadata({...metadata,description:e.target.value})} /></label>
+                <button type="button" className="justify-self-start flex items-center gap-2 rounded-xl p-2 text-red-600 bg-red-50 hover:bg-red-100" onClick={()=>{if(!window.confirm('Excluir este modelo? Os documentos já gerados serão preservados.'))return;const next=documentTemplates.find(t=>t.id!==activeTemplate.id);deleteDocumentTemplate(activeTemplate.id);if(next){setSelectedTemplateId(next.id);setTemplateText(next.templateText);setMetadata(metadataOf(next));}}}><Trash2 className="w-4 h-4"/>Excluir modelo</button>
+              </div>}
               {/* Tag Quick Bar */}
               <div className="space-y-1.5">
                 <label className="text-[11px] font-extrabold uppercase text-gray-500 tracking-wider flex items-center gap-1">
@@ -383,4 +406,4 @@ export const DocumentTemplatesManager: React.FC = () => {
       </div>
     </div>
   );
-};
+});

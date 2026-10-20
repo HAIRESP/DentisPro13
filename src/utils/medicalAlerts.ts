@@ -21,6 +21,17 @@ export const medicalConditionAlerts: ReadonlyArray<{
   { key: 'usesAnticoagulants', label: 'Usa Anticoagulantes' },
   { key: 'usesBisphosphonates', label: 'Bisfosfonatos' },
   { key: 'hasCancerHistory', label: 'Câncer / Quimioterapia' },
+  { key: 'hasPacemaker', label: 'Marca-passo / prótese cardíaca' },
+  { key: 'hasShortnessOfBreath', label: 'Falta de ar relatada' },
+  { key: 'hasRespiratoryDisease', label: 'Doença respiratória' },
+  { key: 'hasRenalOrHepatic', label: 'Doença renal / hepática' },
+  { key: 'hasThyroidDisorder', label: 'Alteração da tireoide' },
+  { key: 'hasSeizures', label: 'Convulsões / condição neurológica relatada' },
+  { key: 'hasRadiationTherapyFaceJaw', label: 'Radioterapia na face / maxilares' },
+  { key: 'hasFaceJawTrauma', label: 'Trauma na face / maxilares', detailsKey: 'faceJawTraumaDetails' },
+  { key: 'hasAdverseDentalReaction', label: 'Reação ao tratamento dentário', detailsKey: 'adverseDentalReactionDetails' },
+  { key: 'hasAnesthesiaReaction', label: 'Reação anestésica', detailsKey: 'anesthesiaReactionDetails' },
+  { key: 'hasOtherUnlistedDiseases', label: 'Outras doenças relatadas', detailsKey: 'otherUnlistedDiseasesDetails' },
   { key: 'hasHadSurgery', label: 'Cirurgias / Internações', detailsKey: 'surgeryDetails' },
 ];
 

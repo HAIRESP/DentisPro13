@@ -1,0 +1,34 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import express from 'express';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createLocalAuthStore} from '../server/localAuthStore.ts';
+import {openClinicOdontogramStore} from '../server/clinicOdontogramStore.mjs';
+import {odontogramRoutes} from '../server/odontogramRoutes.ts';
+
+test('real login and HTTP link save reload PDF and logout work without clinical review database',async t=>{
+ const dir=mkdtempSync(join(tmpdir(),'clinic-http-'));
+ const auth=createLocalAuthStore(join(dir,'accounts.sqlite'));
+ const admin=await auth.createUser({name:'Test Admin',email:'admin@example.test',password:'temporary-test-password-123'});
+ const administrator=await auth.login(admin.email,'temporary-test-password-123');
+ const dentist=await auth.createUser({name:'Dentista Autenticado',email:'dentist@example.test',password:'temporary-test-password-456',role:'dentist'},administrator.token);
+ const logged=await auth.login(dentist.email,'temporary-test-password-456');
+ const store=openClinicOdontogramStore(join(dir,'odontogram.sqlite'),auth);
+ const app=express();app.use('/api/odontogram',odontogramRoutes(store));
+ const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
+ t.after(async()=>{await new Promise(r=>{server.close(r);server.closeAllConnections();});store.close();auth.close();rmSync(dir,{recursive:true,force:true});});
+ const base=`http://127.0.0.1:${server.address().port}/api/odontogram/patients/patient-test`;
+ const request=(suffix,body,token=logged.token)=>fetch(base+suffix,{method:body===undefined?'GET':'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});
+ assert.equal((await request('/record')).status,404);
+ assert.equal((await request('/record',{id:'patient-test',name:'Paciente teste',birthDate:'2000-01-01'},administrator.token)).status,403);
+ const link=await request('/record',{id:'patient-test',name:'Paciente teste',birthDate:'2000-01-01'});assert.equal(link.status,200);
+ const payload={requestId:'evaluation-test',expectedVersion:0,conditions:[{toothNumber:11}],date:'2026-10-20',title:'Exame de teste',description:'Teste',filename:'teste.pdf',pdfBase64:Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\nstartxref\n0\n%%EOF').toString('base64')};
+ const saved=await request('/evaluations',payload);assert.equal(saved.status,200);const result=await saved.json();
+ assert.equal((await (await request('/current')).json()).version,1);
+ assert.equal((await (await request('/history')).json())[0].dentistName,'Dentista Autenticado');
+ assert.equal((await (await request(`/evaluations/${result.id}/document`)).json()).pdfBase64,payload.pdfBase64);
+ assert.equal((await (await request('/evaluations',payload)).json()).alreadySaved,true);
+ auth.logout(logged.token);assert.equal((await request('/current')).status,401);
+});

@@ -1,0 +1,18 @@
+DENTISPRO — CORREÇÃO DO CADASTRO E DIAGNÓSTICO DE LOGIN
+
+Este pacote é cumulativo em relação ao pacote anterior de contas/API.
+Pare o servidor (Ctrl+C), faça backup do projeto e copie src, server, server.ts e firestore.rules para C:\Users\douto\DentisPro13, mesclando pastas e substituindo arquivos. Não exclua as pastas existentes. Rode npm run dev e atualize a página com Ctrl+F5.
+
+O formulário Novo Usuário agora contém E-mail da nova conta, Senha da nova conta e Confirme a senha da nova conta. É separado do login. A aplicação não copia credenciais antigas para ele; o navegador ainda pode oferecer preenchimento automático. Confira o e-mail antes de enviar. Senhas diferentes bloqueiam o envio.
+O cabeçalho da janela indica a CONTA CONECTADA. Ao cadastrar outra pessoa, é correto continuar mostrando o administrador. Para entrar na conta criada é preciso Sair e trocar de conta, substituir e-mail/senha eventualmente preenchidos pelo navegador e clicar Entrar.
+
+A conta planetodonto@gmail.com já existe: NÃO a cadastre novamente nem exclua dados para tentar corrigir. Se o login falhar, copie a mensagem exata (sem senha).
+Para conferir o perfil: o UID da linha planetodonto@gmail.com em Authentication deve ser igual ao nome do documento users/UID no Firestore e ao campo uid dentro dele. O campo role deve ser dentist. O UID do administrador deve ser diferente: são contas distintas.
+Este pacote não edita contas ou documentos já existentes no Firebase, nem publica regras. Um perfil ausente ou incorreto precisa ser conferido antes de reparar.
+
+O webhook antigo foi removido do servidor. Ele apenas registrava o corpo recebido e devolvia confirmação, sem integração real. Sua URL também foi retirada da tela. As APIs usadas pelo aplicativo continuam protegidas; rotas desconhecidas continuam recusadas. Não removemos essa proteção.
+
+Os testes de IA significam apenas usar os botões já existentes: na triagem do WhatsApp, a leitura de uma foto tenta preencher os dados; o comando de voz tenta interpretar uma instrução clínica. Você não precisa digitar token algum. O aplicativo envia a identificação automaticamente. Podemos adiar esses testes até resolver o login. Use somente dados fictícios nos testes.
+
+Validação local: 14 testes passaram. Build passou. Testes do Firebase são simulados; não houve acesso administrativo ao seu Firebase e nenhuma conta foi alterada. Persistem as limitações de tipagem global e isolamento dos dados locais descritas no pacote anterior.
+GitHub: a PR #1 de instalação continua aberta em rascunho. Correções entregues por ZIP não são publicadas automaticamente no GitHub.

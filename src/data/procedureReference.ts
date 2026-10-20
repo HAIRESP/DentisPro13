@@ -1,0 +1,245 @@
+// Referência fornecida pelo usuário. Exemplos não são valores padrão de cadastro.
+export const PROCEDURE_REFERENCE = [
+  {
+    "key": "code",
+    "category": "1. Identificação Técnica & Clínica",
+    "label": "Código TUSS",
+    "description": "Código oficial da Terminologia Unificada da Saúde Suplementar exigido pelas operadoras.",
+    "example": "85100123 (Exemplo: Tratamento de Canal Endodôntico)",
+    "path": "TUSSProcedure.code",
+    "patientOnly": false,
+    "status": "Campo existente",
+    "note": ""
+  },
+  {
+    "key": "description",
+    "category": "1. Identificação Técnica & Clínica",
+    "label": "Descrição do Procedimento",
+    "description": "Nomenclatura padronizada da técnica que será executada no paciente.",
+    "example": "Tratamento de canal  em dente permanente multiradicular",
+    "path": "TUSSProcedure.description",
+    "patientOnly": false,
+    "status": "Campo existente",
+    "note": ""
+  },
+  {
+    "key": "patientId",
+    "category": "1. Identificação Técnica & Clínica",
+    "label": "Paciente ID",
+    "description": "Identificação exata do beneficiário",
+    "example": "Nome do paciente/Beneficiário",
+    "path": "TreatmentPlan.patientId",
+    "patientOnly": true,
+    "status": "Campo existente",
+    "note": ""
+  },
+  {
+    "key": "region",
+    "category": "1. Identificação Técnica & Clínica",
+    "label": "Região / Elemento Dental",
+    "description": "Identificação exata do dente (numeração do odontograma) ou da face(rosto)/região da boca.",
+    "example": "Elemento 16 (Molar Superior Direito)",
+    "path": "TreatmentPlanItem.toothNumber / regionCode",
+    "patientOnly": false,
+    "status": "Campo existente",
+    "note": ""
+  },
+  {
+    "key": "face",
+    "category": "1. Identificação Técnica & Clínica",
+    "label": "Face",
+    "description": "Identificação da face/região do dente quando for usada no procedimento.",
+    "example": "Mesial Oclusal vestibular",
+    "path": "TreatmentPlanItem.toothSurface",
+    "patientOnly": true,
+    "status": "Campo existente",
+    "note": ""
+  },
+  {
+    "key": "diagnosis",
+    "category": "2. Parâmetros Clínicos & Diagnósticos",
+    "label": "Diagnóstico Base (CID-10 / CID-11)",
+    "description": "Código internacional de doenças bucais associado à necessidade real do tratamento.",
+    "example": "K04.1 (Necrose da Polpa)",
+    "path": "TUSSProcedure.descriptiveParameters.diagnosis",
+    "patientOnly": false,
+    "status": "Parcial — sem automação completa",
+    "note": ""
+  },
+  {
+    "key": "anesthesia",
+    "category": "2. Parâmetros Clínicos & Diagnósticos",
+    "label": "Anestesiologia Vinculada",
+    "description": "Tipo de anestésico, técnica aplicada e limitação de tubetes baseada no histórico de saúde.",
+    "example": "Articaína 4% com Epinefrina 1:100.000 - Técnica Pterigomandibular",
+    "path": "TUSSProcedure.descriptiveParameters.anesthesia",
+    "patientOnly": false,
+    "status": "Parcial — sem automação completa",
+    "note": ""
+  },
+  {
+    "key": "chairTime",
+    "category": "2. Parâmetros Clínicos & Diagnósticos",
+    "label": "Tempo Estimado de Cadeira",
+    "description": "Tempo em minutos necessário para a execução segura do procedimento completo.",
+    "example": "60 a 90 minutos",
+    "path": "TUSSProcedure.descriptiveParameters.chairTime",
+    "patientOnly": false,
+    "status": "Parcial — sem automação completa",
+    "note": ""
+  },
+  {
+    "key": "fixedCost",
+    "category": "3. Estrutura Financeira & Custos",
+    "label": "Custo Operacional Fixo Direto",
+    "description": "Custo do minuto/hora clínica consumido pelo procedimento (aluguel, equipe, depreciação).",
+    "example": "R$ 120,00 (Baseado em R$ 80,00 por hora de custo operacional fixo)",
+    "path": "TUSSProcedure.descriptiveParameters.fixedCost",
+    "patientOnly": false,
+    "status": "Parcial — sem automação completa",
+    "note": ""
+  },
+  {
+    "key": "variableCost",
+    "category": "3. Estrutura Financeira & Custos",
+    "label": "Custo Variável Próprio (Insumos/EPIs)",
+    "description": "Valor exato consumido em materiais odontológicos descartáveis e de consumo específico.",
+    "example": "R$ 45,00 (Limas de endo, isolamento absoluto, cones de guta-percha, etc.)",
+    "path": "TUSSProcedure.descriptiveParameters.variableCost",
+    "patientOnly": false,
+    "status": "Parcial — sem automação completa",
+    "note": ""
+  },
+  {
+    "key": "thirdPartyCost",
+    "category": "3. Estrutura Financeira & Custos",
+    "label": "Custo de Terceiros / Laboratório",
+    "description": "Honorários de profissionais externos (ex: endodontista parceiro) ou custo do laboratório de prótese.",
+    "example": "R$ 0,00 (Procedimento executado pelo clínico sem prótese laboratorial)",
+    "path": "TUSSProcedure.descriptiveParameters.thirdPartyCost",
+    "patientOnly": false,
+    "status": "Parcial — sem automação completa",
+    "note": ""
+  },
+  {
+    "key": "price",
+    "category": "3. Estrutura Financeira & Custos",
+    "label": "Valor Final de Venda (Particular)",
+    "description": "Preço calculado cobrado ao cliente particular para garantir a margem de lucro ideal.",
+    "example": "R$ 450,00 (Margem de contribuição líquida desejada de 40%)",
+    "path": "TUSSProcedure.suggestedCost / prices",
+    "patientOnly": false,
+    "status": "Campo existente",
+    "note": ""
+  },
+  {
+    "key": "predictedComplications",
+    "category": "4. Gestão de Riscos & Intercorrências",
+    "label": "Intercorrências Clínicas Mapeadas",
+    "description": "Lista de intercorrências previsíveis (ex: fratura de instrumento, hemorragia, sensibilidade).",
+    "example": "Fratura de lima endodôntica no terço apical; Perfuração radicular; Dor pós-operatória",
+    "path": "TUSSProcedure.descriptiveParameters.predictedComplications",
+    "patientOnly": false,
+    "status": "Parcial — sem automação completa",
+    "note": ""
+  },
+  {
+    "key": "emergencyProtocol",
+    "category": "4. Gestão de Riscos & Intercorrências",
+    "label": "Protocolo de Urgência / Mitigação",
+    "description": "Ação imediata padronizada a ser tomada em caso de intercorrência clínica.",
+    "example": "Uso de localizador apical eletrônico, irrigação com EDTA, encaminhamento ao especialista",
+    "path": "TUSSProcedure.descriptiveParameters.emergencyProtocol",
+    "patientOnly": false,
+    "status": "Parcial — sem automação completa",
+    "note": ""
+  },
+  {
+    "key": "financialRisk",
+    "category": "4. Gestão de Riscos & Intercorrências",
+    "label": "Margem de Risco Financeiro",
+    "description": "Percentual financeiro embutido no preço para cobrir custos de retrabalhos ou retornos.",
+    "example": "5% sobre o valor final de venda",
+    "path": "TUSSProcedure.descriptiveParameters.financialRisk",
+    "patientOnly": false,
+    "status": "Parcial — sem automação completa",
+    "note": ""
+  },
+  {
+    "key": "priceTable",
+    "category": "5. Auditoria & Faturamento",
+    "label": "Especifica de que tabela de prestação pertence o procedimento",
+    "description": "E",
+    "example": "",
+    "path": "TreatmentPlan.priceTableId / PriceTable.id",
+    "patientOnly": true,
+    "status": "Revisar definição",
+    "note": "A descrição da planilha contém apenas “E”. Confirmar a regra desejada; o vínculo com a tabela de preços já existe."
+  },
+  {
+    "key": "eligibility",
+    "category": "5. Auditoria & Faturamento",
+    "label": "Status de Elegibilidade & Carência",
+    "description": "Validação prévia no portal da operadora se o plano cobre o ato na data da execução.",
+    "example": "Autorizado eletronicamente - Token gerado e válido por 30 dias",
+    "path": "TreatmentPlanItem.encounterParameters.eligibility",
+    "patientOnly": true,
+    "status": "Parcial — sem automação completa",
+    "note": ""
+  },
+  {
+    "key": "evidence",
+    "category": "5. Auditoria & Faturamento",
+    "label": "Evidências Exigidas (Auditoria)",
+    "description": "Exigências de imagens para aprovação e faturamento (Ex: Radiografia Pré/Pós, fotos intraorais).",
+    "example": "Radiografia periapical inicial (diagnóstico) e radiografia final (comprovação do selamento)",
+    "path": "TUSSProcedure.descriptiveParameters.evidence",
+    "patientOnly": false,
+    "status": "Parcial — sem automação completa",
+    "note": ""
+  },
+  {
+    "key": "recurrence",
+    "category": "5. Auditoria & Faturamento",
+    "label": "Prazo Mínimo de Recorrência",
+    "description": "Tempo de garantia exigido pelo convênio antes de permitir cobrar o mesmo dente novamente.",
+    "example": "24 meses (Restrições padrão para retratamentos sem auditoria especial)",
+    "path": "TUSSProcedure.recurrenceLimitMonths",
+    "patientOnly": false,
+    "status": "Campo existente",
+    "note": ""
+  },
+  {
+    "key": "evolutionLots",
+    "category": "6. Documentação & Pós-Procedimento",
+    "label": "Evolução Clínica e Lotes",
+    "description": "Anotação obrigatória da evolução do tratamento no prontuário incluindo lotes de materiais.",
+    "example": "05/11/2026 - Isolamento absoluto realizado, instrumentação mecanizada com lote #1234.",
+    "path": "TreatmentPlanItem.encounterParameters.evolutionLots",
+    "patientOnly": true,
+    "status": "Parcial — sem automação completa",
+    "note": ""
+  },
+  {
+    "key": "postCare",
+    "category": "6. Documentação & Pós-Procedimento",
+    "label": "Orientações pós-operatórias",
+    "description": "Intercorrências Clínicas Ocasionadas.",
+    "example": "05/11/2026 – Perfuração ou aparecimento de outro conduto radicular",
+    "path": "TUSSProcedure.patientInstructions",
+    "patientOnly": false,
+    "status": "Revisar definição",
+    "note": "O título indica orientações pós-operatórias, mas a descrição e o exemplo indicam intercorrências. Mantidos como enviados para revisão."
+  },
+  {
+    "key": "documents",
+    "category": "6. Documentação & Pré-Pós-Procedimento",
+    "label": "Documentos, Contratos, Imagens. Modelos e exemplos",
+    "description": "Reúne a referência a todos os arquivos referentes ao procedimento.",
+    "example": "Imagens pré e pós procedimento. Modelos de Documentos exigidos.",
+    "path": "Patient.files / TreatmentConsentAttachment",
+    "patientOnly": true,
+    "status": "Parcial — sem automação completa",
+    "note": ""
+  }
+] as const;

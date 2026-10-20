@@ -1,3 +1,5 @@
+import { ExamMeasurementsPrint } from './ExamMeasurements';
+import { medicationSummary, medicationAnswer } from '../../utils/anamnesisData';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getThemeStyles } from '../../utils/themeUtils';
@@ -123,14 +125,15 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
       
       const alertsSummary = [
         anam.hasAllergies && `Alergias: ${anam.allergyDetails || 'Presente'}`,
-        anam.takesContinuousMedication && `Medicações: ${anam.continuousMedicationDetails || 'Em uso'}`,
-        anam.takesBisphosphonates && 'Uso de Bisfosfonatos (Alerta Risco de Osteonecrose)',
-        anam.takesAnticoagulants && 'Uso de Anticoagulantes (Risco Hemorrágico)',
+        anam.continuousMedication && `Medicações: ${anam.continuousMedication || 'Em uso'}`,
+        medicationAnswer(anam) === true && `Medicações: ${medicationSummary(anam)}`,
+        anam.usesBisphosphonates && 'Uso de Bisfosfonatos (Alerta Risco de Osteonecrose)',
+        anam.usesAnticoagulants && 'Uso de Anticoagulantes (Risco Hemorrágico)',
         anam.hasHypertension && 'Hipertensão Arterial',
         anam.hasDiabetes && 'Diabetes Mellitus',
         anam.hasHeartDisease && 'Cardiopatia / Risco Cardíaco',
         anam.hasPacemaker && 'Portador de Marca-passo Cardíaco',
-        anam.hasBleedingTendency && 'Tendência a Sangramento Prolongado',
+        anam.bleedingDisorder && 'Tendência a Sangramento Prolongado',
         anam.hasAnesthesiaReaction && `Reação Anestésica: ${anam.anesthesiaReactionDetails || 'Relatada'}`,
         anam.isSmoker && `Ex-fumante / Tabagista (${anam.smokingFrequency || 'Registrado'})`,
         anam.usesRecreationalDrugs && `Substâncias Recreativas: ${anam.drugDetails || 'Registrado'} (${anam.drugUsageFrequency || ''})`
@@ -192,7 +195,7 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
     myPlans.forEach(plan => {
       const key = `plan_${plan.id}`;
       if (!eventMap.has(key)) {
-        const planDate = plan.date || plan.createdAt || new Date().toISOString().split('T')[0];
+        const planDate = plan.date;
         const itemDetails = plan.items && plan.items.length > 0 
           ? plan.items.map(i => `• ${i.procedureName} ${i.toothNumber ? `(Dente #${i.toothNumber})` : ''} - Status: ${i.status}`).join('\n')
           : undefined;
@@ -603,6 +606,9 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
                 </span>
               </div>
 
+              {patient.medicalExamDate && <div><strong>Data:</strong> {patient.medicalExamDate.split('-').reverse().join('/')}</div>}
+              <ExamMeasurementsPrint values={patient.medicalVitalSigns} />
+
               {/* 1. QUADRO DE ALERTAS CRÍTICOS & RISCO CIRÚRGICO/ANESTÉSICO */}
               <div className="space-y-2">
                 <span className="text-[10.5px] font-bold text-stone-700 uppercase tracking-wider flex items-center gap-1.5">
@@ -620,18 +626,18 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
                   </div>
 
                   {/* Bisfosfonatos */}
-                  <div className={`p-2.5 rounded-xl border ${patient.anamnesis.takesBisphosphonates ? 'bg-rose-50/80 border-rose-200 text-rose-900 font-bold' : 'bg-white border-[#e5e5d1] text-stone-700'}`}>
+                  <div className={`p-2.5 rounded-xl border ${patient.anamnesis.usesBisphosphonates ? 'bg-rose-50/80 border-rose-200 text-rose-900 font-bold' : 'bg-white border-[#e5e5d1] text-stone-700'}`}>
                     <strong className="block text-[11px]">Uso de Bisfosfonatos:</strong>
                     <span className="text-[11.5px] font-medium">
-                      {patient.anamnesis.takesBisphosphonates ? `SIM (Risco de Osteonecrose): ${patient.anamnesis.bisphosphonatesDetails || 'Em uso'}` : 'Não faz uso'}
+                      {patient.anamnesis.usesBisphosphonates ? 'SIM (Risco de Osteonecrose): Em uso' : 'Não faz uso'}
                     </span>
                   </div>
 
                   {/* Anticoagulantes */}
-                  <div className={`p-2.5 rounded-xl border ${patient.anamnesis.takesAnticoagulants ? 'bg-amber-50 border-amber-200 text-amber-900 font-bold' : 'bg-white border-[#e5e5d1] text-stone-700'}`}>
+                  <div className={`p-2.5 rounded-xl border ${patient.anamnesis.usesAnticoagulants ? 'bg-amber-50 border-amber-200 text-amber-900 font-bold' : 'bg-white border-[#e5e5d1] text-stone-700'}`}>
                     <strong className="block text-[11px]">Uso de Anticoagulantes:</strong>
                     <span className="text-[11.5px] font-medium">
-                      {patient.anamnesis.takesAnticoagulants ? `SIM (Risco Hemorrágico): ${patient.anamnesis.anticoagulantsDetails || 'Em uso'}` : 'Não faz uso'}
+                      {patient.anamnesis.usesAnticoagulants ? 'SIM (Risco Hemorrágico): Em uso' : 'Não faz uso'}
                     </span>
                   </div>
 
@@ -658,9 +664,10 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
 
                   {/* Medicamentos de Uso Contínuo */}
                   <div className="bg-white p-2.5 rounded-xl border border-[#e5e5d1] text-stone-700">
-                    <strong className="block text-[11px]">Medicações Contínuas:</strong>
+                    <strong className="block text-[11px]">Medicamentos em Uso:</strong>
                     <span className="text-[11.5px] font-medium">
-                      {patient.anamnesis.takesContinuousMedication ? patient.anamnesis.continuousMedicationDetails || 'Em uso' : 'Nenhuma medicação contínua'}
+                      {patient.anamnesis.continuousMedication || 'Nenhuma medicação contínua'}
+                      {medicationSummary(patient.anamnesis)}
                     </span>
                   </div>
                 </div>
@@ -946,3 +953,4 @@ export const PatientAttendanceReportModal: React.FC<PatientAttendanceReportModal
     </div>
   );
 };
+// DentisPro: correcao-lint50-v1

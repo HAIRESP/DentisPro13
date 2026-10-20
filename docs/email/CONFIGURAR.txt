@@ -1,0 +1,16 @@
+Modelo proposto de redefinição de senha — DentisPro
+
+No Firebase Authentication > Modelos > Redefinição de senha:
+Nome do remetente: DentisPro
+Assunto: Redefina sua senha — DentisPro
+Mensagem:
+Olá!
+Recebemos uma solicitação para redefinir a senha da conta %EMAIL%.
+Para escolher uma nova senha, acesse:
+%LINK%
+Se você não fez essa solicitação, ignore esta mensagem. Sua senha permanece a mesma.
+Equipe DentisPro
+
+Mantenha os marcadores %EMAIL% e %LINK%. Nunca cole um link real de redefinição como link fixo do modelo.
+O arquivo HTML é uma proposta visual. A personalização no envio padrão do Firebase é limitada; não foi instalado nem testado no console. Se o editor não aceitar esse visual, sua implementação completa exige envio próprio e geração segura de links no servidor. Não configure SMTP ou compre serviço antes de definir a integração.
+O arquivo src/lib/firebase.ts do pacote define auth.languageCode = 'pt-BR' para os próximos envios. Copie para a mesma pasta do projeto depois de fazer backup. Não muda e-mails já enviados.

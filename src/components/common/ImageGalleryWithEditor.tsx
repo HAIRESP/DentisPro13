@@ -1,3 +1,5 @@
+import type {PatientFile} from '../../types';
+import {openStoredPatientPdf} from '../../utils/anamnesisPdf';
 import React, { useState, useRef, useEffect } from 'react';
 import { CameraModal } from './CameraModal';
 import { printDocumentWithTitle } from '../../utils/printUtils';
@@ -23,6 +25,7 @@ interface ImageGalleryWithEditorProps {
   title?: string;
   description?: string;
   images: string[];
+  files?: PatientFile[];
   onUpdateImages: (images: string[]) => void;
   readOnly?: boolean;
 }
@@ -31,6 +34,7 @@ export const ImageGalleryWithEditor: React.FC<ImageGalleryWithEditorProps> = ({
   title = "Galeria de Imagens e Fotos do Exame",
   description = "Adicione fotos clínicas ou radiografias. Clique na imagem para abrir a ferramenta avançada de edição e anotação.",
   images = [],
+  files = [],
   onUpdateImages,
   readOnly = false
 }) => {
@@ -77,7 +81,9 @@ export const ImageGalleryWithEditor: React.FC<ImageGalleryWithEditorProps> = ({
   }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const files: File[] = e.target.files
+      ? Array.from(e.target.files)
+      : [];
     e.target.value = '';
     if (!files.length || uploadPendingRef.current) return;
     uploadPendingRef.current = true;
@@ -299,7 +305,7 @@ export const ImageGalleryWithEditor: React.FC<ImageGalleryWithEditorProps> = ({
         <div>
           <h4 className="text-xs font-bold text-[#5a5a40] flex items-center gap-1.5 uppercase tracking-wider">
             <Camera className="w-4 h-4 text-[#d4a373]" />
-            {title} ({images.length})
+            {title} ({images.length + files.length})
           </h4>
           <p className="text-[11px] text-gray-400">{description}</p>
         </div>
@@ -329,6 +335,12 @@ export const ImageGalleryWithEditor: React.FC<ImageGalleryWithEditorProps> = ({
         )}
       </div>
 
+      {files.length > 0 && <div className="space-y-2">
+        {files.map(file=><div key={file.id} className="flex flex-wrap justify-between items-center gap-2 bg-[#fbfbf9] border border-[#e5e5d1] rounded-xl p-3 text-xs">
+          <div><p className="font-bold text-[#5a5a40]">{file.name}</p><p className="text-gray-500">{file.examDate ? `Data do exame: ${file.examDate.split('-').reverse().join('/')} • ` : ''}{new Date(file.uploadedAt).toLocaleString('pt-BR')}</p></div>
+          <div className="flex gap-3"><button type="button" className="font-semibold underline" onClick={()=>{try{openStoredPatientPdf(file.fileUrl);}catch(e){window.alert(e instanceof Error?e.message:'Não foi possível abrir o PDF.');}}}>Abrir / imprimir</button><a className="font-semibold underline" href={file.fileUrl} download={file.name}>Baixar PDF</a></div>
+        </div>)}
+      </div>}
       {images.length === 0 ? (
         <div className="text-center py-6 border-2 border-dashed border-[#e5e5d1] rounded-2xl bg-[#fbfbf9] text-xs text-gray-400">
           Nenhuma imagem anexada. Clique no botão de upload para importar fotos ou radiografias do exame.

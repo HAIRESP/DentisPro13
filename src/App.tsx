@@ -1,6 +1,9 @@
+import { PasswordResetPage } from './components/common/PasswordResetPage';
 import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthGate } from './components/common/AuthGate';
+import { DomainProviders } from './context/DomainContexts';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { PatientList } from './components/patients/PatientList';
 import { AppointmentCalendar } from './components/appointments/AppointmentCalendar';
@@ -82,8 +85,8 @@ const MainContent: React.FC = () => {
         {activeTab === 'triagem' && <WhatsAppBotView />}
         {activeTab === 'relatorios' && <ReportsView />}
         {activeTab === 'configuracoes' && <SettingsView />}
-        {activeTab === 'exame_clinico' && <ClinicalExamView />}
-        {activeTab === 'odontograma' && <ClinicalExamView />}
+        {activeTab === 'exame_clinico' && <PatientList initialProfileTab="exame_clinico" />}
+        {activeTab === 'odontograma' && <PatientList initialProfileTab="exame_clinico" />}
         {activeTab === 'estoque' && <InventoryManager />}
         {activeTab === 'financeiro' && <FinancialReports />}
         {activeTab === 'documentos' && <DentalDocumentManager />}
@@ -114,11 +117,16 @@ const AppShell: React.FC = () => {
 };
 
 export default function App() {
+  if (window.location.pathname === '/auth/action') return <PasswordResetPage />;
   return (
     <AuthProvider>
+      <AuthGate>
       <AppProvider>
-        <AppShell />
+        <DomainProviders>
+          <AppShell />
+        </DomainProviders>
       </AppProvider>
+      </AuthGate>
     </AuthProvider>
   );
 }

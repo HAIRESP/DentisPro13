@@ -1,3 +1,4 @@
+import { PROCEDURE_PARAMETERS } from '../../data/procedureParameters';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getPatientAgeAndBirthDate } from '../../utils/patientUtils';
@@ -1287,6 +1288,10 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
       finalCost: costNum,
       notes: customItemNotes ? `${customItemNotes} (Tabela: ${activeTableName})` : `Tabela: ${activeTableName}`,
       fullProcedureDetails: selectedTuss.fullDescription,
+      professionalDescription: selectedTuss.professionalDescription,
+      patientDescription: selectedTuss.patientDescription,
+      risks: selectedTuss.risks,
+      benefits: selectedTuss.benefits,
       status: 'pendente'
     };
 
@@ -2215,6 +2220,13 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
             />
           </div>
 
+          {items.length>0 && <details className="bg-white border border-[#e5e5d1] rounded-2xl p-4">
+            <summary className="text-sm font-bold text-[#5a5a40] cursor-pointer">Registros individuais dos procedimentos</summary>
+            {items.map(item=><div key={item.id} className="mt-3 border-t border-[#e5e5d1] pt-3 space-y-2">
+              <p className="text-xs font-bold">{item.procedureName} {item.toothNumber ? `— Dente ${item.toothNumber}` : ''}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{PROCEDURE_PARAMETERS.filter(f=>f.patientOnly).map(field=><label key={field.key} className="text-xs text-[#5a5a40]">{field.label}<textarea rows={2} className="block w-full mt-1 border border-[#e5e5d1] rounded-xl p-2 bg-[#fbfbf9]" value={item.encounterParameters?.[field.key] || ''} onChange={e=>handleUpdateItem(item.id,{encounterParameters:{...item.encounterParameters,[field.key]:e.target.value}})} /></label>)}</div>
+            </div>)}
+          </details>}
           {/* Form Actions */}
           <div className="flex items-center justify-between pt-3 border-t border-[#e5e5d1]">
             <div className="text-xs">
@@ -2689,7 +2701,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                   onClick={() => printDocumentWithTitle({
                     docTitle: 'Plano_de_Tratamento',
                     patientName: patient?.name,
-                    date: activePrintPlan?.createdAt || new Date()
+                    date: activePrintPlan?.date || new Date()
                   })}
                   className={`px-4 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold rounded-xl flex items-center gap-2 shadow-2xs cursor-pointer transition`}
                 >
@@ -2897,7 +2909,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                 onClick={() => printDocumentWithTitle({
                   docTitle: 'Plano_de_Tratamento',
                   patientName: patient?.name,
-                  date: activePrintPlan?.createdAt || new Date()
+                  date: activePrintPlan?.date || new Date()
                 })}
                 className={`px-5 py-2.5 ${t.btnPrimaryBg} ${t.btnPrimaryText} font-bold text-xs rounded-xl flex items-center gap-2 shadow-2xs cursor-pointer transition`}
               >
@@ -3868,7 +3880,7 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
                                     <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-200 rounded text-[10px] font-bold">
                                       🦷 Por Dente
                                     </span>
-                                    {rule.teethGroup && rule.teethGroup !== 'todos' && rule.teethGroup !== 'custom' && (
+                                    {rule.teethGroup && rule.teethGroup !== 'todos' && rule.teethGroup !== 'personalizado' && (
                                       <span className="text-[10px] text-emerald-800 font-medium">
                                         {rule.teethGroup === 'molares' ? 'Molares' : rule.teethGroup === 'anteriores' ? 'Anteriores' : rule.teethGroup === 'pre_molares' ? 'Pré-molares' : rule.teethGroup === 'sisos' ? 'Sisos' : 'Odontopediatria'}
                                       </span>
@@ -4111,3 +4123,4 @@ export const TreatmentPlanManager: React.FC<TreatmentPlanManagerProps> = ({ pati
     </div>
   );
 };
+// DentisPro: correcao-lint50-v1

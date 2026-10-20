@@ -1,21 +1,33 @@
+import { freshMeasurementSession } from '../../utils/measurementSession';
+import { validateExamDate } from '../../utils/clinicalPanelArchive';
+import type { ExamVitalSigns } from '../../types';
+import { ExamMeasurements } from './ExamMeasurements';
+import { localExamDate } from '../../utils/clinicalPanelArchive';
+import { ClinicalReportsGallery } from './ClinicalReportsGallery';
+import { medicationSummary } from '../../utils/anamnesisData';
+import { openStoredPatientPdf, archivedAnamnesisInput, exportAnamnesisPdf } from '../../utils/anamnesisPdf';
 import { getMedicalConditionAlerts } from '../../utils/medicalAlerts';
+import { useAuth } from '../../context/AuthContext';
+import { authorship, appendLocalAudit } from '../../utils/localAuthorship';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Patient, Gender } from '../../types';
 import { formatCPF, isValidEmail, isValidDateStr } from '../../utils/formatters';
 import { CameraModal } from '../common/CameraModal';
 import { printDocumentWithTitle } from '../../utils/printUtils';
-import { 
-  Users, 
-  Search, 
-  Plus, 
-  Phone, 
-  Mail, 
-  FileText, 
-  Smile, 
-  Calendar, 
-  MessageSquare, 
-  ChevronRight, 
+import {
+  Save,
+  Trash2,
+  Users,
+  Search,
+  Plus,
+  Phone,
+  Mail,
+  FileText,
+  Smile,
+  Calendar,
+  MessageSquare,
+  ChevronRight,
   AlertTriangle,
   UserCheck,
   Filter,
@@ -51,19 +63,24 @@ import { PhoneInputWithDDI, formatPhoneWithDDI } from '../common/PhoneInputWithD
 import { DateInputWithPicker } from '../common/DateInputWithPicker';
 import { getThemeStyles } from '../../utils/themeUtils';
 
-export const PatientList: React.FC = () => {
-  const { 
-    patients, 
+export const PatientList: React.FC<{initialProfileTab?: 'info'|'exame_clinico'}> = ({initialProfileTab='info'}) => {
+  const {currentUser}=useAuth();
+  const [auditError,setAuditError]=useState('');
+  const {
+    patients,
     clinics,
     professionals,
-    selectedPatientId, 
-    setSelectedPatientId, 
-    addPatient, 
-    updatePatient, 
-    appointments, 
-    prescriptions, 
+    selectedPatientId,
+    setSelectedPatientId,
+    addPatient,
+    updatePatient,
+    saveClinicalPanel,
+    savePatientMedicalHistory,
+    appointments,
+    prescriptions,
     savedClinicDocuments,
-    clinicInfo, 
+    deleteSavedClinicDocument,
+    clinicInfo,
     openWhatsAppForAppointment,
     setActiveTab,
     layoutTheme,
@@ -78,7 +95,7 @@ export const PatientList: React.FC = () => {
   const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
   const [isAnamnesisModalOpen, setIsAnamnesisModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [activeProfileTab, setActiveProfileTab] = useState<'info' | 'exame_clinico' | 'plano' | 'evolucao' | 'financeiro' | 'consultas' | 'documentos' | 'galeria'>('info');
+  const [activeProfileTab, setActiveProfileTab] = useState<'info' | 'exame_clinico' | 'plano' | 'evolucao' | 'financeiro' | 'consultas' | 'documentos' | 'galeria'>(initialProfileTab);
 
   // Form state for new patient
   const [isPatientCameraOpen, setIsPatientCameraOpen] = useState(false);
@@ -246,7 +263,7 @@ export const PatientList: React.FC = () => {
       const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             p.cpf.includes(searchTerm) ||
                             p.phone.includes(searchTerm);
-      const matchesInsurance = filterInsurance === 'todos' || 
+      const matchesInsurance = filterInsurance === 'todos' ||
                                (filterInsurance === 'particular' && (!p.healthInsurance || p.healthInsurance === 'Particular')) ||
                                (filterInsurance === 'convenio' && p.healthInsurance && p.healthInsurance !== 'Particular');
       return matchesSearch && matchesInsurance;
@@ -254,6 +271,33 @@ export const PatientList: React.FC = () => {
     .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
 
   const selectedPatient = patients.find(p => p.id === selectedPatientId);
+  React.useEffect(()=>{
+    if(!currentUser || !selectedPatientId)return;
+    try{appendLocalAudit(localStorage,authorship(currentUser),`consulta-${activeProfileTab}`,selectedPatientId);setAuditError('');}
+    catch{setAuditError('Não foi possível registrar esta consulta no histórico de atividades.');}
+  },[currentUser?.uid,selectedPatientId,activeProfileTab]);
+  const [medicalDraft, setMedicalDraft] = useState<{ patientId: string; date: string; values: ExamVitalSigns } | null>(null);
+  const medicalCaptureRef = React.useRef<HTMLDivElement>(null);
+  const [medicalSaving, setMedicalSaving] = useState(false);
+  const [medicalSaved, setMedicalSaved] = useState(false);
+  const [newMedicalTime, setNewMedicalTime] = useState(() => { const now = new Date(); return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`; });
+  const medicalFields = medicalDraft?.patientId === selectedPatient?.id && medicalDraft
+    ? medicalDraft : { patientId: selectedPatient?.id || '', date: localExamDate(), values: {examTime:newMedicalTime} };
+  React.useEffect(() => { setMedicalDraft(null); setMedicalSaved(false); const now = new Date(); setNewMedicalTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`); }, [selectedPatientId]);
+  const saveMedicalFields = async () => {
+    if (!selectedPatient || medicalSaving) return;
+    setMedicalSaving(true);
+    try {
+      validateExamDate(medicalFields.date);
+      await saveClinicalPanel(selectedPatient.id, 'medical', medicalFields.date, { medicalVitalSigns: { ...medicalFields.values } }, medicalCaptureRef.current);
+      const fresh=freshMeasurementSession();
+      setMedicalDraft({patientId:selectedPatient.id,date:fresh.date,values:fresh.values});
+      setMedicalSaved(true);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Não foi possível salvar os sinais vitais.');
+    } finally { setMedicalSaving(false); }
+  };
+
 
   const handleCreatePatient = (e: React.FormEvent) => {
     e.preventDefault();
@@ -359,8 +403,8 @@ export const PatientList: React.FC = () => {
     .filter(a => a.patientId === selectedPatientId)
     .sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`));
   const patientPrescriptions = prescriptions.filter(r => r.patientId === selectedPatientId);
-  const patientDocs = savedClinicDocuments ? savedClinicDocuments.filter(doc => 
-    doc.patientId === selectedPatientId || 
+  const patientDocs = savedClinicDocuments ? savedClinicDocuments.filter(doc =>
+    doc.patientId === selectedPatientId ||
     (selectedPatient && doc.patientName && doc.patientName.toLowerCase().trim() === selectedPatient.name.toLowerCase().trim())
   ).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()) : [];
 
@@ -443,7 +487,7 @@ export const PatientList: React.FC = () => {
                             gender: 'masculino',
                             healthInsurance: 'Particular',
                             address: { street: 'Rua', number: '100', neighborhood: 'Centro', city: 'São Paulo', state: 'SP', cep: '01000-000' },
-                            anamnesis: { hasAllergies: false, hasHeartDisease: false, hasDiabetes: false, hasHypertension: false, bleedingDisorder: false },
+                            anamnesis: { hasAllergies: false, hasHeartDisease: false, hasDiabetes: false, hasHypertension: false, bleedingDisorder: false, isPregnant: false },
                             status: 'ativo'
                           });
                           count++;
@@ -462,7 +506,7 @@ export const PatientList: React.FC = () => {
 
       {/* Main Grid View (Left: Patient List, Right: Patient Profile / Odontogram) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
+
         {/* Patient Directory Sidebar / List */}
         <div className={`lg:col-span-4 ${t.cardBg} border ${t.cardBorder} rounded-[32px] p-5 shadow-sm space-y-4`}>
           {/* Search & Filter */}
@@ -482,8 +526,8 @@ export const PatientList: React.FC = () => {
               <span>{filteredPatients.length} pacientes encontrados</span>
               <div className="flex items-center gap-1">
                 <Filter className={`w-3 h-3 ${t.accentText}`} />
-                <select 
-                  value={filterInsurance} 
+                <select
+                  value={filterInsurance}
                   onChange={(e) => setFilterInsurance(e.target.value)}
                   className={`${t.inputBg} text-[11px] rounded-lg px-2 py-0.5 focus:outline-none`}
                 >
@@ -507,8 +551,8 @@ export const PatientList: React.FC = () => {
                   onClick={() => setSelectedPatientId(p.id)}
                   className={`
                     p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3
-                    ${isSelected 
-                      ? `${t.btnPrimaryBg} ${t.btnPrimaryText} shadow-xs border-transparent` 
+                    ${isSelected
+                      ? `${t.btnPrimaryBg} ${t.btnPrimaryText} shadow-xs border-transparent`
                       : `${t.cardBg} ${t.cardBorder} ${t.cardText} hover:opacity-90`}
                   `}
                 >
@@ -523,7 +567,7 @@ export const PatientList: React.FC = () => {
                     <div className="overflow-hidden">
                       <div className="flex items-center gap-1.5">
                         <h4 className={`font-bold text-xs truncate ${isSelected ? 'text-white' : t.headingText}`}>{p.name}</h4>
-                        {hasAlert && <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" title="Alerta em Anamnese!" />}
+                        {hasAlert && <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" aria-label="Alerta em Anamnese!"><title>Alerta em Anamnese!</title></AlertTriangle>}
                       </div>
                       <p className={`text-[11px] font-mono truncate ${isSelected ? 'opacity-90' : 'text-gray-500'}`}>
                         {p.phone} • {p.preferredClinicName || p.healthInsurance || 'Particular'}
@@ -585,6 +629,8 @@ export const PatientList: React.FC = () => {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Nome Completo:</span>
                         <h2 className={`text-lg font-bold ${t.headingText}`}>{selectedPatient.name}</h2>
+                        {selectedPatient.modifiedBy && <span className="text-[10px] text-stone-500">Última alteração por {selectedPatient.modifiedBy.professionalName} em {new Date(selectedPatient.modifiedBy.at).toLocaleString('pt-BR')}</span>}
+                        {auditError && <span role="status" className="text-xs text-amber-700">{auditError}</span>}
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${t.btnSecondaryBg} ${t.btnSecondaryText} border ${t.cardBorder}`}>
                           {selectedPatient.status}
                         </span>
@@ -744,13 +790,13 @@ export const PatientList: React.FC = () => {
                     className={`px-4 py-2 rounded-2xl font-bold transition flex items-center gap-1.5 cursor-pointer ${activeProfileTab === 'galeria' ? `${t.btnPrimaryBg} ${t.btnPrimaryText}` : `${t.btnSecondaryBg} ${t.btnSecondaryText} hover:opacity-80`}`}
                   >
                     <ImageIcon className="w-4 h-4" />
-                    Arquivos ({(selectedPatient.images || []).length})
+                    Arquivos ({(selectedPatient.images || []).length + (selectedPatient.files || []).length})
                   </button>
                 </div>
 
                 {/* Tab Content 1: Ficha & Anamnese */}
                 {activeProfileTab === 'info' && (
-                  <div className="space-y-5 pt-2">
+                  <div ref={medicalCaptureRef} inert={medicalSaving} className="space-y-5 pt-2">
                     {/* Comprehensive Medical and Dental Anamnesis Box */}
                     <div className={`${t.cardBg} p-5 rounded-3xl border ${t.cardBorder} space-y-4 shadow-2xs`}>
                       <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b ${t.cardBorder} pb-3`}>
@@ -762,6 +808,11 @@ export const PatientList: React.FC = () => {
                           <p className="text-xs opacity-75">Estado de saúde geral, hábitos e queixas específicas do paciente.</p>
                         </div>
 
+                        <div data-pdf-ignore className="flex flex-wrap items-center gap-2">
+                          <button type="button" disabled={medicalSaving} onClick={saveMedicalFields}
+                            className={`px-4 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold rounded-2xl flex items-center gap-1.5 shadow-2xs transition cursor-pointer self-start sm:self-auto`}>
+                            <Save className="w-4 h-4" /> Salvar
+                          </button>
                         <button
                           onClick={() => setIsAnamnesisModalOpen(true)}
                           className={`px-4 py-2 ${t.btnPrimaryBg} ${t.btnPrimaryText} text-xs font-bold rounded-2xl flex items-center gap-1.5 shadow-2xs transition cursor-pointer self-start sm:self-auto`}
@@ -769,21 +820,31 @@ export const PatientList: React.FC = () => {
                           <Stethoscope className="w-4 h-4" />
                           Preencher / Editar Prontuário Médico
                         </button>
+                          {medicalSaved && <span role="status" className="text-xs text-emerald-700">Salvo.</span>}
+                        </div>
                       </div>
-                      
+
+                    <ExamMeasurements disabled={medicalSaving} onReset={()=>{const fresh=freshMeasurementSession();setMedicalDraft({patientId:selectedPatient.id,date:fresh.date,values:fresh.values});setMedicalSaved(false);}}
+                      date={medicalFields.date}
+                      onDateChange={date => { setMedicalDraft({ ...medicalFields, date }); setMedicalSaved(false); }}
+                      values={medicalFields.values}
+                      onChange={values => { setMedicalDraft({ ...medicalFields, values }); setMedicalSaved(false); }}
+                    />
+
+                      <p className="p-3 rounded-xl border text-sm">Medicação atual: <strong>{medicationSummary(selectedPatient.anamnesis)}</strong></p>
                       {/* Safety Alerts Summary */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                         <div className={`p-2.5 rounded-xl border ${selectedPatient.anamnesis?.hasAllergies ? 'bg-rose-50 border-rose-200 text-rose-800 font-bold' : `${t.cardBg} ${t.cardBorder} ${t.cardText}`}`}>
-                          Alergias: <strong>{selectedPatient.anamnesis?.hasAllergies ? 'SIM' : 'Não'}</strong>
+                          Alergias: <strong>{selectedPatient.anamnesis?.hasAllergies === true ? 'SIM' : selectedPatient.anamnesis?.hasAllergies === false ? 'Não' : 'Não informado'}</strong>
                         </div>
                         <div className={`p-2.5 rounded-xl border ${selectedPatient.anamnesis?.usesBisphosphonates ? 'bg-rose-50 border-rose-300 text-rose-900 font-bold' : `${t.cardBg} ${t.cardBorder} ${t.cardText}`}`}>
-                          Bisfosfonatos: <strong>{selectedPatient.anamnesis?.usesBisphosphonates ? 'SIM' : 'Não'}</strong>
+                          Bisfosfonatos: <strong>{selectedPatient.anamnesis?.usesBisphosphonates === true ? 'SIM' : selectedPatient.anamnesis?.usesBisphosphonates === false ? 'Não' : 'Não informado'}</strong>
                         </div>
                         <div className={`p-2.5 rounded-xl border ${selectedPatient.anamnesis?.hasDiabetes ? 'bg-amber-50 border-amber-200 text-amber-800 font-bold' : `${t.cardBg} ${t.cardBorder} ${t.cardText}`}`}>
-                          Diabetes: <strong>{selectedPatient.anamnesis?.hasDiabetes ? 'SIM' : 'Não'}</strong>
+                          Diabetes: <strong>{selectedPatient.anamnesis?.hasDiabetes === true ? 'SIM' : selectedPatient.anamnesis?.hasDiabetes === false ? 'Não' : 'Não informado'}</strong>
                         </div>
                         <div className={`p-2.5 rounded-xl border ${selectedPatient.anamnesis?.hasHypertension ? 'bg-amber-50 border-amber-200 text-amber-800 font-bold' : `${t.cardBg} ${t.cardBorder} ${t.cardText}`}`}>
-                          Hipertensão: <strong>{selectedPatient.anamnesis?.hasHypertension ? 'SIM' : 'Não'}</strong>
+                          Hipertensão: <strong>{selectedPatient.anamnesis?.hasHypertension === true ? 'SIM' : selectedPatient.anamnesis?.hasHypertension === false ? 'Não' : 'Não informado'}</strong>
                         </div>
                       </div>
 
@@ -903,36 +964,13 @@ export const PatientList: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Contact & Personal Data */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                      <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-2`}>
-                        <span className="opacity-60 font-bold uppercase tracking-wider block text-[10px]">Contato</span>
-                        <p className={`flex items-center gap-2 ${t.cardText}`}><Phone className={`w-3.5 h-3.5 ${t.accentText}`} /> {formatPhoneWithDDI(selectedPatient.phone)}</p>
-                        <p className={`flex items-center gap-2 ${t.cardText}`}><Mail className={`w-3.5 h-3.5 ${t.accentText}`} /> {selectedPatient.email || 'Não informado'}</p>
-                      </div>
 
-                      <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-2`}>
-                        <span className="opacity-60 font-bold uppercase tracking-wider block text-[10px]">Endereço</span>
-                        <p className={t.cardText}>
-                          {selectedPatient.address?.street || 'Rua não informada'}, {selectedPatient.address?.number || 'S/N'} - {selectedPatient.address?.neighborhood || ''}
-                        </p>
-                        <p className="opacity-75">{selectedPatient.address?.city || 'Cidade não informada'} - {selectedPatient.address?.state || ''} ({selectedPatient.address?.cep || ''})</p>
-                      </div>
-
-                      <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-2`}>
-                        <span className="opacity-60 font-bold uppercase tracking-wider block text-[10px]">Plano & Convênio</span>
-                        <p className={`font-bold ${t.headingText}`}>{selectedPatient.healthInsurance || 'Particular'}</p>
-                        <p className="opacity-75">
-                          Carteirinha: <span className="font-mono">{(!selectedPatient.healthInsurance || selectedPatient.healthInsurance === 'Particular') ? 'Não aplicável (Particular)' : (selectedPatient.insuranceNumber || 'Não informada')}</span>
-                        </p>
-                      </div>
-                    </div>
                   </div>
                 )}
 
                 {/* Tab Content 1.2: Exame Clínico */}
                 {activeProfileTab === 'exame_clinico' && (
-                  <ClinicalExamView patientIdOverride={selectedPatient.id} />
+                  <ClinicalExamView key={selectedPatient.id} patientIdOverride={selectedPatient.id} />
                 )}
 
                 {/* Tab Content 1.5: Plano de Tratamento */}
@@ -942,8 +980,8 @@ export const PatientList: React.FC = () => {
 
                 {/* Tab Content 3: Evolução Clínica */}
                 {activeProfileTab === 'evolucao' && (
-                  <ClinicalEvolution 
-                    patientId={selectedPatient.id} 
+                  <ClinicalEvolution
+                    patientId={selectedPatient.id}
                     onOpenReport={() => setIsReportModalOpen(true)}
                   />
                 )}
@@ -1024,15 +1062,15 @@ export const PatientList: React.FC = () => {
                     ) : (
                       patientDocs.map(doc => {
                         const dateStr = doc.formattedDateStr || doc.createdAt?.split('T')[0] || '';
-                        
+
                         const handleWhatsApp = (e: React.MouseEvent) => {
                           e.stopPropagation();
                           const phoneDigits = selectedPatient?.phone ? selectedPatient.phone.replace(/\D/g, '') : '';
                           const cleanPhone = phoneDigits.length === 11 || phoneDigits.length === 10 ? `55${phoneDigits}` : phoneDigits;
-                          
+
                           const msgText = `Olá ${selectedPatient?.name || ''}, segue a sua ${doc.title} emitida em ${dateStr}.\n\n📄 *Documento:* ${doc.title}\n👨‍⚕️ *Profissional:* ${doc.professionalName || ''}\n📝 *Resumo:* ${doc.summary || doc.subtitle || ''}\n\n📌 *Arquivo Anexo:* ${doc.title.replace(/\s+/g, '_')}.pdf`;
-                          
-                          const waUrl = cleanPhone 
+
+                          const waUrl = cleanPhone
                             ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msgText)}`
                             : `https://wa.me/?text=${encodeURIComponent(msgText)}`;
 
@@ -1056,6 +1094,11 @@ export const PatientList: React.FC = () => {
 
                         const handlePrint = (e: React.MouseEvent) => {
                           e.stopPropagation();
+                          if(doc.templateId === 'prontuario_medico_anamnese') {
+                            try { void exportAnamnesisPdf(archivedAnamnesisInput(doc,clinicInfo),'preview').catch(error=>window.alert(error.message)); }
+                            catch(error){window.alert(error instanceof Error ? error.message : 'Prontuário arquivado inválido.');}
+                            return;
+                          }
                           if (selectedPatient) {
                             setSelectedPatientId(selectedPatient.id);
                           }
@@ -1077,8 +1120,8 @@ export const PatientList: React.FC = () => {
                         };
 
                         return (
-                          <div 
-                            key={doc.id} 
+                          <div
+                            key={doc.id}
                             onClick={handleOpenDocShortcut}
                             className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-3 text-xs transition cursor-pointer shadow-2xs hover:shadow-md group`}
                           >
@@ -1125,6 +1168,7 @@ export const PatientList: React.FC = () => {
                                   <Send className="w-3.5 h-3.5 text-white" />
                                   <span>WhatsApp</span>
                                 </button>
+                                <button type="button" onClick={e=>{e.stopPropagation();deleteSavedClinicDocument(doc.id);}} className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl cursor-pointer" title="Mover documento para a lixeira"><Trash2 className="w-4 h-4" /></button>
                               </div>
                             </div>
                           </div>
@@ -1137,10 +1181,12 @@ export const PatientList: React.FC = () => {
                 {/* Tab Content 7: Galeria Unificada de Fotos & Mídia do Prontuário */}
                 {activeProfileTab === 'galeria' && (
                   <div className="space-y-4 pt-2">
+                    <ClinicalReportsGallery reports={selectedPatient.clinicalReports} />
                     <ImageGalleryWithEditor
                       key={selectedPatient.id}
-                      title="Galeria Unificada do Prontuário"
+                      title="Galeria do Prontuário"
                       description="Banco de imagens centralizado deste paciente. Fotos de exames clínicos (extraoral, intraoral, odontograma), radiografias e procedimentos realizados são compartilhados e persistem neste prontuário."
+                      files={selectedPatient.files || []}
                       images={selectedPatient.images || []}
                       onUpdateImages={(newImgs) => updatePatient(selectedPatient.id, { images: newImgs })}
                     />
@@ -1368,7 +1414,7 @@ export const PatientList: React.FC = () => {
               {/* Anamnesis Quick Toggles */}
               <div className={`${t.cardBg} p-4 rounded-2xl border ${t.cardBorder} space-y-3`}>
                 <h4 className={`text-xs font-bold ${t.modalText} uppercase tracking-wider`}>Anamnese de Saúde Rápida</h4>
-                
+
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -1464,14 +1510,7 @@ export const PatientList: React.FC = () => {
           patient={selectedPatient}
           isOpen={isAnamnesisModalOpen}
           onClose={() => setIsAnamnesisModalOpen(false)}
-          onSave={(updatedAnamnesis) => {
-            updatePatient(selectedPatient.id, {
-              anamnesis: updatedAnamnesis,
-              gender: updatedAnamnesis.gender || selectedPatient.gender,
-              ethnicity: updatedAnamnesis.ethnicity || selectedPatient.ethnicity,
-              profession: updatedAnamnesis.profession || selectedPatient.profession,
-            });
-          }}
+          onSave={(updatedAnamnesis, doc) => savePatientMedicalHistory(selectedPatient.id, selectedPatient.anamnesis, updatedAnamnesis, doc)}
         />
       )}
       {/* Patient Photo Camera Modal */}
@@ -1827,3 +1866,4 @@ export const PatientList: React.FC = () => {
     </div>
   );
 };
+// DentisPro: correcao-lint50-v1

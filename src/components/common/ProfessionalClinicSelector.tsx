@@ -98,7 +98,7 @@ export const ProfessionalClinicSelector: React.FC<ProfessionalClinicSelectorProp
               ))}
             </select>
           </div>
-          <Lock className="w-3.5 h-3.5 text-white/40 shrink-0" title="Troca protegida por senha" />
+          <Lock className="w-3.5 h-3.5 text-white/40 shrink-0" aria-label="Troca protegida por senha"><title>Troca protegida por senha</title></Lock>
         </div>
 
         {/* Clinic Select */}
@@ -305,3 +305,4 @@ export const ProfessionalClinicSelector: React.FC<ProfessionalClinicSelectorProp
     </div>
   );
 };
+// DentisPro: correcao-lint50-v1
